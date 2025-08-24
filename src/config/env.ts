@@ -6,13 +6,6 @@ export const config = {
   appName: 'YantraDaan',
   appVersion: '1.0.0',
   
-  // Feature Flags
-  features: {
-    emailNotifications: true,
-    fileUpload: true,
-    analytics: false,
-  },
-  
   // Pagination
   pagination: {
     defaultPageSize: 10,
@@ -25,11 +18,13 @@ export const config = {
     allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
   },
   
-  // Email Configuration
+  // Email Configuration DISABLED - All email functionality commented out
+  /*
   email: {
     supportEmail: 'support@yantradaan.com',
     noreplyEmail: 'noreply@yantradaan.com',
   },
+  */
   
   // Development
   isDevelopment: import.meta.env.DEV,

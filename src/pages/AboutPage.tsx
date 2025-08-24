@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import Gallery from "@/components/Gallery";
 import { Heart, Users, Globe, Award, User, Loader2 } from "lucide-react";
+import NoDataFound from "@/components/NoDataFound";
 
 const AboutPage = () => {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -170,13 +171,12 @@ const AboutPage = () => {
             </div>
           </div>
         ) : teamMembers.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-center">
-              <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No team members found</h3>
-              <p className="text-gray-500">Our team information is being updated.</p>
-            </div>
-          </div>
+          <NoDataFound
+            title="No team members found"
+            description="Our team information is being updated."
+            imageType="users"
+            variant="full"
+          />
         ) : (
           <div className="grid md:grid-cols-3 gap-8">
             {teamMembers

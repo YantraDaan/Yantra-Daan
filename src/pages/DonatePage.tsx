@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,13 @@ const DonatePage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Read URL parameters
+  const urlId = searchParams.get('id');
+  const urlName = searchParams.get('name');
+  const urlEmail = searchParams.get('email');
+  const urlRole = searchParams.get('role');
   
   const [currentStep, setCurrentStep] = useState(1);
   const [donorType, setDonorType] = useState<"individual" | "organization" | null>(null);

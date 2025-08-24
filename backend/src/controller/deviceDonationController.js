@@ -1,6 +1,6 @@
 const DeviceModel = require('../models/Device');
 const UserModel = require('../models/UserModels');
-const emailService = require('../utils/emailService');
+// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
 
 // Create a new device donation post
 const createDeviceDonation = async (req, res) => {
@@ -44,6 +44,8 @@ const createDeviceDonation = async (req, res) => {
     // Populate owner info for notifications
     await device.populate('ownerInfo');
 
+    // EMAIL NOTIFICATIONS DISABLED - Admin notifications commented out
+    /*
     // Send notification to all admin users
     const adminUsers = await UserModel.find({ userRole: 'admin' });
     
@@ -54,6 +56,7 @@ const createDeviceDonation = async (req, res) => {
         req.user.toObject()
       );
     }
+    */
 
     res.status(201).json({
       message: 'Device donation submitted successfully and is pending admin approval',
@@ -176,6 +179,8 @@ const updateUserDeviceDonation = async (req, res) => {
     Object.assign(device, req.body);
     await device.save();
 
+    // EMAIL NOTIFICATIONS DISABLED - Admin notifications commented out
+    /*
     // If status changed to pending, notify admins
     if (device.status === 'pending') {
       const adminUsers = await UserModel.find({ userRole: 'admin' });
@@ -188,6 +193,7 @@ const updateUserDeviceDonation = async (req, res) => {
         );
       }
     }
+    */
 
     res.json({
       message: 'Device donation updated successfully',
@@ -293,6 +299,8 @@ const updateDeviceDonationStatus = async (req, res) => {
 
     await device.save();
 
+    // EMAIL NOTIFICATIONS DISABLED - Device status notifications commented out
+    /*
     // Send notification to device owner
     if (status === 'approved') {
       await emailService.notifyDeviceApproved(
@@ -307,6 +315,7 @@ const updateDeviceDonationStatus = async (req, res) => {
         rejectionReason
       );
     }
+    */
 
     res.json({
       message: `Device donation ${status} successfully`,

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../contexts/AuthContext';
+import NoDataFound from './NoDataFound';
 import { 
   UserPlus, 
   Users, 
@@ -53,7 +54,9 @@ const TeamMemberManagement = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showMemberDetails, setShowMemberDetails] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [selectedMemberForDetails, setSelectedMemberForDetails] = useState<TeamMember | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const membersPerPage = 12;
 
@@ -241,6 +244,11 @@ const TeamMemberManagement = () => {
     }
   };
 
+  const handleShowMemberDetails = (member: TeamMember) => {
+    setSelectedMemberForDetails(member);
+    setShowMemberDetails(true);
+  };
+
   const filteredMembers = teamMembers.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -341,13 +349,12 @@ const TeamMemberManagement = () => {
           </div>
         </div>
       ) : filteredMembers.length === 0 ? (
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-          <CardContent className="p-12 text-center">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No team members found</h3>
-            <p className="text-gray-500">Get started by adding your first team member.</p>
-          </CardContent>
-        </Card>
+        <NoDataFound
+          title="No team members found"
+          description="Get started by adding your first team member."
+          imageType="users"
+          variant="full"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member) => (
@@ -399,6 +406,17 @@ const TeamMemberManagement = () => {
                   
                   {/* Actions */}
                   <div className="flex justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                                              onClick={() => handleShowMemberDetails(member)}
+                      className="border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Details
+                    </Button>
+                    
                     <Button
                       variant="outline"
                       size="sm"
@@ -617,6 +635,116 @@ const TeamMemberManagement = () => {
                   variant="outline"
                   onClick={() => setShowViewDialog(false)}
                   className="border-gray-200 hover:border-gray-300"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Member Details Dialog */}
+      <Dialog open={showMemberDetails} onOpenChange={setShowMemberDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Team Member Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedMemberForDetails && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Name</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedMemberForDetails.name}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Email</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedMemberForDetails.email}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Contact</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedMemberForDetails.contact}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Role</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Shield className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedMemberForDetails.role}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Bio */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Biography</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 leading-relaxed">{selectedMemberForDetails.bio}</p>
+                </CardContent>
+              </Card>
+
+              {/* Status & Join Date */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Account Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Status</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        {selectedMemberForDetails.status === 'active' ? (
+                          <UserCheck className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <UserX className="w-4 h-4 text-red-600" />
+                        )}
+                        <Badge variant={selectedMemberForDetails.status === 'active' ? 'default' : 'secondary'}>
+                          {selectedMemberForDetails.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Joined</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">
+                          {new Date(selectedMemberForDetails.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowMemberDetails(false)}
                 >
                   Close
                 </Button>

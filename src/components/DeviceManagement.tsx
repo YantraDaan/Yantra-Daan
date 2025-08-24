@@ -24,7 +24,13 @@ import {
   Monitor,
   Tablet,
   Printer,
-  Package
+  Package,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  GraduationCap
 } from "lucide-react";
 import NoDataFound from './NoDataFound';
 
@@ -54,6 +60,8 @@ const DeviceManagement = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDonorDetails, setShowDonorDetails] = useState(false);
+  const [selectedDonor, setSelectedDonor] = useState(null);
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
@@ -168,9 +176,9 @@ const DeviceManagement = () => {
     }
   };
 
-  const deleteDevice = async (deviceId: string) => {
+    const deleteDevice = async (deviceId: string) => {
     if (!confirm('Are you sure you want to delete this device?')) return;
-
+    
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/devices/${deviceId}`, {
@@ -195,6 +203,11 @@ const DeviceManagement = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleShowDonorDetails = (donor) => {
+    setSelectedDonor(donor);
+    setShowDonorDetails(true);
   };
 
   const getDeviceTypeIcon = (type: string) => {
@@ -331,8 +344,19 @@ const DeviceManagement = () => {
                     </Badge>
                   </div>
                   
-                  <div className="text-sm text-muted-foreground">
-                    <strong>Donor:</strong> {device.ownerInfo.name} ({device.ownerInfo.email})
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Donor:</strong> {device.ownerInfo.name} ({device.ownerInfo.email})
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                                              onClick={() => handleShowDonorDetails(device.ownerInfo)}
+                      className="h-8 px-2"
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      Details
+                    </Button>
                   </div>
                 </div>
 
@@ -342,8 +366,9 @@ const DeviceManagement = () => {
                       <Button
                         onClick={() => updateDeviceStatus(device._id, 'approved')}
                         className="bg-green-600 hover:bg-green-700"
+                        size="sm"
                       >
-                        <CheckCircle className="w-4 h-4 mr-2" />
+                        <CheckCircle className="w-3 h-3 mr-1" />
                         Approve
                       </Button>
                       <Button
@@ -352,8 +377,9 @@ const DeviceManagement = () => {
                           setShowRejectDialog(true);
                         }}
                         variant="destructive"
+                        size="sm"
                       >
-                        <XCircle className="w-4 h-4 mr-2" />
+                        <XCircle className="w-3 h-3 mr-1" />
                         Reject
                       </Button>
                     </>
@@ -371,8 +397,9 @@ const DeviceManagement = () => {
                       setShowEditDialog(true);
                     }}
                     variant="outline"
+                    size="sm"
                   >
-                    <Edit className="w-4 h-4 mr-2" />
+                    <Edit className="w-3 h-3 mr-1" />
                     Edit
                   </Button>
                   
@@ -380,8 +407,9 @@ const DeviceManagement = () => {
                     onClick={() => deleteDevice(device._id)}
                     variant="outline"
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    size="sm"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-3 h-3 mr-1" />
                     Delete
                   </Button>
                 </div>
@@ -584,6 +612,101 @@ const DeviceManagement = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Donor Details Dialog */}
+      <Dialog open={showDonorDetails} onOpenChange={setShowDonorDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Donor Information
+            </DialogTitle>
+          </DialogHeader>
+          {selectedDonor && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Name</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.name || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Email</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    <span className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.email || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Contact</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.contact || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">User Type</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    {selectedDonor.isOrganization ? (
+                      <Building2 className="w-4 h-4 text-gray-400" />
+                    ) : (
+                      <GraduationCap className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="font-medium">
+                      {selectedDonor.isOrganization ? 'Organization' : 'Individual'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              {selectedDonor.profession && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Profession</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{selectedDonor.profession}</span>
+                  </div>
+                </div>
+              )}
+
+              {selectedDonor.address && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Address</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.address}</span>
+                  </div>
+                </div>
+              )}
+
+              {selectedDonor.about && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">About</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm leading-relaxed">{selectedDonor.about}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDonorDetails(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
