@@ -34,6 +34,7 @@ import {
   XCircle,
   Camera
 } from "lucide-react";
+import { config } from "@/config/env";
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
@@ -129,7 +130,7 @@ const ProfilePage = () => {
 
       if (user?.userRole === 'donor') {
         // Fetch donor's device donations
-        const donationsResponse = await fetch('http://localhost:5000/api/devices/my', {
+        const donationsResponse = await fetch(`${config.apiUrl}${config.endpoints.devices}/my`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -143,7 +144,7 @@ const ProfilePage = () => {
           const requestsData = {};
           for (const device of donationsData.devices || []) {
             try {
-              const requestsResponse = await fetch(`http://localhost:5000/api/device-requests/device/${device._id}`, {
+              const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/device/${device._id}`, {
                 headers: {
                   'Authorization': `Bearer ${token}`
                 }
@@ -180,7 +181,7 @@ const ProfilePage = () => {
         }
       } else if (user?.userRole === 'requester' || user?.userRole === 'student') {
         // Fetch requester's requests
-        const requestsResponse = await fetch('http://localhost:5000/api/device-requests/my', {
+        const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/my`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -250,7 +251,7 @@ const ProfilePage = () => {
       }
       
       // Update profile data
-      const response = await fetch(`http://localhost:5000/api/users/profile`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -374,7 +375,7 @@ const ProfilePage = () => {
   const handleCancelRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/my/${requestId}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/my/${requestId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -407,7 +408,7 @@ const ProfilePage = () => {
   const handleApproveRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/admin/${requestId}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -445,7 +446,7 @@ const ProfilePage = () => {
   const handleRejectRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/admin/${requestId}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

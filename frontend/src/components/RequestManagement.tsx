@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Gift, Users, Mail, Phone, Calendar, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { config } from "@/config/env";
 
 interface RequestItem {
   _id: string;
@@ -73,7 +74,7 @@ const RequestManagement = () => {
         limit: requestsPerPage.toString(),
         status: statusFilter !== 'all' ? statusFilter : ''
       });
-      const response = await fetch(`http://localhost:5000/api/device-requests/admin/all?${params}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/all?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to fetch requests');
@@ -113,7 +114,7 @@ const RequestManagement = () => {
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/device-requests/admin/${selectedRequest._id}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${selectedRequest._id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

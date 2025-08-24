@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, MapPin, Laptop, Smartphone, Tablet, Gift, Camera, Building2, User, Calendar, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { config } from "@/config/env";
 
 const DonatePage = () => {
   const { toast } = useToast();
@@ -145,13 +146,13 @@ const DonatePage = () => {
         isOrganizationDonation: personalInfo.organizationName ? true : false
       };
 
-      const response = await fetch('http://localhost:5000/api/device-donations', {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.donations}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(deviceData)
+        body: JSON.stringify(deviceData),
       });
 
       if (response.ok) {

@@ -38,6 +38,7 @@ import {
   GraduationCap,
   User
 } from "lucide-react";
+import { config } from "@/config/env";
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -87,10 +88,11 @@ const AdminPage = () => {
       setIsLoading(true);
       
       // Fetch dashboard statistics
-      const statsResponse = await fetch('http://localhost:5000/api/device-donations/stats', {
+      const token = localStorage.getItem('authToken');
+      const statsResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/stats`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+          'Authorization': `Bearer ${token}`,
+        },
       });
       
       if (statsResponse.ok) {
@@ -106,10 +108,10 @@ const AdminPage = () => {
       }
       
       // Fetch recent donations
-      const donationsResponse = await fetch('http://localhost:5000/api/device-donations/recent', {
+      const donationsResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/recent`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+          'Authorization': `Bearer ${token}`,
+        },
       });
       
       if (donationsResponse.ok) {
@@ -118,10 +120,10 @@ const AdminPage = () => {
       }
       
       // Fetch pending devices
-      const pendingResponse = await fetch('http://localhost:5000/api/device-donations/pending', {
+      const pendingResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/pending`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+          'Authorization': `Bearer ${token}`,
+        },
       });
       
       if (pendingResponse.ok) {

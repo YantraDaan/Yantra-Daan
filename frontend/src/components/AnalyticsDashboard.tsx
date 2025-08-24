@@ -38,6 +38,7 @@ import {
   Calendar,
   Activity
 } from "lucide-react";
+import { config } from "@/config/env";
 
 interface DashboardStats {
   totalUsers: number;
@@ -87,7 +88,7 @@ const AnalyticsDashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/device-donations/stats?days=${timeRange}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.donations}/stats?days=${timeRange}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
