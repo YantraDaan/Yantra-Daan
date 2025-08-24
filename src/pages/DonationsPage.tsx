@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import NoDataFound from "@/components/NoDataFound";
 
 const DonationsPage = () => {
   const { toast } = useToast();
@@ -145,13 +146,12 @@ const DonationsPage = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-12 h-12 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No items found</h3>
-            <p className="text-gray-600">Try adjusting your search filters to find more items.</p>
-          </div>
+          <NoDataFound
+            title="No items found"
+            description="Try adjusting your search filters to find more items."
+            imageType="devices"
+            variant="full"
+          />
         )}
 
         {/* Note about Supabase */}

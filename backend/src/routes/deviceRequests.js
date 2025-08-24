@@ -3,7 +3,7 @@ const DeviceRequestModel = require('../models/DeviceRequest');
 const DeviceModel = require('../models/Device');
 const UserModel = require('../models/UserModels');
 const { auth, requireRole } = require('../middleware/auth');
-const emailService = require('../utils/emailService');
+// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
 
 const router = Router();
 
@@ -54,6 +54,8 @@ router.post('/', auth, async (req, res) => {
     await request.populate('deviceInfo', 'title deviceType condition ownerId');
     await request.populate('requesterInfo', 'name email contact');
 
+    // EMAIL NOTIFICATIONS DISABLED - Device owner notification commented out
+    /*
     // Send notification to device owner
     if (device.ownerInfo && device.ownerInfo.email) {
       await emailService.sendEmail({
@@ -96,13 +98,6 @@ router.post('/', auth, async (req, res) => {
             <h2 style="color: #059669;">📱 New Device Request</h2>
             <p>A new device request requires your review.</p>
             
-            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #166534;">Device Details:</h3>
-              <p><strong>Title:</strong> ${device.title}</p>
-              <p><strong>Type:</strong> ${device.deviceType}</p>
-              <p><strong>Condition:</strong> ${device.condition}</p>
-            </div>
-            
             <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #92400e;">Requester Information:</h3>
               <p><strong>Name:</strong> ${req.user.name}</p>
@@ -117,6 +112,7 @@ router.post('/', auth, async (req, res) => {
         `
       });
     }
+    */
 
     res.status(201).json({
       message: 'Device request submitted successfully',
@@ -238,6 +234,8 @@ router.put('/admin/:id/status', auth, async (req, res) => {
 
     await request.save();
 
+    // EMAIL NOTIFICATIONS DISABLED - Status change notifications commented out
+    /*
     // Send notifications
     if (status === 'approved') {
       // Notify requester
@@ -262,6 +260,7 @@ router.put('/admin/:id/status', auth, async (req, res) => {
         html: emailService.emailTemplates.requestRejected(request.toObject())
       });
     }
+    */
 
     res.json({
       message: `Device request ${status} successfully`,

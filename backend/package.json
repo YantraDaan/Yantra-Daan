@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "node test-api.js",
     "lint": "echo \"No linter configured for backend\""
   },
   "dependencies": {

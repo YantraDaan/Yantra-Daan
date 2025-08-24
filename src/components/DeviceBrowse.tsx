@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../contexts/AuthContext';
+import NoDataFound from './NoDataFound';
 
 interface Device {
   _id: string;
@@ -300,11 +301,12 @@ const DeviceBrowse: React.FC = () => {
 
       {/* Devices Grid */}
       {devices.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">📱</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No devices found</h3>
-          <p className="text-gray-600">Try adjusting your search criteria or check back later for new donations.</p>
-        </div>
+          <NoDataFound
+            title="No devices found"
+            description="Try adjusting your search criteria or check back later for new donations."
+            imageType="devices"
+            variant="full"
+          />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {devices.map((device) => (

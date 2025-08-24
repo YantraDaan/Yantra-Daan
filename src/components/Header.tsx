@@ -90,15 +90,16 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated && user ? (
               <>
-                {/* Show Profile button only for non-admin users */}
+                {/* Profile Button */}
                 {user.userRole !== 'admin' && (
-                  <Link to="/profile">
+                  <Link to={`/profile?id=${user.id}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&role=${user.userRole}`}>
                     <Button variant="outline" size="sm">
                       <User className="w-4 h-4 mr-2" />
                       Profile
                     </Button>
                   </Link>
                 )}
+                
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -180,15 +181,16 @@ const Header = () => {
               <div className="flex flex-col space-y-2 px-4 pt-4 border-t border-gray-100">
                 {isAuthenticated && user ? (
                   <>
-                    {/* Show Profile button only for non-admin users */}
+                    {/* Profile Button for Mobile */}
                     {user.userRole !== 'admin' && (
-                      <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
+                      <Link to={`/profile?id=${user.id}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&role=${user.userRole}`} onClick={() => setIsMenuOpen(false)}>
                         <Button variant="outline" className="w-full">
                           <User className="w-4 h-4 mr-2" />
                           Profile
                         </Button>
                       </Link>
                     )}
+                    
                     <Button 
                       variant="outline" 
                       className="w-full"

@@ -1,3 +1,6 @@
+// EMAIL SERVICE DISABLED - ALL EMAIL FUNCTIONALITY COMMENTED OUT
+
+/*
 const nodemailer = require('nodemailer');
 
 // Create transporter using SMTP
@@ -179,6 +182,28 @@ const emailTemplates = {
       </p>
     </div>
   `
+};
+
+module.exports = {
+  sendEmail,
+  emailTemplates
+};
+*/
+
+// Mock email service functions that do nothing
+const sendEmail = async (emailData) => {
+  console.log('EMAIL DISABLED - Would have sent email to:', emailData.to);
+  console.log('Subject:', emailData.subject);
+  return { success: true, messageId: 'mock-email-id' };
+};
+
+const emailTemplates = {
+  newDevicePost: () => '',
+  devicePostApproved: () => '',
+  devicePostRejected: () => '',
+  requestApproved: () => '',
+  requestRejected: () => '',
+  requestApprovedToOwner: () => ''
 };
 
 module.exports = {

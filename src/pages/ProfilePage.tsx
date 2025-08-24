@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import NoDataFound from "@/components/NoDataFound";
+import { useSearchParams } from "react-router-dom";
 import { 
   User, 
   Edit3, 
@@ -36,9 +38,17 @@ import {
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   
+  // Read URL parameters
+  const urlId = searchParams.get('id');
+  const urlName = searchParams.get('name');
+  const urlEmail = searchParams.get('email');
+  const urlRole = searchParams.get('role');
+  
+  console.log("URL Parameters:", { urlId, urlName, urlEmail, urlRole });
   console.log("Current user from context:", user);
   console.log("User ID:", user?.id);
   console.log("User name:", user?.name);
@@ -519,6 +529,38 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-hero-bg to-request-highlight">
       <div className="container mx-auto px-4 py-8">
+        {/* URL Parameters Display */}
+        {/* {urlId && (
+          <Card className="donation-card mb-4 bg-blue-50 border-blue-200">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-blue-700">URL ID</Label>
+                  <div className="font-mono text-blue-900">{urlId}</div>
+                </div>
+                {urlName && (
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-blue-700">URL Name</Label>
+                    <div className="font-mono text-blue-900">{urlName}</div>
+                  </div>
+                )}
+                {urlEmail && (
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-blue-700">URL Email</Label>
+                    <div className="font-mono text-blue-900">{urlEmail}</div>
+                  </div>
+                )}
+                {urlRole && (
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-blue-700">URL Role</Label>
+                    <div className="font-mono text-blue-900 capitalize">{urlRole}</div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )} */}
+
         {/* Profile Header */}
         <Card className="donation-card mb-8">
           <CardHeader>
@@ -538,7 +580,7 @@ const ProfilePage = () => {
                         }}
                       />
                       <div className={`w-full h-full bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center ${user.profilePhoto?.filename ? 'hidden' : ''}`}>
-                        {user.userRole === 'requester' ? <GraduationCap className="w-8 h-8 text-white" /> : <User className="w-8 h-8 text-white" />}
+                        {user.userRole === 'requester' ? <GraduationCap className="w-8 h-8 text-white" /> : <User className="w-4 h-8 text-white" />}
                       </div>
                     </div>
                   ) : (
@@ -887,10 +929,12 @@ const ProfilePage = () => {
                           )}
                           
                           {itemRequests.length === 0 && (
-                            <div className="text-center py-4 text-gray-500">
-                              <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                              <p>No requests for this device yet</p>
-                            </div>
+                            <NoDataFound
+                              title="No requests for this device"
+                              description="Students haven't requested this device yet"
+                              imageType="requests"
+                              variant="compact"
+                            />
                           )}
                         </div>
                       );
@@ -1008,11 +1052,12 @@ const ProfilePage = () => {
                     })}
                     
                     {donorItems.filter(item => (deviceRequests[item._id] || []).length === 0).length === donorItems.length && (
-                      <div className="text-center py-8 text-gray-500">
-                        <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <h3 className="text-lg font-medium mb-2">No requests yet</h3>
-                        <p>Students haven't requested any of your devices yet. Keep sharing your devices!</p>
-                      </div>
+                      <NoDataFound
+                        title="No requests yet"
+                        description="Students haven't requested any of your devices yet. Keep sharing your devices!"
+                        imageType="requests"
+                        variant="compact"
+                      />
                     )}
                   </div>
                 </CardContent>

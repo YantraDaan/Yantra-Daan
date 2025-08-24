@@ -15,19 +15,7 @@ import DeviceManagement from "@/components/DeviceManagement";
 import UserManagement from "@/components/UserManagement";
 import AdminDashboard from "@/components/AdminDashboard";
 import TeamMemberManagement from "@/components/TeamMemberManagement";
-// import AnalyticsDashboard from "@/components/AnalyticsDashboard";
-// import { 
-//   BarChart, 
-//   Bar, 
-//   XAxis, 
-//   YAxis, 
-//   CartesianGrid, 
-//   Tooltip, 
-//   ResponsiveContainer,
-//   PieChart,
-//   Pie,
-//   Cell
-// } from "recharts";
+import NoDataFound from "@/components/NoDataFound";
 import { 
   Users, 
   Gift, 
@@ -40,7 +28,15 @@ import {
   Smartphone,
   RefreshCw,
   LogOut,
-  UserPlus
+  UserPlus,
+  Eye,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Building2,
+  GraduationCap,
+  User
 } from "lucide-react";
 
 const AdminPage = () => {
@@ -61,6 +57,10 @@ const AdminPage = () => {
   const [pendingDevices, setPendingDevices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("overview");
+  
+  // Donor details dialog state
+  const [showDonorDetails, setShowDonorDetails] = useState(false);
+  const [selectedDonor, setSelectedDonor] = useState(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -149,6 +149,11 @@ const AdminPage = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
     navigate('/admin-login');
+  };
+
+  const showDonorInfo = (donor) => {
+    setSelectedDonor(donor);
+    setShowDonorDetails(true);
   };
 
   if (!user || user.userRole !== 'admin') {
@@ -254,7 +259,7 @@ const AdminPage = () => {
           {/* Overview Tab */}
           {selectedTab === "overview" && (
             <div className="space-y-6">
-              {/* Quick Stats */}
+              {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -266,6 +271,15 @@ const AdminPage = () => {
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalUsers}</div>
                     <p className="text-xs text-blue-100">Registered users</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      onClick={() => setSelectedTab("users")}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -279,6 +293,15 @@ const AdminPage = () => {
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalDevices}</div>
                     <p className="text-xs text-green-100">All devices</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      onClick={() => setSelectedTab("devices")}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -292,6 +315,15 @@ const AdminPage = () => {
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.pendingDevices}</div>
                     <p className="text-xs text-orange-100">Device posts awaiting review</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      onClick={() => setSelectedTab("devices")}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -305,24 +337,35 @@ const AdminPage = () => {
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalRequests}</div>
                     <p className="text-xs text-purple-100">All device requests</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      onClick={() => setSelectedTab("dashboard")}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Recent Activity */}
+              {/* Recent Activity Cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Donations - Latest 5 Only */}
+                {/* Recent Donations Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                   <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white">Latest Device Donations (Latest 5)</CardTitle>
+                    <CardTitle className="text-white">Latest Device Donations</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       {recentDonations.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Gift className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No recent donations</p>
-                        </div>
+                        <NoDataFound
+                          title="No recent donations"
+                          description="No device donations have been submitted yet"
+                          imageType="devices"
+                          variant="compact"
+                        />
                       ) : (
                         recentDonations.slice(0, 5).map((donation: any) => (
                           <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors">
@@ -335,12 +378,22 @@ const AdminPage = () => {
                                 <p className="text-xs text-gray-500">{donation.deviceType}</p>
                               </div>
                             </div>
-                            <Badge 
-                              variant={donation.status === 'approved' ? 'default' : 'secondary'}
-                              className={donation.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                            >
-                              {donation.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant={donation.status === 'approved' ? 'default' : 'secondary'}
+                                className={donation.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                              >
+                                {donation.status}
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showDonorInfo(donation.ownerInfo)}
+                                className="h-8 px-2"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -348,7 +401,7 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Pending Devices */}
+                {/* Pending Devices Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                   <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
                     <CardTitle className="text-white">Pending Device Approvals</CardTitle>
@@ -356,10 +409,12 @@ const AdminPage = () => {
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       {pendingDevices.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No pending approvals</p>
-                        </div>
+                        <NoDataFound
+                          title="No pending approvals"
+                          description="All devices have been reviewed and processed"
+                          imageType="devices"
+                          variant="compact"
+                        />
                       ) : (
                         pendingDevices.map((device: any) => (
                           <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors">
@@ -372,9 +427,19 @@ const AdminPage = () => {
                                 <p className="text-xs text-gray-500">{device.deviceType}</p>
                               </div>
                             </div>
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                              Pending
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                Pending
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showDonorInfo(device.ownerInfo)}
+                                className="h-8 px-2"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -398,6 +463,100 @@ const AdminPage = () => {
           {selectedTab === "team" && <TeamMemberManagement />}
         </div>
       </main>
+
+      {/* Donor Details Dialog */}
+      <Dialog open={showDonorDetails} onOpenChange={setShowDonorDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Donor Information
+            </DialogTitle>
+          </DialogHeader>
+          {selectedDonor && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Name</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.name || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Email</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.email || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Contact</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.contact || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">User Type</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    {selectedDonor.isOrganization ? (
+                      <Building2 className="w-4 h-4 text-gray-400" />
+                    ) : (
+                      <GraduationCap className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span className="font-medium">
+                      {selectedDonor.isOrganization ? 'Organization' : 'Individual'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              {selectedDonor.profession && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Profession</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{selectedDonor.profession}</span>
+                  </div>
+                </div>
+              )}
+
+              {selectedDonor.address && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Address</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{selectedDonor.address}</span>
+                  </div>
+                </div>
+              )}
+
+              {selectedDonor.about && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">About</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm leading-relaxed">{selectedDonor.about}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDonorDetails(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

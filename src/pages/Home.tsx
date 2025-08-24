@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Gift, Users, Heart, ArrowRight, MapPin, Laptop, Smartphone, Tablet } from "lucide-react";
 import { Link } from "react-router-dom";
+import NoDataFound from "@/components/NoDataFound";
 
 const Home = () => {
   const [approvedDevices, setApprovedDevices] = useState<any[]>([]);
@@ -128,14 +129,23 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {approvedDevices.map((item) => (
-              <DonationCard 
-                key={item._id} 
-                item={{ ...item, isActive: item.status === 'approved' }}
-              />
-            ))}
-          </div>
+          {approvedDevices.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {approvedDevices.map((item) => (
+                <DonationCard 
+                  key={item._id} 
+                  item={{ ...item, isActive: item.status === 'approved' }}
+                />
+              ))}
+            </div>
+          ) : (
+            <NoDataFound
+              title="No featured donations yet"
+              description="Be the first to donate and inspire others in your community!"
+              imageType="devices"
+              variant="full"
+            />
+          )}
         </div>
       </section>
 

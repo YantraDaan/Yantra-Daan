@@ -50,7 +50,7 @@ export const useAuth = () => {
   return context;
 };
 
-// No test users - using backend data only
+
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);

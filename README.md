@@ -260,6 +260,4 @@ For support and questions:
 - Create an issue in the repository
 - Contact: support@yantradaan.com
 
-## 🔄 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.

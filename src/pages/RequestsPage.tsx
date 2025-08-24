@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, User, Calendar, MessageCircle, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import NoDataFound from "@/components/NoDataFound";
 
 interface RequestItem {
   _id: string;
@@ -264,13 +265,12 @@ const RequestsPage = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-12 h-12 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No requests found</h3>
-            <p className="text-gray-600">Try adjusting your search filters to find more requests.</p>
-          </div>
+          <NoDataFound
+            title="No requests found"
+            description="Try adjusting your search filters to find more requests."
+            imageType="search"
+            variant="full"
+          />
         )}
 
         {/* Note about Supabase */}

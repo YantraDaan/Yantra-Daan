@@ -4,7 +4,7 @@ const DeviceModel = require('../models/Device');
 const DeviceRequestModel = require('../models/DeviceRequest');
 const TeamMemberModel = require('../models/TeamMember');
 const { auth, requireRole } = require('../middleware/auth');
-const emailService = require('../utils/emailService');
+// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
 
 const router = Router();
 
@@ -97,26 +97,30 @@ router.put('/users/:id/role', auth, requireRole(['admin']), async (req, res) => 
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // EMAIL NOTIFICATION DISABLED - Role change notification commented out
+    /*
     // Send email notification about role change
     await emailService.sendEmail({
       to: user.email,
       subject: '🔐 Role Updated - YantraDaan',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #059669;">🔐 Role Updated</h2>
-          <p>Your role on YantraDaan has been updated.</p>
-          
-          <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #166534;">New Role:</h3>
-            <p><strong>${userRole.charAt(0).toUpperCase() + userRole.slice(1)}</strong></p>
+          <h2 style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #059669;">🔐 Role Updated</h2>
+            <p>Your role on YantraDaan has been updated.</p>
+            
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #166534;">New Role:</h3>
+              <p><strong>${userRole.charAt(0).toUpperCase() + userRole.slice(1)}</strong></p>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+              If you have any questions, please contact our support team.
+            </p>
           </div>
-          
-          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-            If you have any questions, please contact our support team.
-          </p>
-        </div>
-      `
-    });
+        `
+      });
+    */
 
     res.json({ message: 'User role updated successfully', user });
   } catch (error) {
@@ -226,6 +230,8 @@ router.put('/devices/:id/status', auth, requireRole(['admin']), async (req, res)
       return res.status(404).json({ error: 'Device not found' });
     }
 
+    // EMAIL NOTIFICATION DISABLED - Device status notification commented out
+    /*
     // Send email notification to device owner
     if (device.ownerInfo && device.ownerInfo.email) {
       const emailTemplate = status === 'approved' 
@@ -240,6 +246,7 @@ router.put('/devices/:id/status', auth, requireRole(['admin']), async (req, res)
         html: emailTemplate
       });
     }
+    */
 
     res.json({ message: 'Device status updated successfully', device });
   } catch (error) {
@@ -351,6 +358,8 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
 
     await teamMember.save();
 
+    // EMAIL NOTIFICATION DISABLED - Welcome email commented out
+    /*
     // Send welcome email
     await emailService.sendEmail({
       to: email,
@@ -375,6 +384,7 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
         </div>
       `
     });
+    */
 
     res.status(201).json({ 
       message: 'Team member added successfully', 
@@ -419,6 +429,8 @@ router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) =
       return res.status(404).json({ error: 'Team member not found' });
     }
 
+    // EMAIL NOTIFICATION DISABLED - Update notification email commented out
+    /*
     // Send update notification email
     await emailService.sendEmail({
       to: email,
@@ -443,6 +455,7 @@ router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) =
         </div>
       `
     });
+    */
 
     res.json({ 
       message: 'Team member updated successfully', 
@@ -474,6 +487,8 @@ router.patch('/team-members/:id/status', auth, requireRole(['admin']), async (re
       return res.status(404).json({ error: 'Team member not found' });
     }
 
+    // EMAIL NOTIFICATION DISABLED - Status update email commented out
+    /*
     // Send status update email
     await emailService.sendEmail({
       to: member.email,
@@ -493,6 +508,7 @@ router.patch('/team-members/:id/status', auth, requireRole(['admin']), async (re
         </div>
       `
     });
+    */
 
     res.json({ 
       message: 'Status updated successfully', 

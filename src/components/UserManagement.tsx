@@ -26,7 +26,8 @@ import {
   Phone,
   MapPin,
   Calendar,
-  User
+  User,
+  TrendingUp
 } from "lucide-react";
 import NoDataFound from './NoDataFound';
 
@@ -59,6 +60,10 @@ const UserManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showUserDetails, setShowUserDetails] = useState(false);
+  const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
+  const [userDevices, setUserDevices] = useState([]);
+  const [userRequests, setUserRequests] = useState([]);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -302,6 +307,46 @@ const UserManagement = () => {
     }
   };
 
+  const handleShowUserDetails = async (user) => {
+    try {
+      setSelectedUserForDetails(user);
+      setShowUserDetails(true);
+      
+      // Fetch user's devices and requests from backend
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch user's devices
+      const devicesResponse = await fetch(`http://localhost:5000/api/devices/user/${user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (devicesResponse.ok) {
+        const devicesData = await devicesResponse.json();
+        setUserDevices(devicesData.devices || []);
+      }
+      
+      // Fetch user's requests
+      const requestsResponse = await fetch(`http://localhost:5000/api/device-requests/user/${user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        setUserRequests(requestsData.requests || []);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch user details",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin': return <Shield className="w-4 h-4" />;
@@ -496,6 +541,17 @@ const UserManagement = () => {
                 </div>
 
                 <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleShowUserDetails(user)}
+                    variant="outline"
+                    size="sm"
+                    title="View Details"
+                    className="h-8 px-2"
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    Details
+                  </Button>
+                  
                   <Button
                     onClick={() => {
                       setSelectedUser(user);
@@ -996,6 +1052,151 @@ const UserManagement = () => {
 
               <div className="flex justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowProfileDialog(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Dialog */}
+      <Dialog open={showUserDetails} onOpenChange={setShowUserDetails}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              User Details & Activity
+            </DialogTitle>
+          </DialogHeader>
+          {selectedUserForDetails && (
+            <div className="space-y-6">
+              {/* User Basic Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Name</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedUserForDetails.name}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Email</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedUserForDetails.email}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Contact</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedUserForDetails.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Role</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        {getRoleIcon(selectedUserForDetails.userRole)}
+                        <span className="font-medium capitalize">{selectedUserForDetails.userRole}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* User's Devices */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    Devices ({userDevices.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {userDevices.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Gift className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>No devices donated yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {userDevices.map((device) => (
+                        <div key={device._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <Gift className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{device.title}</p>
+                              <p className="text-xs text-gray-500">{device.deviceType} • {device.condition}</p>
+                            </div>
+                          </div>
+                          <Badge 
+                            variant={device.status === 'approved' ? 'default' : device.status === 'pending' ? 'secondary' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {device.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* User's Requests */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Requests ({userRequests.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {userRequests.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>No requests made yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {userRequests.map((request) => (
+                        <div key={request._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                              <TrendingUp className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">{request.deviceInfo?.deviceType || 'Unknown type'}</p>
+                            </div>
+                          </div>
+                          <Badge 
+                            variant={request.status === 'approved' ? 'default' : request.status === 'pending' ? 'secondary' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {request.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowUserDetails(false)}
+                >
                   Close
                 </Button>
               </div>

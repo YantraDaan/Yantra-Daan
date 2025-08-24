@@ -72,6 +72,8 @@ const AdminDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRequestDetails, setShowRequestDetails] = useState(false);
   const [selectedRequestForDetails, setSelectedRequestForDetails] = useState<DeviceRequest | null>(null);
+  const [showRequestFullDetails, setShowRequestFullDetails] = useState(false);
+  const [selectedRequestForFullDetails, setSelectedRequestForFullDetails] = useState<DeviceRequest | null>(null);
   const requestsPerPage = 10;
 
   const { toast } = useToast();
@@ -178,6 +180,11 @@ const AdminDashboard = () => {
   const viewRequestDetails = (request: DeviceRequest) => {
     setSelectedRequestForDetails(request);
     setShowRequestDetails(true);
+  };
+
+  const handleShowRequestFullDetails = (request: DeviceRequest) => {
+    setSelectedRequestForFullDetails(request);
+    setShowRequestFullDetails(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -392,6 +399,16 @@ const AdminDashboard = () => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleShowRequestFullDetails(req)}
+                        className="h-8 px-2"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Details
+                      </Button>
+                      
                       <Button
                         variant="outline"
                         size="sm"
