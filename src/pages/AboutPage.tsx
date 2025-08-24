@@ -56,7 +56,7 @@ const AboutPage = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-bold gradient-text mb-6">
-            About TechShare NGO
+            About Yantra Daan
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Empowering students through technology donations, one device at a time.
