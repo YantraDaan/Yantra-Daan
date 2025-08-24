@@ -30,6 +30,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import NoDataFound from './NoDataFound';
+import { config } from "@/config/env";
 
 interface User {
   _id: string;
@@ -120,7 +121,7 @@ const UserManagement = () => {
         category: categoryFilter !== 'all' ? categoryFilter : ''
       });
 
-      const response = await fetch(`http://localhost:5000/api/users?${params}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -180,7 +181,7 @@ const UserManagement = () => {
   const updateUser = async (userId: string, userData: Partial<User>) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -210,7 +211,7 @@ const UserManagement = () => {
   const deleteUser = async (userId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -238,7 +239,7 @@ const UserManagement = () => {
   const createUser = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

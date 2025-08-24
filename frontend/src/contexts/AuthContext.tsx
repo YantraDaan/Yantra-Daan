@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { config } from "@/config/env";
 
 export interface User {
   id: string;
@@ -65,15 +66,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, userRole: string): Promise<{ success: boolean; error?: string; message?: string }> => {
+  const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; error?: string; message?: string }> => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, userRole })
+        body: JSON.stringify({ email, password, userRole }),
       });
       
       if (!response.ok) {

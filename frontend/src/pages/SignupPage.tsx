@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Heart, ArrowLeft, ArrowRight, User, Building2, Upload, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { config } from "@/config/env";
 // API functions removed - using direct fetch
 
 interface PersonalInfo {
@@ -119,16 +120,18 @@ const SignupPage = () => {
         };
       }
 
-      const response = await fetch('http://localhost:5000/api/users', {
+      const userData = {
+        ...personalInfo,
+        password,
+        document: documentInfo
+      };
+
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...personalInfo,
-          password,
-          document: documentInfo
-        })
+        body: JSON.stringify(userData),
       });
       
       if (!response.ok) {

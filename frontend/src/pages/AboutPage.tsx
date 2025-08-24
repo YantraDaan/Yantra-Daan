@@ -25,7 +25,7 @@ const AboutPage = () => {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/team-members`);
+      const response = await fetch(`${config.apiUrl}${config.endpoints.teamMembers}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch team members');

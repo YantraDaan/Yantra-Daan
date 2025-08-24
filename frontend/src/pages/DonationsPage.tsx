@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Filter, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import NoDataFound from "@/components/NoDataFound";
+import { config } from "@/config/env";
 
 const DonationsPage = () => {
   const { toast } = useToast();
@@ -16,31 +17,30 @@ const DonationsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const fetchDonations = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${config.apiUrl}${config.endpoints.donations}/approved`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setDonations(data.devices || []);
+        } else {
+          throw new Error('Failed to fetch donations');
+        }
+      } catch (error) {
+        console.error('Error fetching donations:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load donations. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
     fetchDonations();
   }, []);
-
-  const fetchDonations = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/device-donations/approved');
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDonations(data.devices || []);
-      } else {
-        throw new Error('Failed to fetch donations');
-      }
-    } catch (error) {
-      console.error('Error fetching donations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load donations. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const filteredDonations = donations.filter((item: any) => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, User, Calendar, MessageCircle, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NoDataFound from "@/components/NoDataFound";
+import { config } from "@/config/env";
 
 interface RequestItem {
   _id: string;
@@ -43,7 +44,7 @@ const RequestsPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/requests', {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

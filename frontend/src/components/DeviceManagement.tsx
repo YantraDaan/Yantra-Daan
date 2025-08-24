@@ -33,6 +33,7 @@ import {
   GraduationCap
 } from "lucide-react";
 import NoDataFound from './NoDataFound';
+import { config } from "@/config/env";
 
 interface Device {
   _id: string;
@@ -97,7 +98,7 @@ const DeviceManagement = () => {
         deviceType: typeFilter !== 'all' ? typeFilter : ''
       });
 
-      const response = await fetch(`http://localhost:5000/api/devices/admin/all?${params}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/admin/all?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -148,7 +149,7 @@ const DeviceManagement = () => {
   const updateDeviceStatus = async (deviceId: string, status: string, reason?: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/devices/${deviceId}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/${deviceId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +182,7 @@ const DeviceManagement = () => {
     
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/devices/${deviceId}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/${deviceId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -581,7 +582,7 @@ const DeviceManagement = () => {
                 onClick={async () => {
                   try {
                     const token = localStorage.getItem('authToken');
-                    const response = await fetch(`http://localhost:5000/api/devices/${selectedDevice?._id}`, {
+                    const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/${selectedDevice?._id}`, {
                       method: 'PUT',
                       headers: {
                         'Content-Type': 'application/json',

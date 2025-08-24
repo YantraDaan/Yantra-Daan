@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Gift, Users, Heart, ArrowRight, MapPin, Laptop, Smartphone, Tablet } from "lucide-react";
 import { Link } from "react-router-dom";
 import NoDataFound from "@/components/NoDataFound";
+import { config } from "@/config/env";
 
 const Home = () => {
   const [approvedDevices, setApprovedDevices] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchApproved = async () => {
+    const fetchRecentDevices = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/devices/approved?page=1&limit=6');
+        const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved?page=1&limit=6`);
         if (!response.ok) throw new Error('Failed to load featured donations');
         const data = await response.json();
         setApprovedDevices(data.devices || []);
@@ -22,7 +23,7 @@ const Home = () => {
         setApprovedDevices([]);
       }
     };
-    fetchApproved();
+    fetchRecentDevices();
   }, []);
 
   return (

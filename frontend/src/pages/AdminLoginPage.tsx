@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Shield, Mail, Lock, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { config } from "@/config/env";
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
@@ -55,7 +56,7 @@ const AdminLoginPage = () => {
     setIsCreatingAdmin(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
