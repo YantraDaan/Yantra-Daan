@@ -1,0 +1,632 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Textarea } from './ui/textarea';
+import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  UserPlus, 
+  Users, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  Edit, 
+  Trash2, 
+  Search, 
+  Filter,
+  Shield,
+  UserCheck,
+  UserX,
+  Loader2,
+  Plus,
+  Eye,
+  MoreHorizontal,
+  User
+} from 'lucide-react';
+
+interface TeamMember {
+  _id: string;
+  name: string;
+  email: string;
+  contact: string;
+  role: 'Founder & CEO' | 'Operations Director' | 'Community Manager' | 'Technical Lead' | 'Support Staff';
+  bio: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  avatar?: string;
+}
+
+const TeamMemberManagement = () => {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const membersPerPage = 12;
+
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Form state for add/edit
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    contact: string;
+    role: TeamMember['role'];
+    bio: string;
+  }>({
+    name: '',
+    email: '',
+    contact: '',
+    role: 'Support Staff',
+    bio: ''
+  });
+
+  useEffect(() => {
+    fetchTeamMembers();
+  }, [currentPage, roleFilter, statusFilter]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: membersPerPage.toString(),
+        role: roleFilter !== 'all' ? roleFilter : '',
+        status: statusFilter !== 'all' ? statusFilter : ''
+      });
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/team-members?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch team members');
+      
+      const data = await response.json();
+      setTeamMembers(data.members || []);
+      setTotalPages(data.totalPages || 1);
+      setTotal(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch team members",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddMember = () => {
+    setFormData({
+      name: '',
+      email: '',
+      contact: '',
+      role: 'Support Staff',
+      bio: ''
+    });
+    setShowAddDialog(true);
+  };
+
+  const handleEditMember = (member: TeamMember) => {
+    setSelectedMember(member);
+    setFormData({
+      name: member.name,
+      email: member.email,
+      contact: member.contact,
+      role: member.role,
+      bio: member.bio
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleViewMember = (member: TeamMember) => {
+    setSelectedMember(member);
+    setShowViewDialog(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const url = showEditDialog 
+        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/team-members/${selectedMember?._id}`
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/team-members`;
+      
+      const method = showEditDialog ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save team member');
+
+      toast({
+        title: "Success",
+        description: showEditDialog ? "Team member updated successfully" : "Team member added successfully",
+      });
+
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      fetchTeamMembers();
+    } catch (error) {
+      console.error('Error saving team member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save team member",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to delete this team member?')) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/team-members/${memberId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to delete team member');
+
+      toast({
+        title: "Success",
+        description: "Team member deleted successfully",
+      });
+
+      fetchTeamMembers();
+    } catch (error) {
+      console.error('Error deleting team member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete team member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusChange = async (memberId: string, newStatus: 'active' | 'inactive') => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/team-members/${memberId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) throw new Error('Failed to update status');
+
+      toast({
+        title: "Success",
+        description: "Status updated successfully",
+      });
+
+      fetchTeamMembers();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredMembers = teamMembers.filter(member => {
+    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.role.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || member.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+    
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Founder & CEO': return 'from-purple-500 to-purple-600';
+      case 'Operations Director': return 'from-blue-500 to-blue-600';
+      case 'Community Manager': return 'from-green-500 to-green-600';
+      case 'Technical Lead': return 'from-orange-500 to-orange-600';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  const getRoleBgColor = (role: string) => {
+    switch (role) {
+      case 'Founder & CEO': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Operations Director': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Community Manager': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Technical Lead': return 'bg-orange-100 text-orange-800 border-orange-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+            Team Management
+          </h2>
+          <p className="text-gray-600">Manage your organization's team members</p>
+        </div>
+        <Button 
+          onClick={handleAddMember} 
+          className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+        >
+          <Plus className="w-4 h-4" />
+          Add Team Member
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search team members..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+                />
+              </div>
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-48 border-gray-200 focus:border-indigo-300 focus:ring-indigo-200">
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="Founder & CEO">Founder & CEO</SelectItem>
+                <SelectItem value="Operations Director">Operations Director</SelectItem>
+                <SelectItem value="Community Manager">Community Manager</SelectItem>
+                <SelectItem value="Technical Lead">Technical Lead</SelectItem>
+                <SelectItem value="Support Staff">Support Staff</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-48 border-gray-200 focus:border-indigo-300 focus:ring-indigo-200">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Team Members Grid */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-indigo-500 mx-auto mb-4" />
+            <p className="text-gray-600">Loading team members...</p>
+          </div>
+        </div>
+      ) : filteredMembers.length === 0 ? (
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardContent className="p-12 text-center">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No team members found</h3>
+            <p className="text-gray-500">Get started by adding your first team member.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredMembers.map((member) => (
+            <Card key={member._id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  {/* Avatar */}
+                  <div className={`w-20 h-20 bg-gradient-to-r ${getRoleColor(member.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300`}>
+                    <User className="w-10 h-10 text-white" />
+                  </div>
+                  
+                  {/* Name and Role */}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{member.name}</h3>
+                  <Badge className={`mb-3 ${getRoleBgColor(member.role)} border`}>
+                    {member.role}
+                  </Badge>
+                  
+                  {/* Bio */}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{member.bio}</p>
+                  
+                  {/* Contact Info */}
+                  <div className="space-y-2 mb-4 text-sm text-gray-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      <span className="truncate">{member.email}</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      <span>{member.contact}</span>
+                    </div> 
+                  </div>
+                  
+                  {/* Status */}
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
+                      {member.status === 'active' ? (
+                        <>
+                          <UserCheck className="w-3 h-3 mr-1" />
+                          Active
+                        </>
+                      ) : (
+                        <>
+                          <UserX className="w-3 h-3 mr-1" />
+                          Inactive
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewMember(member)}
+                      className="border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditMember(member)}
+                      className="border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteMember(member._id)}
+                      className="text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex justify-center items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+              >
+                Next
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showAddDialog || showEditDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              {showEditDialog ? 'Edit Team Member' : 'Add New Team Member'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+                className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                required
+                className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+              />
+            </div>
+            <div>
+              <Label htmlFor="contact">Contact</Label>
+              <Input
+                id="contact"
+                value={formData.contact}
+                onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
+                required
+                className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={formData.role} onValueChange={(value: any) => setFormData(prev => ({ ...prev, role: value }))}>
+                <SelectTrigger className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Founder & CEO">Founder & CEO</SelectItem>
+                  <SelectItem value="Operations Director">Operations Director</SelectItem>
+                  <SelectItem value="Community Manager">Community Manager</SelectItem>
+                  <SelectItem value="Technical Lead">Technical Lead</SelectItem>
+                  <SelectItem value="Support Staff">Support Staff</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="Brief description of the team member's role and contribution..."
+                rows={3}
+                required
+                className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddDialog(false)}
+                className="border-gray-200 hover:border-gray-300"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  showEditDialog ? 'Update' : 'Add'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Team Member Details</DialogTitle>
+          </DialogHeader>
+          {selectedMember && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className={`w-24 h-24 bg-gradient-to-r ${getRoleColor(selectedMember.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                  <User className="w-12 h-12 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">{selectedMember.name}</h3>
+                <Badge className={`mb-3 ${getRoleBgColor(selectedMember.role)} border`}>
+                  {selectedMember.role}
+                </Badge>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Email</Label>
+                  <p className="text-gray-900">{selectedMember.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Contact</Label>
+                  <p className="text-gray-900">{selectedMember.contact}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Bio</Label>
+                  <p className="text-gray-900">{selectedMember.bio}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Status</Label>
+                  <Badge variant={selectedMember.status === 'active' ? 'default' : 'secondary'}>
+                    {selectedMember.status === 'active' ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Joined</Label>
+                  <p className="text-gray-900">
+                    {new Date(selectedMember.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowViewDialog(false);
+                    handleEditMember(selectedMember);
+                  }}
+                  className="border-gray-200 hover:border-green-300 hover:bg-green-50"
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowViewDialog(false)}
+                  className="border-gray-200 hover:border-gray-300"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default TeamMemberManagement;

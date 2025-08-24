@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NGO Website Design System - All colors, gradients, fonts, etc defined here */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 230 29% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 230 29% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 29% 12%;
+
+    /* Yantra Daan Branding Colors - Green/Yellow theme */
+    --primary: 135 98% 22%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 135 100% 26%;
+
+    --secondary: 46 100% 50%;
+    --secondary-foreground: 230 29% 12%;
+
+    --muted: 213 11% 95%;
+    --muted-foreground: 230 12% 56%;
+
+    --accent: 135 100% 26%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 213 11% 90%;
+    --input: 213 11% 90%;
+    --ring: 135 98% 22%;
+
+    /* Yantra Daan-specific design tokens */
+    --hero-bg: 135 100% 97%;
+    --donation-card: 0 0% 100%;
+    --request-highlight: 135 100% 95%;
+    --success: 135 98% 22%;
+    --warning: 46 100% 50%;
+
+    /* Yantra Daan gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(135 98% 22%), hsl(46 100% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(135 100% 97%), hsl(46 100% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(135 50% 98%));
+
+    /* Yantra Daan shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(135 98% 22% / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(230 29% 12% / 0.1);
+    --shadow-glow: 0 0 40px hsl(135 100% 26% / 0.4);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 230 29% 12%;
+    --foreground: 0 0% 100%;
+
+    --card: 230 29% 12%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 230 29% 12%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 135 98% 22%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 46 100% 50%;
+    --secondary-foreground: 230 29% 12%;
+
+    --muted: 213 11% 20%;
+    --muted-foreground: 230 12% 65%;
+
+    --accent: 135 100% 26%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 213 11% 25%;
+    --input: 213 11% 25%;
+    --ring: 135 98% 22%;
+    --sidebar-background: 230 29% 12%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 135 98% 22%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 11% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 213 11% 25%;
+    --sidebar-ring: 135 98% 22%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* NGO Hero Button Variants */
+  .btn-hero {
+    @apply bg-gradient-to-r from-primary to-accent text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+  }
+  
+  .btn-outline-hero {
+    @apply border-2 border-primary text-primary font-semibold px-8 py-4 rounded-lg hover:bg-primary hover:text-white transition-all duration-300;
+  }
+
+  /* NGO Card Styles */
+  .donation-card {
+    @apply bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden;
+  }
+
+  .request-card {
+    @apply bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-blue-100;
+  }
+
+  /* Animation utilities */
+  .fade-in {
+    @apply animate-[fadeIn_0.6s_ease-out];
+  }
+  
+  .slide-up {
+    @apply animate-[slideUp_0.5s_ease-out];
+  }
+}
+
+@layer utilities {
+  /* Custom animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Gradient text utility */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+}

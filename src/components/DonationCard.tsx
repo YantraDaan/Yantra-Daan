@@ -1,0 +1,204 @@
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Calendar, User, Laptop } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+interface DonationItem {
+  _id: string;
+  title: string;
+  description: string;
+  deviceType: string;
+  condition: "excellent" | "good" | "fair" | "poor";
+  location: {
+    city: string;
+    state: string;
+    country: string;
+  };
+  fullLocation?: string;
+  ownerInfo?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  };
+  createdAt: string;
+  devicePhotos?: Array<{ url: string; caption?: string }>;
+  images?: string[];
+  isActive: boolean;
+  status: "approved" | "pending" | "rejected";
+}
+
+interface DonationCardProps {
+  item: DonationItem;
+  onRequest?: (itemId: string) => void;
+}
+
+const DonationCard = ({ item, onRequest }: DonationCardProps) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const getConditionColor = (condition: string) => {
+    switch (condition) {
+      case "excellent":
+        return "bg-green-100 text-green-800";
+      case "good":
+        return "bg-blue-100 text-blue-800";
+      case "fair":
+        return "bg-yellow-100 text-yellow-800";
+      case "poor":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getConditionLabel = (condition: string) => {
+    switch (condition) {
+      case "excellent":
+        return "Excellent";
+      case "good":
+        return "Good";
+      case "fair":
+        return "Fair";
+      case "poor":
+        return "Poor";
+      default:
+        return condition;
+    }
+  };
+
+  const handleRequest = () => {
+    if (!user) {
+      navigate("/login", {
+        state: { from: { pathname: window.location.pathname } },
+      });
+      return;
+    }
+
+    if (user.userRole !== "requester") return;
+
+    onRequest?.(item._id);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) return "1 day ago";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getLocationString = () => {
+    if (item.fullLocation) return item.fullLocation;
+    if (item.location) {
+      const { city, state, country } = item.location;
+      return [city, state, country].filter(Boolean).join(", ");
+    }
+    return "Location not specified";
+  };
+
+  const getDonorName = () => {
+    return item.ownerInfo?.name || "Admin";
+  };
+
+  console.log("item.devicePhotos[0].caption ==",item.devicePhotos[0].url);
+  
+  return (
+    
+    <Card className="donation-card group">
+      {/* Image */}
+      <img src={item.devicePhotos[0].url} alt="image.png" />
+      <div className="relative h-48 bg-gray-100 overflow-hidden">
+        
+        {item.devicePhotos && item.devicePhotos.length > 0 ? (
+          <img
+            src={item.devicePhotos[0].caption}
+            alt={item.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+            <Laptop className="w-16 h-16 text-primary/40" />
+          </div>
+        )}
+
+        {/* Status Badge */}
+        <div className="absolute top-3 right-3">
+          {item.isActive ? (
+            <Badge className="bg-green-600 text-white">Available</Badge>
+          ) : (
+            <Badge variant="secondary">Reserved</Badge>
+          )}
+        </div>
+      </div>
+
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">
+              {item.title}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline">{item.deviceType}</Badge>
+              <Badge className={getConditionColor(item.condition)}>
+                {getConditionLabel(item.condition)}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <p className="text-gray-600 text-sm line-clamp-2">{item.description}</p>
+
+        {/* Details */}
+        <div className="space-y-2">
+          <div className="flex items-center text-sm text-gray-500">
+            <MapPin className="w-4 h-4 mr-2" />
+            <a
+              href={`https://www.google.com/maps/place/${getLocationString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {getLocationString()}
+            </a>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <User className="w-4 h-4 mr-2" />
+            <span>Donated by {getDonorName()}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span>Posted {formatDate(item.createdAt)}</span>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        {item.isActive && onRequest && (
+          <Button
+            onClick={handleRequest}
+            className="w-full btn-hero"
+            disabled={user?.userRole === "donor"}
+          >
+            {!user
+              ? "Login to Request"
+              : user.userRole === "donor"
+              ? "Donors Cannot Request"
+              : "Request This Item"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default DonationCard;
