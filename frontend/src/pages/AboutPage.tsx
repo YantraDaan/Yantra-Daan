@@ -57,7 +57,7 @@ const AboutPage = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-bold gradient-text mb-6">
-            About TechShare NGO
+            About Yantra Daan
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Empowering students through technology donations, one device at a time.
@@ -72,10 +72,9 @@ const AboutPage = () => {
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Mission</h2>
                 <p className="text-gray-600 mb-4">
-                  TechShare NGO is dedicated to reducing the digital divide by connecting generous 
-                  donors with students in need of technology. We facilitate the donation of laptops, 
-                  tablets, and other educational devices to ensure every student has the tools they 
-                  need for academic success.
+                 Yantra Daan Foundation is an organization working on electronics waste minimization where we collects second hand/broken computers, repair and distribute and ensure computer skill training among slum children/youth in Sanjay Colony, Delhi. Empowering rural communities by providing second-hand digital learning resources to the organization working in rural area
+
+
                 </p>
                 <p className="text-gray-600">
                   Founded in 2019, we have created a platform that makes it easy for individuals 
