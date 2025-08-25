@@ -318,69 +318,6 @@ const updateAdminProfile = async (req, res) => {
   }
 };
 
-// Bulk create admins (for testing/development)
-const bulkCreateAdmins = async (req, res) => {
-  try {
-    const { admins } = req.body; // Array of admin objects
-
-    if (!Array.isArray(admins) || admins.length === 0) {
-      return res.status(400).json({
-        error: 'Admins array is required and must not be empty'
-      });
-    }
-
-    const createdAdmins = [];
-    const errors = [];
-
-    for (const adminData of admins) {
-      try {
-        const { name, email, password, role = 'admin' } = adminData;
-
-        // Check if admin already exists
-        const existingAdmin = await AdminModel.findOne({ email: email.toLowerCase() });
-        if (existingAdmin) {
-          errors.push(`Admin with email ${email} already exists`);
-          continue;
-        }
-
-        // Hash password
-        const saltRounds = 12;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        // Create admin
-        const admin = new AdminModel({
-          name,
-          email: email.toLowerCase(),
-          password: hashedPassword,
-          role
-        });
-
-        await admin.save();
-
-        const adminResponse = admin.toObject();
-        delete adminResponse.password;
-        createdAdmins.push(adminResponse);
-
-      } catch (error) {
-        errors.push(`Failed to create admin ${adminData.email}: ${error.message}`);
-      }
-    }
-
-    res.json({
-      message: `Successfully created ${createdAdmins.length} admin(s)`,
-      createdAdmins,
-      errors: errors.length > 0 ? errors : undefined
-    });
-
-  } catch (error) {
-    console.error('Bulk create admins error:', error);
-    res.status(500).json({
-      error: 'Failed to bulk create admins',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-};
-
 module.exports = {
   createAdmin,
   adminLogin,
@@ -390,6 +327,5 @@ module.exports = {
   changeAdminPassword,
   deleteAdmin,
   getAdminProfile,
-  updateAdminProfile,
-  bulkCreateAdmins
+  updateAdminProfile
 };
