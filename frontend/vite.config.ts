@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      outDir: 'dist',
       sourcemap: env.VITE_SOURCE_MAP === 'true',
       rollupOptions: {
         output: {

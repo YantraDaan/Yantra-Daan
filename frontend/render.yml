@@ -6,12 +6,16 @@ services:
     region: oregon
     branch: main
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
         value: 18.0.0
       - key: NPM_VERSION
         value: 9.0.0
+      - key: RENDER_BUILD_COMMAND
+        value: npm ci && npm run build
+      - key: RENDER_PUBLISH_DIRECTORY
+        value: dist
     routes:
       - type: rewrite
         source: /*
