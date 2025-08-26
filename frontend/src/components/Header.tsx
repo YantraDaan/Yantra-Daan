@@ -54,7 +54,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
            <LogoSVG></LogoSVG>
-            {/* <span className="text-xl font-bold gradient-text">YantraDaan</span> */}
+            {/* <span className="text-xl font-bold gradient-text">Yantra Daan</span> */}
           </Link>
 
           {/* Desktop Navigation */}

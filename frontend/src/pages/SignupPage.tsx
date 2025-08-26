@@ -143,7 +143,7 @@ const SignupPage = () => {
       if (data) {
         toast({
           title: "Registration Successful!",
-          description: `Welcome to YantraDaan ${personalInfo.name}!`,
+          description: `Welcome to Yantra Daan ${personalInfo.name}!`,
         });
         navigate("/login");
       } else {
@@ -175,7 +175,7 @@ const SignupPage = () => {
             <div className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
               <Heart className="w-8 h-8 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text">YantraDaan</span>
+            <span className="text-2xl font-bold gradient-text">Yantra Daan</span>
           </Link>
         </div>
 

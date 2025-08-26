@@ -31,7 +31,7 @@ router.post('/', auth, validateDevicePost, async (req, res) => {
     for (const admin of adminUsers) {
       await emailService.sendEmail({
         to: admin.email,
-        subject: '🆕 New Device Post Requires Approval - YantraDaan',
+        subject: '🆕 New Device Post Requires Approval - Yantra Daan',
         html: emailService.emailTemplates.newDevicePost(device.toObject(), req.user.toObject())
       });
     }
@@ -254,13 +254,13 @@ router.put('/:id/status', auth, requireRole(['admin']), async (req, res) => {
       if (status === 'approved') {
         await emailService.sendEmail({
           to: device.ownerInfo.email,
-          subject: '✅ Device Post Approved - YantraDaan',
+          subject: '✅ Device Post Approved - Yantra Daan',
           html: emailService.emailTemplates.devicePostApproved(device.toObject())
         });
       } else if (status === 'rejected') {
         await emailService.sendEmail({
           to: device.ownerInfo.email,
-          subject: '❌ Device Post Rejected - YantraDaan',
+          subject: '❌ Device Post Rejected - Yantra Daan',
           html: emailService.emailTemplates.devicePostRejected(device.toObject(), rejectionReason)
         });
       }

@@ -60,7 +60,7 @@ router.post('/', auth, async (req, res) => {
     if (device.ownerInfo && device.ownerInfo.email) {
       await emailService.sendEmail({
         to: device.ownerInfo.email,
-        subject: '📱 New Device Request - YantraDaan',
+        subject: '📱 New Device Request - Yantra Daan',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #059669;">📱 New Device Request</h2>
@@ -92,7 +92,7 @@ router.post('/', auth, async (req, res) => {
     for (const admin of adminUsers) {
       await emailService.sendEmail({
         to: admin.email,
-        subject: '📱 New Device Request Requires Review - YantraDaan',
+        subject: '📱 New Device Request Requires Review - Yantra Daan',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #059669;">📱 New Device Request</h2>
@@ -241,14 +241,14 @@ router.put('/admin/:id/status', auth, async (req, res) => {
       // Notify requester
       await emailService.sendEmail({
         to: request.requesterInfo.email,
-        subject: '✅ Device Request Approved - YantraDaan',
+        subject: '✅ Device Request Approved - Yantra Daan',
         html: emailService.emailTemplates.requestApproved(request.toObject())
       });
 
       // Notify device owner
       await emailService.sendEmail({
         to: request.deviceInfo.ownerInfo.email,
-        subject: '📱 Device Request Approved - Contact Requester - YantraDaan',
+        subject: '📱 Device Request Approved - Contact Requester - Yantra Daan',
         html: emailService.emailTemplates.requestApprovedToOwner(request.toObject())
       });
 
@@ -256,7 +256,7 @@ router.put('/admin/:id/status', auth, async (req, res) => {
       // Notify requester of rejection
       await emailService.sendEmail({
         to: request.requesterInfo.email,
-        subject: '❌ Device Request Rejected - YantraDaan',
+        subject: '❌ Device Request Rejected - Yantra Daan',
         html: emailService.emailTemplates.requestRejected(request.toObject())
       });
     }

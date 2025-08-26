@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       __APP_VERSION__: JSON.stringify(env.VITE_APP_VERSION || '1.0.0'),
-      __APP_NAME__: JSON.stringify(env.VITE_APP_NAME || 'YantraDaan'),
+      __APP_NAME__: JSON.stringify(env.VITE_APP_NAME || 'Yantra Daan'),
     },
   };
 });
