@@ -3,7 +3,7 @@ const DeviceRequestModel = require('../models/DeviceRequest');
 const DeviceModel = require('../models/Device');
 const UserModel = require('../models/UserModels');
 const { auth, requireRole } = require('../middleware/auth');
-// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
+const emailService = require('../utils/emailService'); // EMAIL SERVICE ENABLED
 
 const router = Router();
 
@@ -54,8 +54,6 @@ router.post('/', auth, async (req, res) => {
     await request.populate('deviceInfo', 'title deviceType condition ownerId');
     await request.populate('requesterInfo', 'name email contact');
 
-    // EMAIL NOTIFICATIONS DISABLED - Device owner notification commented out
-    /*
     // Send notification to device owner
     if (device.ownerInfo && device.ownerInfo.email) {
       await emailService.sendEmail({
@@ -112,7 +110,6 @@ router.post('/', auth, async (req, res) => {
         `
       });
     }
-    */
 
     res.status(201).json({
       message: 'Device request submitted successfully',
@@ -234,8 +231,6 @@ router.put('/admin/:id/status', auth, async (req, res) => {
 
     await request.save();
 
-    // EMAIL NOTIFICATIONS DISABLED - Status change notifications commented out
-    /*
     // Send notifications
     if (status === 'approved') {
       // Notify requester
@@ -260,7 +255,6 @@ router.put('/admin/:id/status', auth, async (req, res) => {
         html: emailService.emailTemplates.requestRejected(request.toObject())
       });
     }
-    */
 
     res.json({
       message: `Device request ${status} successfully`,
@@ -367,6 +361,48 @@ router.get('/device/:deviceId', auth, async (req, res) => {
     
   } catch (error) {
     console.error('Get device requests error:', error);
+    res.status(500).json({
+      error: 'Failed to get device requests',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Get public device requesters for a specific device (public endpoint)
+router.get('/public/device/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    
+    // Check if the device exists and is approved
+    const device = await DeviceModel.findById(deviceId);
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+    
+    if (device.status !== 'approved') {
+      return res.status(400).json({ error: 'Device is not available for viewing requests' });
+    }
+    
+    const requests = await DeviceRequestModel.find({ deviceId })
+      .populate('requesterInfo', 'name email contact profession')
+      .select('requesterInfo message status createdAt')
+      .sort({ createdAt: -1 });
+    
+    res.json({ 
+      requests: requests.map(req => ({
+        _id: req._id,
+        name: req.requesterInfo?.name || 'Anonymous',
+        email: req.requesterInfo?.email || '',
+        contact: req.requesterInfo?.contact || '',
+        profession: req.requesterInfo?.profession || '',
+        message: req.message,
+        status: req.status,
+        createdAt: req.createdAt
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Get public device requests error:', error);
     res.status(500).json({
       error: 'Failed to get device requests',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

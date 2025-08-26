@@ -19,12 +19,16 @@ import SignupPage from "./pages/SignupPage";
 import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import TeamPage from "./pages/TeamPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
 import DevicePost from "./components/DevicePost";
 import DeviceBrowse from "./components/DeviceBrowse";
+import DeviceDetailPage from "./pages/DeviceDetailPage";
+import { RequireAuth, RequireGuest, RequireAdmin } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,18 +54,71 @@ const AppContent = () => {
             <Route path="/donations" element={<DonationsPage />} />
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/donate" element={<DonatePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/donor-login" element={<DonorLoginPage />} />
-            <Route path="/admin-login" element={<AdminLoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            
+            {/* Public Auth Routes */}
+            <Route path="/login" element={
+              <RequireGuest>
+                <LoginPage />
+              </RequireGuest>
+            } />
+            <Route path="/donor-login" element={
+              <RequireGuest>
+                <DonorLoginPage />
+              </RequireGuest>
+            } />
+            <Route path="/admin-login" element={
+              <RequireGuest>
+                <AdminLoginPage />
+              </RequireGuest>
+            } />
+            <Route path="/signup" element={
+              <RequireGuest>
+                <SignupPage />
+              </RequireGuest>
+            } />
+            <Route path="/forgot-password" element={
+              <RequireGuest>
+                <ForgotPasswordPage />
+              </RequireGuest>
+            } />
+            <Route path="/reset-password" element={
+              <RequireGuest>
+                <ResetPasswordPage />
+              </RequireGuest>
+            } />
+            
+            {/* Protected Routes */}
+            <Route path="/admin" element={
+              <RequireAdmin>
+                <AdminPage />
+              </RequireAdmin>
+            } />
+            <Route path="/profile" element={
+              <RequireAuth>
+                <ProfilePage />
+              </RequireAuth>
+            } />
+            <Route path="/devices" element={
+              <RequireAuth>
+                <DeviceBrowse />
+              </RequireAuth>
+            } />
+            <Route path="/devices/post" element={
+              <RequireAuth>
+                <DevicePost />
+              </RequireAuth>
+            } />
+            <Route path="/devices/:deviceId" element={
+              <RequireAuth>
+                <DeviceDetailPage />
+              </RequireAuth>
+            } />
+            
+            {/* Public Pages */}
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/devices" element={<DeviceBrowse />} />
-            <Route path="/devices/post" element={<DevicePost />} />
+            <Route path="/team" element={<TeamPage />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

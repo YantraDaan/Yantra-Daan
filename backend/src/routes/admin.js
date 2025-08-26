@@ -4,9 +4,88 @@ const DeviceModel = require('../models/Device');
 const DeviceRequestModel = require('../models/DeviceRequest');
 const TeamMemberModel = require('../models/TeamMember');
 const { auth, requireRole } = require('../middleware/auth');
-// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
+const emailService = require('../utils/emailService'); // EMAIL SERVICE ENABLED
 
 const router = Router();
+
+// Test email functionality (no auth required for testing)
+router.post('/test-email-public', async (req, res) => {
+  try {
+    const { to, subject = 'Test Email from YantraDaan' } = req.body;
+    
+    if (!to) {
+      return res.status(400).json({ error: 'Recipient email is required' });
+    }
+
+    console.log('Attempting to send test email to:', to);
+    console.log('Using SMTP credentials:', {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: process.env.SMTP_PORT || 587,
+      user: process.env.SMTP_USER || 'yantradaan@gmail.com'
+    });
+
+    const testEmailHtml = emailService.emailTemplates.testEmail();
+    
+    const result = await emailService.sendEmail({
+      to: to,
+      subject: subject,
+      html: testEmailHtml
+    });
+
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully',
+        messageId: result.messageId 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send test email',
+        details: result.error 
+      });
+    }
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({ error: 'Failed to send test email', details: error.message });
+  }
+});
+
+// Test email functionality
+router.post('/test-email', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { to, subject = 'Test Email from YantraDaan' } = req.body;
+    
+    if (!to) {
+      return res.status(400).json({ error: 'Recipient email is required' });
+    }
+
+    const testEmailHtml = emailService.emailTemplates.testEmail();
+    
+    const result = await emailService.sendEmail({
+      to: to,
+      subject: subject,
+      html: testEmailHtml
+    });
+
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully',
+        messageId: result.messageId 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send test email',
+        details: result.error 
+      });
+    }
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({ error: 'Failed to send test email' });
+  }
+});
 
 // Get dashboard statistics
 router.get('/stats', auth, requireRole(['admin']), async (req, res) => {

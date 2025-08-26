@@ -282,7 +282,7 @@ const UserManagement = () => {
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -317,7 +317,7 @@ const UserManagement = () => {
       const token = localStorage.getItem('authToken');
       
       // Fetch user's devices
-      const devicesResponse = await fetch(`http://localhost:5000/api/devices/user/${user._id}`, {
+      const devicesResponse = await fetch(`${config.apiUrl}${config.endpoints.devices}/user/${user._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -329,7 +329,7 @@ const UserManagement = () => {
       }
       
       // Fetch user's requests
-      const requestsResponse = await fetch(`http://localhost:5000/api/device-requests/user/${user._id}`, {
+      const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/user/${user._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

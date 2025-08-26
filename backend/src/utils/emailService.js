@@ -1,6 +1,3 @@
-// EMAIL SERVICE DISABLED - ALL EMAIL FUNCTIONALITY COMMENTED OUT
-
-/*
 const nodemailer = require('nodemailer');
 
 // Create transporter using SMTP
@@ -10,8 +7,8 @@ const createTransporter = () => {
     port: process.env.SMTP_PORT || 587,
     secure: false, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER || 'your-email@gmail.com',
-      pass: process.env.SMTP_PASS || 'your-app-password'
+      user: process.env.SMTP_USER || 'yantradaan@gmail.com',
+      pass: process.env.SMTP_PASS || 'ybzb hhke kfze otra'
     }
   });
 };
@@ -22,7 +19,7 @@ const sendEmail = async (emailData) => {
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: emailData.from || process.env.SMTP_USER || 'noreply@yantradaan.com',
+      from: emailData.from || process.env.SMTP_USER || 'yantradaan@gmail.com',
       to: emailData.to,
       subject: emailData.subject,
       html: emailData.html
@@ -181,29 +178,26 @@ const emailTemplates = {
         Please coordinate with the requester to arrange pickup/delivery of your device.
       </p>
     </div>
+  `,
+
+  // Test email template
+  testEmail: () => `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #059669;">🧪 Test Email - YantraDaan</h2>
+      <p>This is a test email to verify that the email service is working correctly.</p>
+      
+      <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="color: #166534;">Email Service Status:</h3>
+        <p><strong>Status:</strong> ✅ Active</p>
+        <p><strong>SMTP Host:</strong> smtp.gmail.com</p>
+        <p><strong>Test Time:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+      
+      <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+        If you received this email, the email service is working correctly!
+      </p>
+    </div>
   `
-};
-
-module.exports = {
-  sendEmail,
-  emailTemplates
-};
-*/
-
-// Mock email service functions that do nothing
-const sendEmail = async (emailData) => {
-  console.log('EMAIL DISABLED - Would have sent email to:', emailData.to);
-  console.log('Subject:', emailData.subject);
-  return { success: true, messageId: 'mock-email-id' };
-};
-
-const emailTemplates = {
-  newDevicePost: () => '',
-  devicePostApproved: () => '',
-  devicePostRejected: () => '',
-  requestApproved: () => '',
-  requestRejected: () => '',
-  requestApprovedToOwner: () => ''
 };
 
 module.exports = {
