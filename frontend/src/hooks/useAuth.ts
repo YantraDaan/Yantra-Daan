@@ -35,6 +35,8 @@ export const useAuth = () => {
         return;
       }
 
+      console.log('Validating token for user:', auth.user.email);
+
       try {
         const response = await fetch(`${config.apiUrl}/api/auth/validate`, {
           method: 'GET',
@@ -44,20 +46,36 @@ export const useAuth = () => {
           },
         });
 
-        setIsTokenValid(response.ok);
-        
-        if (!response.ok) {
-          // Token is invalid, logout user
+        if (response.ok) {
+          const data = await response.json();
+          setIsTokenValid(data.valid);
+          
+          if (!data.valid) {
+            // Token is invalid, logout user
+            auth.logout();
+          }
+        } else if (response.status === 404) {
+          // Endpoint not found - backend might not be running
+          console.warn('Token validation endpoint not found. Backend might not be running.');
+          setIsTokenValid(true); // Assume token is valid to avoid logout
+        } else {
+          // Response not ok, token is invalid
+          setIsTokenValid(false);
           auth.logout();
         }
       } catch (error) {
         console.error('Token validation error:', error);
-        setIsTokenValid(false);
-        auth.logout();
+        // On network errors, assume token is valid to avoid unnecessary logout
+        setIsTokenValid(true);
       }
     };
 
-    validateToken();
+    // Only validate if we have both user and token
+    if (auth.user && localStorage.getItem('authToken')) {
+      validateToken();
+    } else {
+      setIsTokenValid(false);
+    }
   }, [auth.user]);
 
   // Auto-logout when token expires

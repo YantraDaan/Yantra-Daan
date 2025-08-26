@@ -407,6 +407,23 @@ router.post('/login', validateLogin, async (req, res) => {
   }
 });
 
+// Validate JWT token
+router.get('/validate', auth, async (req, res) => {
+  try {
+    // If we reach here, the token is valid (auth middleware passed)
+    res.json({
+      valid: true,
+      user: req.user
+    });
+  } catch (error) {
+    console.error('Token validation error:', error.message);
+    res.status(401).json({ 
+      valid: false,
+      error: 'Invalid token'
+    });
+  }
+});
+
 // Get current user profile
 router.get('/me', auth, async (req, res) => {
   try {
