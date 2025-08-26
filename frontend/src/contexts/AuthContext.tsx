@@ -68,17 +68,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; error?: string; message?: string }> => {
     try {
+      console.log('AuthContext: Login attempt with:', { email, userRole, passwordLength: password?.length });
       setIsLoading(true);
+      
+      const requestBody = { email, password, userRole };
+      console.log('AuthContext: Request body:', requestBody);
+      
       const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, userRole }),
+        body: JSON.stringify(requestBody),
       });
+      
+      console.log('AuthContext: Response status:', response.status);
+      console.log('AuthContext: Response headers:', response.headers);
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('AuthContext: Error response:', errorData);
         setIsLoading(false);
         return { 
           success: false, 
@@ -88,9 +97,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       const data = await response.json();
-      const apiUser = data.user;
-      console.log("apiUser",apiUser);
+      console.log('AuthContext: Success response:', data);
       
+      const apiUser = data.user;
       const token = data.token as string;
       
       // Map backend user data to frontend User interface
@@ -113,13 +122,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         document: apiUser.document,
         profilePhoto: apiUser.profilePhoto
       };
+      
+      console.log('AuthContext: Mapped user:', mappedUser);
+      
       setUser(mappedUser);
       localStorage.setItem('authUser', JSON.stringify(mappedUser));
       localStorage.setItem('authToken', token);
       setIsLoading(false);
       return { success: true };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('AuthContext: Login error:', error);
       setIsLoading(false);
       return { success: false, error: (error as Error).message };
     }

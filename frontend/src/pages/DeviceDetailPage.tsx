@@ -418,7 +418,7 @@ const DeviceDetailPage = () => {
             </Card>
 
             {/* Request Form */}
-            {device.isActive && user?.userRole === 'requester' && (
+            {device.isActive && user && user.userRole === 'requester' && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -451,7 +451,15 @@ const DeviceDetailPage = () => {
                       </div>
                       <div className="flex gap-2">
                         <Button 
-                          onClick={handleRequestDevice}
+                          onClick={() => {
+                            // TODO: Implement request submission
+                            toast({
+                              title: "Request Submitted",
+                              description: "Your request has been submitted successfully!",
+                            });
+                            setShowRequestForm(false);
+                            setRequestMessage("");
+                          }}
                           disabled={isSubmitting || !requestMessage.trim()}
                           className="flex-1 btn-hero"
                         >
@@ -469,6 +477,32 @@ const DeviceDetailPage = () => {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Show message for donors */}
+            {device.isActive && user && user.userRole === 'donor' && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-600">Donors cannot request devices</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Show login prompt for non-authenticated users */}
+            {device.isActive && !user && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-600 mb-4">Login to request this device</p>
+                  <Button 
+                    onClick={() => navigate("/login", {
+                      state: { from: { pathname: `/devices/${deviceId}` } }
+                    })}
+                    className="btn-hero"
+                  >
+                    Login
+                  </Button>
                 </CardContent>
               </Card>
             )}

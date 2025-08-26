@@ -27,8 +27,12 @@ const AdminLoginPage = () => {
     e.preventDefault();
     
     try {
+      console.log('Attempting admin login with:', { email, password: password ? '***' : 'empty' });
+      
       // Attempt admin login
       const result = await login(email, password, "admin");
+      console.log('Login result:', result);
+      
       if (result.success) {
         // Check if the logged-in user is actually an admin
         if (user && user.userRole === 'admin') {
@@ -38,6 +42,7 @@ const AdminLoginPage = () => {
           });
           navigate("/admin");
         } else {
+          console.log('User role check failed:', { user, userRole: user?.userRole });
           toast({
             title: "Access Denied",
             description: "You don't have admin privileges. Please contact an administrator.",
@@ -45,6 +50,7 @@ const AdminLoginPage = () => {
           });
         }
       } else {
+        console.log('Login failed:', result.error);
         toast({
           title: "Login failed",
           description: result.error || "Invalid admin credentials. Please check your email and password.",
@@ -52,6 +58,7 @@ const AdminLoginPage = () => {
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
         description: "An unexpected error occurred. Please try again.",
@@ -133,63 +140,68 @@ const AdminLoginPage = () => {
         </div>
 
         {/* Admin Login Form */}
-        <Card className="glass-card border-destructive/20">
+        <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-destructive">Admin Access</CardTitle>
+            <CardTitle className="flex items-center justify-center gap-2">
+              <Shield className="w-6 h-6" />
+              Admin Login
+            </CardTitle>
             <CardDescription>
-              Restricted access for administrators only
+              Access the admin panel to manage users, devices, and requests
             </CardDescription>
           </CardHeader>
-
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Login Form */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Admin Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="admin@yantradaan.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required 
-                    />
-                  </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required 
-                    />
-                  </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-destructive hover:bg-destructive/90" disabled={isLoading}>
-                {isLoading ? "Authenticating..." : "Admin Sign In"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Login to Admin Panel"}
               </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                <Link
-                  to="/"
-                  className="font-medium text-primary hover:underline"
-                >
-                  ← Back to Home
-                </Link>
-              </p>
             </form>
+
+            {/* Help Section */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">Need Help?</h4>
+              <p className="text-sm text-blue-700 mb-2">
+                If you're getting "Invalid email or password" errors:
+              </p>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Ensure the backend server is running</li>
+                <li>• Check if you have admin privileges</li>
+                <li>• Contact the system administrator</li>
+                <li>• Use the "Create Admin User" option below</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 

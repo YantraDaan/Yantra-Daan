@@ -204,17 +204,30 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         </div>
 
         {/* Action Button */}
-        {item.isActive && onRequest && (
+        {item.isActive && user && user.userRole === 'requester' && onRequest && (
           <Button
             onClick={handleRequest}
             className="w-full btn-hero"
-            disabled={user?.userRole === "donor"}
           >
-            {!user
-              ? "Login to Request"
-              : user.userRole === "donor"
-              ? "Donors Cannot Request"
-              : "Request This Item"}
+            Request This Item
+          </Button>
+        )}
+
+        {/* Show different messages based on user role */}
+        {item.isActive && user && user.userRole === 'donor' && (
+          <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">Donors cannot request items</p>
+          </div>
+        )}
+
+        {item.isActive && !user && (
+          <Button
+            onClick={() => navigate("/login", {
+              state: { from: { pathname: window.location.pathname } },
+            })}
+            className="w-full btn-hero"
+          >
+            Login to Request
           </Button>
         )}
 
