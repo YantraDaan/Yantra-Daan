@@ -102,6 +102,19 @@ const DeviceDetailPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return null;
+    
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // If it's a relative path, construct the full URL
+    const baseUrl = config.apiUrl;
+    return `${baseUrl}/uploads/${imagePath}`;
+  };
+
   useEffect(() => {
     if (deviceId) {
       fetchDeviceDetails();

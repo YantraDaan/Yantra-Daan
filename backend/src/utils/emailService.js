@@ -16,6 +16,8 @@ const createTransporter = () => {
 // Send email function
 const sendEmail = async (emailData) => {
   try {
+    console.log('Attempting to send email to:', emailData.to);
+    console.log('Email subject:', emailData.subject);
     const transporter = createTransporter();
     
     const mailOptions = {
