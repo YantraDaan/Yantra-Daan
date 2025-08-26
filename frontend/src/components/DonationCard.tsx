@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar, User, Laptop, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { config } from "@/config/env";
 
 interface DonationItem {
   _id: string;
@@ -111,8 +112,7 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
     }
     
     // If it's a relative path, construct the full URL
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${baseUrl}/uploads/${imagePath}`;
+    return `${config.apiUrl}/uploads/${imagePath}`;
   };
 
   const getDonorName = () => {
@@ -131,8 +131,17 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               console.log('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
+              console.log('Original image path:', item.devicePhotos[0].url);
+              console.log('Constructed URL:', getImageUrl(item.devicePhotos[0].url));
               e.currentTarget.style.display = "none";
-              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+              // Show fallback content
+              const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+              if (fallback) {
+                fallback.classList.remove('hidden');
+              }
+            }}
+            onLoad={() => {
+              console.log('Image loaded successfully:', getImageUrl(item.devicePhotos[0].url));
             }}
           />
         ) : item.images && item.images.length > 0 ? (
@@ -142,13 +151,38 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               console.log('Image failed to load:', getImageUrl(item.images[0]));
+              console.log('Original image path:', item.images[0]);
+              console.log('Constructed URL:', getImageUrl(item.images[0]));
               e.currentTarget.style.display = "none";
-              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+              // Show fallback content
+              const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+              if (fallback) {
+                fallback.classList.remove('hidden');
+              }
+            }}
+            onLoad={() => {
+              console.log('Image loaded successfully:', getImageUrl(item.images[0]));
             }}
           />
-        ) : (
+        ) : null}
+
+        {/* Fallback content when image fails to load */}
+        <div className="image-fallback hidden w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+          <div className="text-center">
+            <Laptop className="w-16 h-16 text-primary/40 mx-auto mb-2" />
+            <p className="text-sm text-primary/60">{item.deviceType || 'Device'}</p>
+            <p className="text-xs text-primary/40">Image unavailable</p>
+          </div>
+        </div>
+
+        {/* Default content when no images */}
+        {(!item.devicePhotos || item.devicePhotos.length === 0) && (!item.images || item.images.length === 0) && (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-            <Laptop className="w-16 h-16 text-primary/40" />
+            <div className="text-center">
+              <Laptop className="w-16 h-16 text-primary/40 mx-auto mb-2" />
+              <p className="text-sm text-primary/60">{item.deviceType || 'Device'}</p>
+              <p className="text-xs text-primary/40">No image available</p>
+            </div>
           </div>
         )}
 

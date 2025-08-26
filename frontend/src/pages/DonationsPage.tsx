@@ -156,14 +156,6 @@ const DonationsPage = () => {
             variant="full"
           />
         )}
-
-        {/* Note about Supabase */}
-        <div className="mt-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-6 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Want to request an item?</h3>
-          <p className="text-gray-600 mb-4">
-            To submit donation requests and connect with donors, you'll need to integrate with Supabase for authentication and database functionality.
-          </p>
-        </div>
       </div>
     </div>
   );
