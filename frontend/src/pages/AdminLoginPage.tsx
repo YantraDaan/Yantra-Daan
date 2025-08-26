@@ -20,7 +20,7 @@ const AdminLoginPage = () => {
     password: "",
     contact: ""
   });
-  const { adminLogin, isLoading, user, logout } = useAuth();
+  const { adminLogin, isLoading, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
