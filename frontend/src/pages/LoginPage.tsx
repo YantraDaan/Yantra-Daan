@@ -39,10 +39,9 @@ const LoginPage = () => {
     if (result.success) {
       toast({
         title: "Login successful!",
-        description: `Welcome back, ${userRole === 'requester' ? 'Requester' : 'Donor'}!`,
+        description: `Welcome back, ${userRole === 'student' ? 'Student' : 'Donor'}!`,
       });
-      // navigate("/profile", { replace: true }); // Always go to profile page after login
-      navigate(from, { replace: true });
+      navigate("/profile", { replace: true }); // Always go to profile dashboard after login
     } else {
         toast({
           title: "Login failed",
@@ -88,12 +87,12 @@ const LoginPage = () => {
                       <input
                         type="radio"
                         name="userRole"
-                        value="requester"
-                        checked={userRole === "requester"}
+                        value="student"
+                        checked={userRole === "student"}
                         onChange={(e) => setUserRole(e.target.value)}
                         className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
                       />
-                      <span className="text-sm font-medium">Requester</span>
+                      <span className="text-sm font-medium">Student</span>
                     </label>
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input

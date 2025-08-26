@@ -238,7 +238,7 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         </div>
 
         {/* Action Button */}
-        {item.isActive && user && user.userRole === 'requester' && onRequest && (
+        {item.isActive && user && user.userRole === 'student' && onRequest && (
           <Button
             onClick={handleRequest}
             className="w-full btn-hero"

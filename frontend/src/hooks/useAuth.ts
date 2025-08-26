@@ -100,9 +100,9 @@ export const useAuth = () => {
     return hasRole('donor');
   }, [hasRole]);
 
-  // Check if user is requester
-  const isRequester = useCallback(() => {
-    return hasRole('requester');
+  // Check if user is student
+  const isStudent = useCallback(() => {
+    return hasRole('student');
   }, [hasRole]);
 
   // Get user's display name
@@ -123,8 +123,9 @@ export const useAuth = () => {
     hasRole,
     isAdmin,
     isDonor,
-    isRequester,
+    isStudent,
     getDisplayName,
     canAccessAdmin,
+    adminLogin: auth.adminLogin, // Explicitly expose adminLogin
   };
 };

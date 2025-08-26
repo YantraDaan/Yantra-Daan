@@ -33,9 +33,12 @@ const AdminLoginPage = () => {
       // Attempt admin login using the adminLogin function
       const result = await adminLogin(email, password);
       console.log('Login result:', result);
+      console.log('Result user:', result.user);
+      console.log('Result user role:', result.user?.userRole);
       
       if (result.success) {
         // Check admin role from the login response
+        // The adminLogin function returns the user in result.user
         if (result.user && result.user.userRole === 'admin') {
           toast({
             title: "Admin Login Successful!",
