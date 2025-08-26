@@ -99,6 +99,7 @@ router.post('/register', validateRegistration, async (req, res) => {
       const welcomeEmailData = {
         to: user.email,
         subject: `Welcome to YantraDaan, ${user.name}!`,
+        replyTo: user.email, // Set reply-to as user's email
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
@@ -161,7 +162,7 @@ router.post('/register', validateRegistration, async (req, res) => {
       };
 
       await emailService.sendEmail(welcomeEmailData);
-      console.log(`Welcome email sent successfully to ${user.email}`);
+      console.log(`Welcome email sent successfully to ${user.email} with reply-to set to ${user.email}`);
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError);
       // Don't fail registration if email fails
@@ -184,6 +185,109 @@ router.post('/register', validateRegistration, async (req, res) => {
     console.error('Registration error:', error);
     res.status(500).json({ 
       error: 'Failed to register user',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Admin login with strict validation
+router.post('/admin-login', validateLogin, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    console.log('=== ADMIN LOGIN ATTEMPT DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Extracted values:', { email, passwordLength: password?.length });
+
+    // Find user by email (case-insensitive)
+    const user = await UserModel.findOne({ 
+      email: { $regex: new RegExp(`^${email}$`, 'i') } 
+    });
+
+    if (!user) {
+      console.log('User not found for email:', email);
+      return res.status(401).json({ 
+        error: 'Invalid email or password' 
+      });
+    }
+
+    console.log('User found:', { 
+      _id: user._id,
+      email: user.email, 
+      userRole: user.userRole, 
+      passwordLength: user.password?.length
+    });
+
+    // STRICT: Only allow admin users to login through admin endpoint
+    if (user.userRole !== 'admin') {
+      console.log('Admin login rejected - user is not admin:', { email, userRole: user.userRole });
+      return res.status(403).json({ 
+        error: 'Access denied. Admin privileges required.',
+        message: 'This account does not have admin privileges.'
+      });
+    }
+
+    // Check password - handle both hashed and plain text passwords
+    let isPasswordValid = false;
+    
+    if (user.password && user.password.length > 20) {
+      console.log('Attempting hashed password comparison');
+      isPasswordValid = await comparePassword(password, user.password);
+      console.log('Hashed password comparison result:', isPasswordValid);
+    } else {
+      console.log('Attempting plain text password comparison');
+      isPasswordValid = (user.password === password);
+      console.log('Plain text password comparison result:', isPasswordValid);
+      
+      // If login successful with plain text, hash the password for future use
+      if (isPasswordValid) {
+        try {
+          const hashedPassword = await hashPassword(password);
+          await UserModel.findByIdAndUpdate(user._id, { password: hashedPassword });
+          console.log(`Updated password for user ${user.email} from plain text to hash`);
+        } catch (hashError) {
+          console.error('Error hashing password during admin login:', hashError);
+        }
+      }
+    }
+
+    if (!isPasswordValid) {
+      console.log('Admin password validation failed');
+      return res.status(401).json({ 
+        error: 'Invalid email or password' 
+      });
+    }
+
+    // Check if user is active
+    if (user.isActive === false) {
+      console.log('Admin account is inactive:', user.email);
+      return res.status(403).json({ 
+        error: 'Your admin account is inactive. Please contact administrator.',
+        message: 'Account deactivated'
+      });
+    }
+
+    console.log('Admin login validation passed');
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    // Return user data (without password) and token
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    console.log('Admin login successful for user:', user.email);
+
+    res.json({
+      message: 'Admin login successful',
+      user: userResponse,
+      token
+    });
+
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ 
+      error: 'Failed to login as admin',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }

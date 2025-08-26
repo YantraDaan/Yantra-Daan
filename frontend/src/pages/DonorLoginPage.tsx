@@ -28,7 +28,7 @@ const DonorLoginPage = () => {
         title: "Login successful!",
         description: "Welcome back, donor!",
       });
-      navigate(from, { replace: true });
+      navigate("/profile", { replace: true }); // Always go to profile page after login
     }else{
       toast({
         title: "Login failed",

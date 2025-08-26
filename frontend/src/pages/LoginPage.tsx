@@ -41,7 +41,7 @@ const LoginPage = () => {
         title: "Login successful!",
         description: `Welcome back, ${userRole === 'requester' ? 'Requester' : 'Donor'}!`,
       });
-      navigate(from, { replace: true });
+      navigate("/profile", { replace: true }); // Always go to profile page after login
     } else {
         toast({
           title: "Login failed",

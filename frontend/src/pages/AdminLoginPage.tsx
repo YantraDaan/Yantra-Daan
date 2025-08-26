@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
 
+
 const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +20,7 @@ const AdminLoginPage = () => {
     password: "",
     contact: ""
   });
-  const { login, isLoading, user } = useAuth();
+  const { adminLogin, isLoading, user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -29,31 +30,33 @@ const AdminLoginPage = () => {
     try {
       console.log('Attempting admin login with:', { email, password: password ? '***' : 'empty' });
       
-      // Attempt admin login
-      const result = await login(email, password, "admin");
+      // Attempt admin login using the adminLogin function
+      const result = await adminLogin(email, password);
       console.log('Login result:', result);
       
       if (result.success) {
-        // Check if the logged-in user is actually an admin
-        if (user && user.userRole === 'admin') {
+        // Check admin role from the login response
+        if (result.user && result.user.userRole === 'admin') {
           toast({
             title: "Admin Login Successful!",
             description: "Welcome to the admin panel.",
           });
           navigate("/admin");
         } else {
-          console.log('User role check failed:', { user, userRole: user?.userRole });
+          console.log('Admin role validation failed:', { user: result.user, userRole: result.user?.userRole });
           toast({
             title: "Access Denied",
             description: "You don't have admin privileges. Please contact an administrator.",
             variant: "destructive",
           });
+          // Logout the user since they don't have admin access
+          logout();
         }
       } else {
-        console.log('Login failed:', result.error);
+        console.log('Login failed');
         toast({
           title: "Login failed",
-          description: result.error || "Invalid admin credentials. Please check your email and password.",
+          description: "Invalid admin credentials. Please check your email and password.",
           variant: "destructive",
         });
       }

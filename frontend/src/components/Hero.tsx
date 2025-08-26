@@ -67,22 +67,7 @@ const Hero = () => {
               </Link>
             </div>
 
-            {/* Sign Up / Login Section */}
-            <div className="pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-3">New to YantraDaan?</p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link to="/signup">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    Sign Up
-                  </Button>
-                </Link>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                    Already have an account? Login
-                  </Button>
-                </Link>
-              </div>
-            </div>
+    
           </div>
 
           {/* Hero Image */}

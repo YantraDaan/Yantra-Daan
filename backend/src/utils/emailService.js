@@ -24,7 +24,8 @@ const sendEmail = async (emailData) => {
       from: emailData.from || process.env.SMTP_USER || 'yantradaan@gmail.com',
       to: emailData.to,
       subject: emailData.subject,
-      html: emailData.html
+      html: emailData.html,
+      ...(emailData.replyTo && { replyTo: emailData.replyTo })
     };
 
     const info = await transporter.sendMail(mailOptions);

@@ -79,6 +79,21 @@ const SignupPage = () => {
     }
   }, [location.state]);
 
+  // Auto-check email when email changes (with debounce)
+  useEffect(() => {
+    if (personalInfo.email && personalInfo.email.includes('@')) {
+      const timer = setTimeout(() => {
+        if (personalInfo.email.trim()) {
+          // Create a mock event for the email check
+          const mockEvent = { preventDefault: () => {} } as React.FormEvent;
+          handleEmailCheck(mockEvent);
+        }
+      }, 1000); // Wait 1 second after user stops typing
+      
+      return () => clearTimeout(timer);
+    }
+  }, [personalInfo.email]);
+
   const handlePersonalInfoChange = (field: keyof PersonalInfo, value: string) => {
     setPersonalInfo(prev => ({ ...prev, [field]: value }));
   };
@@ -127,11 +142,19 @@ const SignupPage = () => {
             description: result.message,
             variant: "destructive",
           });
+          // Auto-redirect to login after 2 seconds
+          setTimeout(() => {
+            handleGoToLogin();
+          }, 2000);
         } else {
           toast({
             title: "Email Available",
             description: result.message,
           });
+          // Auto-proceed to signup after 2 seconds
+          setTimeout(() => {
+            handleProceedWithSignup();
+          }, 2000);
         }
       } else {
         toast({
@@ -222,7 +245,7 @@ const SignupPage = () => {
         document: documentInfo
       };
 
-      const response = await fetch(`${config.apiUrl}${config.endpoints.users}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -278,7 +301,7 @@ const SignupPage = () => {
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-muted-foreground">Step {step === 0 ? 'Email Check' : step} of 5</span>
+            <span className="text-sm text-muted-foreground">Step {step === 0 ? 'Email Check ' : step} of 5</span>
             <span className="text-sm text-muted-foreground">{step === 0 ? '0%' : `${Math.round(((step) / 4) * 100)}%`} Complete</span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
@@ -293,7 +316,7 @@ const SignupPage = () => {
         <Card className="glass-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
-              {step === 0 && "Check Email Availability"}
+              {step === 0 && "Enter Your Email"}
               {step === 1 && "Create Your Account"}
               {step === 2 && "Choose Your Role"}
               {step === 3 && "Select Category"}
@@ -379,27 +402,10 @@ const SignupPage = () => {
                     </div>
                   )}
 
-                  {/* Email Check Button */}
-                  {!emailCheckResult && (
-                    <Button
-                      type="button"
-                      onClick={handleEmailCheck}
-                      disabled={isCheckingEmail || !personalInfo.email.trim()}
-                      className="w-full btn-hero"
-                    >
-                      {isCheckingEmail ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                          Checking Email...
-                        </>
-                      ) : (
-                        <>
-                          Check Email Availability
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  {/* Auto-email check happens on blur */}
+                  <p className="text-sm text-muted-foreground text-center">
+                    Email will be checked automatically when you finish typing
+                  </p>
                 </div>
               )}
 
@@ -742,13 +748,7 @@ const SignupPage = () => {
                 )}
               </div>
 
-              {/* Login Link */}
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                Already have an account?{" "}
-                <Link to="/login" className="font-medium text-primary hover:underline">
-                  Sign in
-                </Link>
-              </p>
+
             </CardContent>
           </form>
         </Card>

@@ -36,6 +36,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, userRole: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  adminLogin: (email: string, password: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   isLoading: boolean;
@@ -137,6 +138,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const adminLogin = async (email: string, password: string): Promise<{ success: boolean; user?: any; error?: string; message?: string }> => {
+    try {
+      console.log('AuthContext: Admin login attempt with:', { email, passwordLength: password?.length });
+      setIsLoading(true);
+      
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/admin-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log('AuthContext: Admin login error response:', errorData);
+        setIsLoading(false);
+        return { 
+          success: false, 
+          error: errorData.error || 'Admin login failed',
+          message: errorData.message
+        };
+      }
+      
+      const data = await response.json();
+      console.log('AuthContext: Admin login success response:', data);
+      
+      const apiUser = data.user;
+      const token = data.token as string;
+      
+      // Map backend user data to frontend User interface
+      const mappedUser: User = {
+        id: apiUser.id || apiUser._id,
+        name: apiUser.name,
+        email: apiUser.email,
+        profileImage: undefined,
+        contact: apiUser.contact || apiUser.phone,
+        userRole: apiUser.userRole,
+        categoryType: apiUser.categoryType,
+        isOrganization: apiUser.isOrganization,
+        about: apiUser.about,
+        profession: apiUser.profession,
+        linkedIn: apiUser.linkedIn,
+        instagram: apiUser.instagram,
+        facebook: apiUser.facebook,
+        address: apiUser.address,
+        emailUpdates: apiUser.emailUpdates,
+        document: apiUser.document,
+        profilePhoto: apiUser.profilePhoto
+      };
+      
+      console.log('AuthContext: Mapped admin user:', mappedUser);
+      
+      setUser(mappedUser);
+      localStorage.setItem('authUser', JSON.stringify(mappedUser));
+      localStorage.setItem('authToken', token);
+      setIsLoading(false);
+      return { success: true, user: mappedUser };
+    } catch (error) {
+      console.error('AuthContext: Admin login error:', error);
+      setIsLoading(false);
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('authUser');
@@ -154,6 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     login,
+    adminLogin,
     logout,
     updateUser,
     isLoading
