@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import DonorLoginPage from "./pages/DonorLoginPage";
 import SignupPage from "./pages/SignupPage";
+import EmailCheckPage from "./pages/EmailCheckPage";
 import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
@@ -69,6 +70,11 @@ const AppContent = () => {
             <Route path="/admin-login" element={
               <RequireGuest>
                 <AdminLoginPage />
+              </RequireGuest>
+            } />
+            <Route path="/email-check" element={
+              <RequireGuest>
+                <EmailCheckPage />
               </RequireGuest>
             } />
             <Route path="/signup" element={
