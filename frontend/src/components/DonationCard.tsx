@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, User, Laptop } from "lucide-react";
+import { MapPin, Calendar, User, Laptop, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 interface DonationItem {
   _id: string;
@@ -105,19 +105,15 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
   const getDonorName = () => {
     return item.ownerInfo?.name || "Admin";
   };
-
-  console.log("item.devicePhotos[0].caption ==",item.devicePhotos[0].url);
   
   return (
     
     <Card className="donation-card group">
       {/* Image */}
-      <img src={item.devicePhotos[0].url} alt="image.png" />
       <div className="relative h-48 bg-gray-100 overflow-hidden">
-        
         {item.devicePhotos && item.devicePhotos.length > 0 ? (
           <img
-            src={item.devicePhotos[0].caption}
+            src={item.devicePhotos[0].url}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
@@ -196,6 +192,14 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
               : "Request This Item"}
           </Button>
         )}
+
+        {/* Read More Button */}
+        <Link to={`/devices/${item._id}`}>
+          <Button variant="outline" className="w-full">
+            <Eye className="w-4 h-4 mr-2" />
+            Read More
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
