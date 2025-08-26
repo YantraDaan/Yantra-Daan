@@ -32,12 +32,14 @@ export const config = {
   
   // API Endpoints
   endpoints: {
-    auth: import.meta.env.VITE_AUTH_ENDPOINT || '/api/auth',
-    devices: import.meta.env.VITE_DEVICES_ENDPOINT || '/api/devices',
-    users: import.meta.env.VITE_USERS_ENDPOINT || '/api/users',
-    donations: import.meta.env.VITE_DONATIONS_ENDPOINT || '/api/donations',
-    requests: import.meta.env.VITE_REQUESTS_ENDPOINT || '/api/device-requests',
+    auth: '/api/auth',
+    devices: '/api/devices',
+    users: '/api/users',
+    donations: '/api/donations',
+    requests: '/api/device-requests',
+    publicRequests: '/api/device-requests/public',
     teamMembers: '/api/team-members',
+    admin: '/api/admin',
   },
   
   // Pagination

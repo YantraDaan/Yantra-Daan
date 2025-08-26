@@ -23,6 +23,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import NoDataFound from './NoDataFound';
+import { config } from "@/config/env";
 
 interface DeviceRequest {
   _id: string;
@@ -92,7 +93,7 @@ const AdminDashboard = () => {
         status: statusFilter !== 'all' ? statusFilter : ''
       });
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/admin/all?${params}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/all?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -138,7 +139,7 @@ const AdminDashboard = () => {
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/admin/${selectedRequest._id}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${selectedRequest._id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
