@@ -102,6 +102,19 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
     return "Location not specified";
   };
 
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return null;
+    
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // If it's a relative path, construct the full URL
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}/uploads/${imagePath}`;
+  };
+
   const getDonorName = () => {
     return item.ownerInfo?.name || "Admin";
   };
@@ -111,12 +124,24 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
     <Card className="donation-card group">
       {/* Image */}
       <div className="relative h-48 bg-gray-100 overflow-hidden">
-        {item.devicePhotos && item.devicePhotos.length > 0 ? (
+        {item.devicePhotos && item.devicePhotos.length > 0 && item.devicePhotos[0].url ? (
           <img
-            src={item.devicePhotos[0].url}
+            src={getImageUrl(item.devicePhotos[0].url)}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
+              console.log('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
+              e.currentTarget.style.display = "none";
+              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+            }}
+          />
+        ) : item.images && item.images.length > 0 ? (
+          <img
+            src={getImageUrl(item.images[0])}
+            alt={item.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              console.log('Image failed to load:', getImageUrl(item.images[0]));
               e.currentTarget.style.display = "none";
               e.currentTarget.nextElementSibling?.classList.remove("hidden");
             }}

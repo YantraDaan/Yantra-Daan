@@ -20,10 +20,13 @@ const DonationsPage = () => {
     const fetchDonations = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${config.apiUrl}${config.endpoints.donations}/approved`);
+        console.log('Fetching approved devices from:', `${config.apiUrl}${config.endpoints.devices}/approved`);
+        
+        const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved`);
         
         if (response.ok) {
           const data = await response.json();
+          console.log('Devices data received:', data);
           setDonations(data.devices || []);
         } else {
           throw new Error('Failed to fetch donations');
