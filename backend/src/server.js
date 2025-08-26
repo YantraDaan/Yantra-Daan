@@ -51,7 +51,7 @@ app.get('/health', (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ 
-    status: 'YantraDaan API Server Running',
+    status: 'Yantra Daan API Server Running',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     endpoints: {

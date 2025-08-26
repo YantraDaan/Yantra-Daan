@@ -36,7 +36,7 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How <span className="gradient-text">YantraDaan</span> Works
+              How <span className="gradient-text">Yantra Daan</span> Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Our platform makes it simple to donate and receive technology items, 

@@ -39,7 +39,7 @@ const emailTemplates = {
   // New device post notification to admin
   newDevicePost: (device, donor) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">🆕 New Device Post - YantraDaan</h2>
+      <h2 style="color: #059669;">🆕 New Device Post - Yantra Daan</h2>
       <p>A new device has been posted and requires admin approval.</p>
       
       <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -68,7 +68,7 @@ const emailTemplates = {
   // Device post approved notification to donor
   devicePostApproved: (device) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">✅ Device Post Approved - YantraDaan</h2>
+      <h2 style="color: #059669;">✅ Device Post Approved - Yantra Daan</h2>
       <p>Great news! Your device post has been approved by admin.</p>
       
       <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -88,7 +88,7 @@ const emailTemplates = {
   // Device post rejected notification to donor
   devicePostRejected: (device, reason) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">❌ Device Post Rejected - YantraDaan</h2>
+      <h2 style="color: #dc2626;">❌ Device Post Rejected - Yantra Daan</h2>
       <p>Your device post has been reviewed but was not approved.</p>
       
       <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -112,7 +112,7 @@ const emailTemplates = {
   // Request approved notification to requester
   requestApproved: (request) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">✅ Device Request Approved - YantraDaan</h2>
+      <h2 style="color: #059669;">✅ Device Request Approved - Yantra Daan</h2>
       <p>Great news! Your request for a device has been approved.</p>
       
       <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -136,7 +136,7 @@ const emailTemplates = {
   // Request rejected notification to requester
   requestRejected: (request) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">❌ Device Request Rejected - YantraDaan</h2>
+      <h2 style="color: #dc2626;">❌ Device Request Rejected - Yantra Daan</h2>
       <p>Your request for a device has been reviewed but was not approved.</p>
       
       <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -159,7 +159,7 @@ const emailTemplates = {
   // Request approved notification to device owner
   requestApprovedToOwner: (request) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">📱 Device Request Approved - Contact Requester - YantraDaan</h2>
+      <h2 style="color: #059669;">📱 Device Request Approved - Contact Requester - Yantra Daan</h2>
       <p>A request for your device has been approved by admin. Please contact the requester.</p>
       
       <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">

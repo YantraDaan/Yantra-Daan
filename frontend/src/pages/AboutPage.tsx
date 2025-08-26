@@ -114,6 +114,15 @@ const AboutPage = () => {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Community</h3>
                 <p className="text-gray-600">
+                  We use creative tech solutions for real-world impact.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Innovation</h3>
+                <p className="text-gray-600">
                   Building connections between donors and recipients to create lasting impact.
                 </p>
               </div>
@@ -124,6 +133,24 @@ const AboutPage = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Accessibility</h3>
                 <p className="text-gray-600">
                   Making technology accessible to students regardless of their economic background.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Globe className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Sustainability</h3>
+                <p className="text-gray-600">
+                  We protect the planet through mindful tech reuse.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Award className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Transparency</h3>
+                <p className="text-gray-600">
+                  We operate with honesty and build trust through action.
                 </p>
               </div>
               <div className="text-center">

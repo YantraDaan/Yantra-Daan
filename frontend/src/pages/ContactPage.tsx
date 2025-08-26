@@ -25,19 +25,19 @@ const ContactPage = () => {
     {
       icon: Mail,
       title: "Email Us",
-      content: "hello@techshareng.org",
+      content: "hello@yantradaan.org",
       description: "Send us an email anytime",
     },
     {
       icon: Phone,
       title: "Call Us",
-      content: "+1 (555) 123-4567",
-      description: "Mon-Fri, 9am-6pm EST",
+      content: "+91 8700283813",
+      description: "Mon-Fri, 9am-6pm IST",
     },
     {
       icon: MapPin,
       title: "Visit Us",
-      content: "123 Tech Street, Digital City, DC 12345",
+      content: "Okhla Industrial Area Phase-2, New Delhi, 110020, India",
       description: "Our main office location",
     },
   ];
