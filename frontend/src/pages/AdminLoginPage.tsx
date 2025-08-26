@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Mail, Lock, UserPlus } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
 
@@ -19,7 +19,7 @@ const AdminLoginPage = () => {
     password: "",
     contact: ""
   });
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -27,14 +27,23 @@ const AdminLoginPage = () => {
     e.preventDefault();
     
     try {
-      // Attempt admin login with proper role validation
+      // Attempt admin login
       const result = await login(email, password, "admin");
       if (result.success) {
-        toast({
-          title: "Admin Login Successful!",
-          description: "Welcome to the admin panel.",
-        });
-        navigate("/admin");
+        // Check if the logged-in user is actually an admin
+        if (user && user.userRole === 'admin') {
+          toast({
+            title: "Admin Login Successful!",
+            description: "Welcome to the admin panel.",
+          });
+          navigate("/admin");
+        } else {
+          toast({
+            title: "Access Denied",
+            description: "You don't have admin privileges. Please contact an administrator.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Login failed",

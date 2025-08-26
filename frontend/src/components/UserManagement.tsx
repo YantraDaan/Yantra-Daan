@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { 
   Search, 
   Users, 
@@ -98,12 +99,23 @@ const UserManagement = () => {
     address: ""
   });
 
-  const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
 
+  // Check if user is admin
   useEffect(() => {
+    if (!currentUser || currentUser.userRole !== 'admin') {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have permission to access this page.',
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
+    }
     fetchUsers();
-  }, [currentPage]);
+  }, [currentPage, roleFilter, categoryFilter, statusFilter, currentUser]);
 
   useEffect(() => {
     filterUsers();
@@ -587,28 +599,24 @@ const UserManagement = () => {
                     <Pencil className="w-4 h-4" />
                   </Button>
 
-                  {user._id !== currentUser?.id && (
+                  {user._id !== currentUser?._id && (
                     <Button
                       onClick={() => toggleUserStatus(user._id, user.isActive !== false)}
-                      variant="outline"
-                      className={user.isActive !== false ? "text-red-600 hover:text-red-700 hover:bg-red-50" : "text-green-600 hover:text-green-700 hover:bg-green-50"}
+                      variant={user.isActive !== false ? "destructive" : "default"}
+                      size="sm"
                     >
-                      {user.isActive !== false ? (
-                        <ToggleRight className="w-4 h-4" />
-                      ) : (
-                        <ToggleLeft className="w-4 h-4" />
-                      )}
+                      {user.isActive !== false ? "Deactivate" : "Activate"}
                     </Button>
                   )}
                   
-                  {user._id !== currentUser?.id && (
+                  {user._id !== currentUser?._id && (
                     <Button
                       onClick={() => {
                         setSelectedUser(user);
                         setShowDeleteDialog(true);
                       }}
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      variant="destructive"
+                      size="sm"
                     >
                       <Trash className="w-4 h-4" />
                     </Button>

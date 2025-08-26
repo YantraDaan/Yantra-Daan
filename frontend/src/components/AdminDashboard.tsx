@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Gift, 
@@ -78,10 +80,21 @@ const AdminDashboard = () => {
   const requestsPerPage = 10;
 
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    if (!user || user.userRole !== 'admin') {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have permission to access this page.',
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
+    }
     fetchRequests();
-  }, [currentPage, statusFilter]);
+  }, [currentPage, statusFilter, user]);
 
   const fetchRequests = async () => {
     try {

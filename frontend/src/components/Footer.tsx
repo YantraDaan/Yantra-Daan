@@ -1,10 +1,36 @@
-import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LogoSVG } from "@/components/ui/logoSVG";
-
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { user, isAdmin, logout } = useAuth();
+
+  const getAdminLink = () => {
+    if (!user) {
+      return "/admin-login";
+    }
+    if (isAdmin()) {
+      return "/admin";
+    }
+    return "/admin-login";
+  };
+
+  const getAdminLinkText = () => {
+    if (!user) {
+      return "Admin Login";
+    }
+    if (isAdmin()) {
+      return "Admin Panel";
+    }
+    return "Admin Login";
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <footer className="bg-card border-t">
@@ -24,9 +50,9 @@ const Footer = () => {
               <a href="https://www.facebook.com/Yantradaan" className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="w-5 h-5" /> <Link to="/"></Link>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              {/* <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 <Twitter className="w-5 h-5" />
-              </a>
+              </a> */}
               <a href="https://www.instagram.com/yantradaan/" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram className="w-5 h-5" />
               </a>
@@ -66,10 +92,23 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/admin" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                Admin
+                <Link to={getAdminLink()} className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                  {getAdminLinkText()}
                 </Link>
               </li>
+              {user && isAdmin() && (
+                <li>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-muted-foreground hover:text-primary transition-colors p-0 h-auto text-sm"
+                  >
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Logout
+                  </Button>
+                </li>
+              )}
             </ul>
           </div>
 
