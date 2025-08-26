@@ -67,7 +67,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/admin" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Contact
+                Admin
                 </Link>
               </li>
             </ul>

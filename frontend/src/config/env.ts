@@ -4,7 +4,7 @@ export const config = {
   apiBasePath: import.meta.env.VITE_API_BASE_PATH || '/api',
   
   // App Configuration
-  appName: import.meta.env.VITE_APP_NAME || 'Yantra Daan',
+  appName: import.meta.env.VITE_APP_NAME || 'YantraDaan',
   appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
   appDescription: import.meta.env.VITE_APP_DESCRIPTION || 'Digital device donation platform',
   
