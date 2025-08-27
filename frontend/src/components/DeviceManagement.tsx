@@ -151,7 +151,7 @@ const DeviceManagement = () => {
       filtered = filtered.filter(device =>
         device.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         device.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.ownerInfo.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (device.ownerInfo?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
 
@@ -344,38 +344,58 @@ const DeviceManagement = () => {
 
       {/* Devices List */}
       <div className="grid gap-4">
-        {filteredDevices.map((device) => (
-          <Card key={device._id} className="hover:shadow-md transition-shadow">
+        {filteredDevices.length === 0 ? (
+          <NoDataFound
+            title="No devices found"
+            description="No devices match your current search criteria. Try adjusting your filters or search terms."
+            actionText="Clear Filters"
+            onAction={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setTypeFilter('all');
+            }}
+          />
+        ) : (
+          filteredDevices.map((device) => {
+            // Safety check for device object
+            if (!device || !device._id) {
+              console.warn('Skipping invalid device:', device);
+              return null;
+            }
+            
+            return (
+              <Card key={device._id} className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex flex-col lg:flex-row justify-between gap-4">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       {getDeviceTypeIcon(device.deviceType)}
-                      <h3 className="font-semibold text-lg">{device.title}</h3>
+                      <h3 className="font-semibold text-lg">{device.title || 'Untitled Device'}</h3>
                     </div>
                     {getStatusBadge(device.status)}
                   </div>
                   
-                  <p className="text-muted-foreground">{device.description}</p>
+                  <p className="text-muted-foreground">{device.description || 'No description available'}</p>
                   
                   <div className="flex flex-wrap gap-2 text-sm">
-                    <Badge variant="outline">{device.deviceType}</Badge>
-                    <Badge variant="outline">{device.condition}</Badge>
+                    <Badge variant="outline">{device.deviceType || 'Unknown Type'}</Badge>
+                    <Badge variant="outline">{device.condition || 'Unknown Condition'}</Badge>
                     <Badge variant="outline">
-                      {new Date(device.createdAt).toLocaleDateString()}
+                      {device.createdAt ? new Date(device.createdAt).toLocaleDateString() : 'No Date'}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                      <strong>Donor:</strong> {device.ownerInfo.name} ({device.ownerInfo.email})
+                      <strong>Donor:</strong> {device.ownerInfo?.name || 'Unknown'} ({device.ownerInfo?.email || 'No email'})
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
-                                              onClick={() => handleShowDonorDetails(device.ownerInfo)}
+                      onClick={() => device.ownerInfo && handleShowDonorDetails(device.ownerInfo)}
                       className="h-8 px-2"
+                      disabled={!device.ownerInfo}
                     >
                       <Eye className="w-3 h-3 mr-1" />
                       Details
@@ -442,19 +462,7 @@ const DeviceManagement = () => {
         ))}
       </div>
 
-      {filteredDevices.length === 0 && (
-        <NoDataFound
-          icon={Package}
-          title="No devices found"
-          description="No devices match your current search criteria. Try adjusting your filters or search terms."
-          actionText="Clear Filters"
-          onAction={() => {
-            setSearchTerm('');
-            setStatusFilter('all');
-            setTypeFilter('all');
-          }}
-        />
-      )}
+
 
       {/* Pagination */}
       {totalPages > 1 && (
