@@ -24,6 +24,7 @@ router.post('/', auth, [
   body('request').optional().isMongoId().withMessage('Invalid request ID'),
   handleValidationErrors
 ], async (req, res) => {
+  console.log('POST /donations route hit - creating donation');
   try {
     const { type, amount, items, message, request: requestId } = req.body;
     
@@ -58,6 +59,7 @@ router.post('/', auth, [
 
 // Get all donations (with optional filtering)
 router.get('/', async (req, res) => {
+  console.log('GET /donations route hit - getting all donations');
   try {
     const { page = 1, limit = 20, type, status, donorId, requestId } = req.query;
     
@@ -86,6 +88,92 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Get donations error:', error);
     res.status(500).json({ error: 'Failed to get donations' });
+  }
+});
+
+// Get recent donations (for admin dashboard)
+router.get('/recent', auth, requireRole(['admin']), async (req, res) => {
+  console.log('GET /donations/recent route hit - getting recent donations');
+  try {
+    const { limit = 5 } = req.query;
+    
+    const donations = await DonationModel.find({})
+      .populate('donor', 'name email')
+      .populate('recipient', 'name email')
+      .populate('request', 'title description')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      donations,
+      total: donations.length
+    });
+  } catch (error) {
+    console.error('Get recent donations error:', error);
+    res.status(500).json({ error: 'Failed to get recent donations' });
+  }
+});
+
+// Get pending donations (for admin dashboard)
+router.get('/pending', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    const donations = await DonationModel.find({ status: 'pledged' })
+      .populate('donor', 'name email')
+      .populate('recipient', 'name email')
+      .populate('request', 'title description')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      donations,
+      total: donations.length
+    });
+  } catch (error) {
+    console.error('Get pending donations error:', error);
+    res.status(500).json({ error: 'Failed to get pending donations' });
+  }
+});
+
+// Get donation statistics (for admin dashboard)
+router.get('/stats', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    
+    const stats = await DonationModel.aggregate([
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const statusStats = await DonationModel.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const totalDonations = await DonationModel.countDocuments();
+    const totalAmount = await DonationModel.aggregate([
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    res.json({
+      total: totalDonations,
+      totalAmount: totalAmount[0]?.total || 0,
+      byType: stats,
+      byStatus: statusStats
+    });
+  } catch (error) {
+    console.error('Get donation stats error:', error);
+    res.status(500).json({ error: 'Failed to get donation statistics' });
   }
 });
 
