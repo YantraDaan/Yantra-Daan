@@ -20,10 +20,10 @@ const DonatePage = () => {
   const [searchParams] = useSearchParams();
   
   // Read URL parameters
-  const urlId = searchParams.get('id');
-  const urlName = searchParams.get('name');
-  const urlEmail = searchParams.get('email');
-  const urlRole = searchParams.get('role');
+  // const urlId = searchParams.get('id');
+  // const urlName = searchParams.get('name');
+  // const urlEmail = searchParams.get('email');
+  // const urlRole = searchParams.get('role');
   
   const [currentStep, setCurrentStep] = useState(1);
   const [donorType, setDonorType] = useState<"individual" | "organization" | null>(null);
@@ -41,11 +41,8 @@ const DonatePage = () => {
       instagram: "",
       facebook: ""
     },
-    // Organization specific
     organizationName: "",
-    // Individual specific with document
     document: "",
-    // Pickup details
     pickupTiming: "",
     address: ""
   });
@@ -138,9 +135,8 @@ const DonatePage = () => {
           phone: personalInfo.contact || '',
           email: personalInfo.email || ''
         },
-        images: [], // Will be implemented later
         devicePhotos: deviceInfo.devicePhotos.map(photo => ({
-          url: `placeholder-${photo.name}`, // In real app, this would be the uploaded URL
+          url: photo.name, // In real app, this would be the uploaded URL
           caption: photo.name
         })),
         isOrganizationDonation: personalInfo.organizationName ? true : false
@@ -157,6 +153,7 @@ const DonatePage = () => {
 
       if (response.ok) {
         const result = await response.json();
+        console.log("result donate page",result);
         toast({
           title: "Device Listed Successfully!",
           description: "Your device donation has been submitted and is pending admin approval. Thank you for your contribution!",
@@ -540,11 +537,11 @@ const DonatePage = () => {
           value={deviceInfo.description}
           onChange={(e) => handleDeviceInfoChange("description", e.target.value)}
           rows={4}
-          maxLength={500}
+          maxLength={1000}
           required
         />
         <div className="text-xs text-gray-500 text-right">
-          {deviceInfo.description.length}/500 characters
+          {deviceInfo.description.length}/1000 characters
         </div>
       </div>
       

@@ -154,7 +154,7 @@ const SignupPage = () => {
           // Auto-proceed to signup after 2 seconds
           setTimeout(() => {
             handleProceedWithSignup();
-          }, 2000);
+          }, 1000);
         }
       } else {
         toast({
@@ -194,7 +194,7 @@ const SignupPage = () => {
   const validateStep = () => {
     switch (step) {
       case 0:
-        return emailCheckResult && !emailCheckResult.exists; // Email check completed and available
+        return emailCheckResult && !emailCheckResult.exists; 
       case 1:
         return personalInfo.name && personalInfo.email && password && confirmPassword && password === confirmPassword;
       case 2:
@@ -324,7 +324,7 @@ const SignupPage = () => {
             </CardTitle>
             <CardDescription>
               {step === 0 && "First, let's check if your email is available"}
-              {step === 1 && "Start your journey with TechShare NGO"}
+              {step === 1 && "Start your journey with Yantra Daan"}
               {step === 2 && "How would you like to participate?"}
               {step === 3 && "Tell us more about yourself"}
               {step === 4 && "Complete your profile"}
@@ -372,7 +372,7 @@ const SignupPage = () => {
                             {emailCheckResult.message}
                           </p>
                           
-                          {emailCheckResult.exists && (
+                          {/* {emailCheckResult.exists && (
                             <div className="mt-3">
                               <Button
                                 type="button"
@@ -383,9 +383,9 @@ const SignupPage = () => {
                                 Go to Login
                               </Button>
                             </div>
-                          )}
+                          )} */}
                           
-                          {!emailCheckResult.exists && (
+                          {/* {!emailCheckResult.exists && (
                             <div className="mt-3">
                               <Button
                                 type="button"
@@ -394,9 +394,9 @@ const SignupPage = () => {
                               >
                                 Continue with Signup
                                 <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
+                              </Button>S
                             </div>
-                          )}
+                          )} */}
                         </div>
                       </div>
                     </div>
@@ -634,7 +634,35 @@ const SignupPage = () => {
                       />
                     </div>
                   </div>
-
+                  <div className="space-y-4">
+                    <Label className="text-base font-medium">Additional Information</Label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Address *</Label>
+                        <Textarea
+                          id="address"
+                          placeholder="Enter your full address..."
+                          value={personalInfo.address}
+                          onChange={(e) => handlePersonalInfoChange("address", e.target.value)}
+                          rows={2}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="emailUpdates" 
+                          checked={personalInfo.emailUpdates}
+                          onCheckedChange={(checked) => 
+                            setPersonalInfo(prev => ({ ...prev, emailUpdates: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="emailUpdates" className="text-sm">
+                          Send me updates and notifications via email
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-4">
                     <Label className="text-base font-medium">Social Links (Optional)</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -664,36 +692,6 @@ const SignupPage = () => {
                           value={personalInfo.facebook}
                           onChange={(e) => handlePersonalInfoChange("facebook", e.target.value)}
                         />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">Additional Information</Label>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Address *</Label>
-                        <Textarea
-                          id="address"
-                          placeholder="Enter your full address..."
-                          value={personalInfo.address}
-                          onChange={(e) => handlePersonalInfoChange("address", e.target.value)}
-                          rows={2}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="emailUpdates" 
-                          checked={personalInfo.emailUpdates}
-                          onCheckedChange={(checked) => 
-                            setPersonalInfo(prev => ({ ...prev, emailUpdates: checked as boolean }))
-                          }
-                        />
-                        <Label htmlFor="emailUpdates" className="text-sm">
-                          Send me updates and notifications via email
-                        </Label>
                       </div>
                     </div>
                   </div>
