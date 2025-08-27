@@ -39,7 +39,7 @@ const LoginPage = () => {
     if (result.success) {
       toast({
         title: "Login successful!",
-        description: `Welcome back, ${userRole === 'student' ? 'Student' : 'Donor'}!`,
+        description: `Welcome back, ${userRole === 'requester' ? 'Requester' : 'Donor'}!`,
       });
       navigate("/profile", { replace: true }); // Always go to profile dashboard after login
     } else {
@@ -87,12 +87,12 @@ const LoginPage = () => {
                       <input
                         type="radio"
                         name="userRole"
-                        value="student"
-                        checked={userRole === "student"}
+                        value="requester"
+                        checked={userRole === "requester"}
                         onChange={(e) => setUserRole(e.target.value)}
                         className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
                       />
-                      <span className="text-sm font-medium">Student</span>
+                      <span className="text-sm font-medium">Requester</span>
                     </label>
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input

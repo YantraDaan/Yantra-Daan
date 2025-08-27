@@ -29,7 +29,7 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import DevicePost from "./components/DevicePost";
 import DeviceBrowse from "./components/DeviceBrowse";
 import DeviceDetailPage from "./pages/DeviceDetailPage";
-import { RequireAuth, RequireGuest, RequireAdmin } from "./components/ProtectedRoute";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,68 +57,20 @@ const AppContent = () => {
             <Route path="/donate" element={<DonatePage />} />
             
             {/* Public Auth Routes */}
-            <Route path="/login" element={
-              <RequireGuest>
-                <LoginPage />
-              </RequireGuest>
-            } />
-            <Route path="/donor-login" element={
-              <RequireGuest>
-                <DonorLoginPage />
-              </RequireGuest>
-            } />
-            <Route path="/admin-login" element={
-              <RequireGuest>
-                <AdminLoginPage />
-              </RequireGuest>
-            } />
-            <Route path="/email-check" element={
-              <RequireGuest>
-                <EmailCheckPage />
-              </RequireGuest>
-            } />
-            <Route path="/signup" element={
-              <RequireGuest>
-                <SignupPage />
-              </RequireGuest>
-            } />
-            <Route path="/forgot-password" element={
-              <RequireGuest>
-                <ForgotPasswordPage />
-              </RequireGuest>
-            } />
-            <Route path="/reset-password" element={
-              <RequireGuest>
-                <ResetPasswordPage />
-              </RequireGuest>
-            } />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/donor-login" element={<DonorLoginPage />} />
+            <Route path="/admin-login" element={<AdminLoginPage />} />
+            <Route path="/email-check" element={<EmailCheckPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             
             {/* Protected Routes */}
-            <Route path="/admin" element={
-              <RequireAdmin>
-                <AdminPage />
-              </RequireAdmin>
-            } />
-            <Route path="/profile" element={
-              <RequireAuth>
-                <ProfilePage />
-              </RequireAuth>
-            } />
-            <Route path="/devices" element={
-              <RequireAuth>
-                <DeviceBrowse />
-              </RequireAuth>
-            } />
-            <Route path="/devices/post" element={
-              <RequireAuth>
-                <DevicePost />
-              </RequireAuth>
-            } />
-            <Route path="/devices/:deviceId" element={
-              <RequireAuth>
-                <DeviceDetailPage />
-              </RequireAuth>
-            } />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/devices" element={<DeviceBrowse />} />
+            <Route path="/devices/post" element={<DevicePost />} />
+            <Route path="/devices/:deviceId" element={<DeviceDetailPage />} />
             
             {/* Public Pages */}
             <Route path="/about" element={<AboutPage />} />
