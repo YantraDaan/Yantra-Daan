@@ -83,22 +83,33 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // STRICT ADMIN ROLE CHECK
   useEffect(() => {
-    if (!user || user.userRole !== 'admin') {
+    if (!user) {
       toast({
         title: 'Access Denied',
-        description: 'You do not have permission to access this page.',
+        description: 'You must be logged in to access this page.',
+        variant: 'destructive',
+      });
+      navigate('/admin-login');
+      return;
+    }
+    
+    if (user.userRole !== 'admin') {
+      toast({
+        title: 'Access Denied',
+        description: 'Only admin users can access this page. Your role: ' + user.userRole,
         variant: 'destructive',
       });
       navigate('/');
       return;
     }
     
-    // Only fetch requests if user is admin and not already loading
-    if (user && user.userRole === 'admin' && !isLoading) {
+    // Only fetch requests if user is confirmed admin and not already loading
+    if (user.userRole === 'admin' && !isLoading) {
       fetchRequests();
     }
-  }, [currentPage, statusFilter, user, isLoading]);
+  }, [currentPage, statusFilter, user, isLoading, toast, navigate]);
 
   const fetchRequests = async () => {
     try {

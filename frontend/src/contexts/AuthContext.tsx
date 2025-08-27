@@ -35,7 +35,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, userRole: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  login: (email: string, password: string, userRole?: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; error?: string; message?: string }> => {
+  const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; user?: any; error?: string; message?: string }> => {
     try {
       console.log('AuthContext: Login attempt with:', { email, userRole, passwordLength: password?.length });
       setIsLoading(true);
@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('authUser', JSON.stringify(mappedUser));
       localStorage.setItem('authToken', token);
       setIsLoading(false);
-      return { success: true };
+      return { success: true, user: mappedUser };
     } catch (error) {
       console.error('AuthContext: Login error:', error);
       setIsLoading(false);

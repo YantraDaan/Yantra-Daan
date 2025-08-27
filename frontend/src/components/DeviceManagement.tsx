@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Search, 
   Filter, 
@@ -91,6 +91,16 @@ const DeviceManagement = () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "No authentication token found. Please login again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: devicesPerPage.toString(),
@@ -98,22 +108,34 @@ const DeviceManagement = () => {
         deviceType: typeFilter !== 'all' ? typeFilter : ''
       });
 
-      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/admin/all?${params}`, {
+      const apiUrl = `${config.apiUrl}${config.endpoints.admin}/devices?${params}`;
+      console.log('Fetching devices from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch devices');
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch devices`);
+      }
       
       const data = await response.json();
+      console.log('Devices data received:', data);
+      
       setDevices(data.devices || []);
       setTotalPages(data.totalPages || 1);
       setTotalDevices(data.total || 0);
     } catch (error) {
+      console.error('Fetch devices error:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch devices",
+        description: error instanceof Error ? error.message : "Failed to fetch devices",
         variant: "destructive"
       });
     } finally {
@@ -149,7 +171,7 @@ const DeviceManagement = () => {
   const updateDeviceStatus = async (deviceId: string, status: string, reason?: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/${deviceId}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.admin}/devices/${deviceId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

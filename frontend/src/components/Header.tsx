@@ -94,13 +94,29 @@ const Header = () => {
                   Logout
                 </Button>
                 
-                {/* Show Donate button only for non-admin users */}
+                {/* Show role-specific buttons */}
                 {!isAdmin() && (
-                  <Link to="/donate">
-                    <Button size="sm" className="btn-hero">
-                      Donate Now
-                    </Button>
-                  </Link>
+                  <>
+                    {/* Donate button for donors */}
+                    {isDonor() && (
+                      <Link to="/donate">
+                        <Button size="sm" className="btn-hero">
+                          <Gift className="w-4 h-4 mr-2" />
+                          Donate Device
+                        </Button>
+                      </Link>
+                    )}
+                    
+                    {/* Request button for requesters */}
+                    {isRequester() && (
+                      <Link to="/donations">
+                        <Button size="sm" className="btn-hero">
+                          <Users className="w-4 h-4 mr-2" />
+                          Browse Devices
+                        </Button>
+                      </Link>
+                    )}
+                  </>
                 )}
               </>
             ) : (
@@ -190,13 +206,29 @@ const Header = () => {
                       Logout
                     </Button>
                     
-                    {/* Show Donate button only for non-admin users */}
+                    {/* Show role-specific buttons for mobile */}
                     {!isAdmin() && (
-                      <Link to="/donate" onClick={() => setIsMenuOpen(false)}>
-                        <Button className="w-full btn-hero">
-                          Donate Now
-                        </Button>
-                      </Link>
+                      <>
+                        {/* Donate button for donors */}
+                        {isDonor() && (
+                          <Link to="/donate" onClick={() => setIsMenuOpen(false)}>
+                            <Button className="w-full btn-hero">
+                              <Gift className="w-4 h-4 mr-2" />
+                              Donate Device
+                            </Button>
+                          </Link>
+                        )}
+                        
+                        {/* Request button for requesters */}
+                        {isRequester() && (
+                          <Link to="/donations" onClick={() => setIsMenuOpen(false)}>
+                            <Button className="w-full btn-hero">
+                              <Users className="w-4 h-4 mr-2" />
+                              Browse Devices
+                            </Button>
+                          </Link>
+                        )}
+                      </>
                     )}
                   </>
                 ) : (

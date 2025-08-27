@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import DeviceManagement from "@/components/DeviceManagement";
 import UserManagement from "@/components/UserManagement";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -148,6 +148,7 @@ const AdminPage = () => {
   };
 
   const handleTabChange = (value: string) => {
+    console.log('Tab changed to:', value);
     setSelectedTab(value);
   };
 
@@ -457,16 +458,48 @@ const AdminPage = () => {
           )}
 
           {/* Devices Tab */}
-          {selectedTab === "devices" && <DeviceManagement />}
+          {selectedTab === "devices" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Device Management</h2>
+                <p className="text-muted-foreground">Manage all device donations and approvals</p>
+              </div>
+              <DeviceManagement />
+            </div>
+          )}
 
           {/* Users Tab */}
-          {selectedTab === "users" && <UserManagement />}
+          {selectedTab === "users" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">User Management</h2>
+                <p className="text-muted-foreground">Manage user accounts and roles</p>
+              </div>
+              <UserManagement />
+            </div>
+          )}
 
           {/* Admin Dashboard Tab */}
-          {selectedTab === "dashboard" && <AdminDashboard />}
+          {selectedTab === "dashboard" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Request Management</h2>
+                <p className="text-muted-foreground">Review and manage device requests</p>
+              </div>
+              <AdminDashboard />
+            </div>
+          )}
 
           {/* Team Members Tab */}
-          {selectedTab === "team" && <TeamMemberManagement />}
+          {selectedTab === "team" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Team Management</h2>
+                <p className="text-muted-foreground">Manage team members and roles</p>
+              </div>
+              <TeamMemberManagement />
+            </div>
+          )}
         </div>
       </main>
 

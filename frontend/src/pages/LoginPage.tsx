@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
@@ -33,15 +33,38 @@ const LoginPage = () => {
     console.log("password 10",password);
     console.log("userRole 10",userRole);
     
+    // Validate that user role is selected
+    if (!userRole) {
+      toast({
+        title: "Role Required",
+        description: "Please select whether you are a Requester or Donor",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const result = await login(email, password, userRole);
     console.log("27", result);
     
     if (result.success) {
-      toast({
-        title: "Login successful!",
-        description: `Welcome back, ${userRole === 'requester' ? 'Requester' : 'Donor'}!`,
-      });
-      navigate("/profile", { replace: true }); // Always go to profile dashboard after login
+      // Check if the user's actual role matches the selected role
+      if (result.user && result.user.userRole === userRole) {
+        toast({
+          title: "Login successful!",
+          description: `Welcome back, ${userRole === 'requester' ? 'Requester' : 'Donor'}!`,
+        });
+        navigate("/profile", { replace: true }); // Go to profile dashboard after login
+      } else {
+        // Role mismatch - show error
+        const actualRole = result.user?.userRole || 'unknown';
+        toast({
+          title: "Role Mismatch",
+          description: `You selected ${userRole} but your account is registered as ${actualRole}. Please select the correct role.`,
+          variant: "destructive",
+        });
+        // Clear the form and let user try again
+        setUserRole("");
+      }
     } else {
         toast({
           title: "Login failed",
@@ -106,6 +129,9 @@ const LoginPage = () => {
                       <span className="text-sm font-medium">Donor</span>
                     </label>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Select the role that matches your account registration
+                  </p>
                 </div>
 
                 <div className="space-y-2">
