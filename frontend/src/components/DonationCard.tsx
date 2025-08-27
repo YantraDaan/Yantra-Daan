@@ -116,7 +116,7 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
   };
 
   const getDonorName = () => {
-    return item.ownerInfo?.name || "Admin";
+    return item.ownerInfo?.name || "Yantra Daan";
   };
   
   return (
@@ -129,40 +129,42 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
             src={getImageUrl(item.devicePhotos[0].url)}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              console.log('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
-              console.log('Original image path:', item.devicePhotos[0].url);
-              console.log('Constructed URL:', getImageUrl(item.devicePhotos[0].url));
-              e.currentTarget.style.display = "none";
-              // Show fallback content
-              const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-              if (fallback) {
-                fallback.classList.remove('hidden');
-              }
-            }}
-            onLoad={() => {
-              console.log('Image loaded successfully:', getImageUrl(item.devicePhotos[0].url));
-            }}
+
+            // onError={(e) => {
+            //   console.log('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
+            //   console.log('Original image path:', item.devicePhotos[0].url);
+            //   console.log('Constructed URL:', getImageUrl(item.devicePhotos[0].url));
+            //   e.currentTarget.style.display = "none";
+            //   // Show fallback content
+            //   const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+            //   if (fallback) {
+            //     fallback.classList.remove('hidden');
+            //   }
+            // }
+          // }
+          //   onLoad={() => {
+          //     console.log('Image loaded successfully:', getImageUrl(item.devicePhotos[0].url));
+          //   }}
           />
         ) : item.images && item.images.length > 0 ? (
           <img
             src={getImageUrl(item.images[0])}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              console.log('Image failed to load:', getImageUrl(item.images[0]));
-              console.log('Original image path:', item.images[0]);
-              console.log('Constructed URL:', getImageUrl(item.images[0]));
-              e.currentTarget.style.display = "none";
-              // Show fallback content
-              const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-              if (fallback) {
-                fallback.classList.remove('hidden');
-              }
-            }}
-            onLoad={() => {
-              console.log('Image loaded successfully:', getImageUrl(item.images[0]));
-            }}
+            // onError={(e) => {
+            //   console.log('Image failed to load:', getImageUrl(item.images[0]));
+            //   console.log('Original image path:', item.images[0]);
+            //   console.log('Constructed URL:', getImageUrl(item.images[0]));
+            //   e.currentTarget.style.display = "none";
+            //   // Show fallback content
+            //   const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+            //   if (fallback) {
+            //     fallback.classList.remove('hidden');
+            //   }
+            // }}
+            // onLoad={() => {
+            //   console.log('Image loaded successfully:', getImageUrl(item.images[0]));
+            // }}
           />
         ) : null}
 
@@ -176,7 +178,7 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         </div>
 
         {/* Default content when no images */}
-        {(!item.devicePhotos || item.devicePhotos.length === 0) && (!item.images || item.images.length === 0) && (
+        {(!item.devicePhotos || item.devicePhotos.length === 0) && (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
             <div className="text-center">
               <Laptop className="w-16 h-16 text-primary/40 mx-auto mb-2" />
@@ -217,7 +219,7 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
 
         {/* Details */}
         <div className="space-y-2">
-          <div className="flex items-center text-sm text-gray-500">
+          <div className="flex items-center text-sm text-primery">
             <MapPin className="w-4 h-4 mr-2" />
             <a
               href={`https://www.google.com/maps/place/${getLocationString()}`}
@@ -248,11 +250,11 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         )}
 
         {/* Show different messages based on user role */}
-        {item.isActive && user && user.userRole === 'donor' && (
+        {/* {item.isActive && user && user.userRole === 'donor' && (
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Donors cannot request items</p>
           </div>
-        )}
+        )} */}
 
         {item.isActive && !user && (
           <Button
@@ -266,9 +268,9 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         )}
 
         {/* Read More Button */}
-        <Link to={`/devices/${item._id}`}>
-          <Button variant="outline" className="w-full">
-            <Eye className="w-4 h-4 mr-2" />
+        <Link to={`/devices/:deviceId${item._id}`}>
+          <Button>
+            <Eye className="w-2 h-2" />
             Read More
           </Button>
         </Link>

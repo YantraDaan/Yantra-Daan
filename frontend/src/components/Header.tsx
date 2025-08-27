@@ -57,7 +57,7 @@ const Header = () => {
             ))}
 
             {/* Admin only navigation */}
-            {isAdmin() && adminNavigation.map((item) => (
+            {/* {isAdmin() && adminNavigation.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -68,7 +68,7 @@ const Header = () => {
                 <item.icon className="w-4 h-4" />
                 <span>{item.name}</span>
               </Link>
-            ))}
+            ))} */}
           </nav>
 
           {/* Auth Buttons - Show for non-admin users only */}
@@ -77,7 +77,7 @@ const Header = () => {
               <>
                 {/* Profile Button */}
                 {!isAdmin() && (
-                  <Link to={`/profile?id=${user.id}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&role=${user.userRole}`}>
+                  <Link to={`/profile`}>
                     <Button variant="outline" size="sm">
                       <User className="w-4 h-4 mr-2" />
                       {getDisplayName()}
@@ -86,11 +86,12 @@ const Header = () => {
                 )}
                 
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm"
                   onClick={logout}
+                  className="text-muted-foreground hover:text-primary transition-colors p-0 h-auto text-sm"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-4 h-4 mr-1" />
                   Logout
                 </Button>
                 
@@ -165,7 +166,7 @@ const Header = () => {
               ))}
 
               {/* Admin only navigation for mobile */}
-              {isAdmin() && adminNavigation.map((item) => (
+              {/* {isAdmin() && adminNavigation.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -179,14 +180,14 @@ const Header = () => {
                   <item.icon className="w-4 h-4" />
                   <span>{item.name}</span>
                 </Link>
-              ))}
+              ))} */}
               
               <div className="flex flex-col space-y-2 px-4 pt-4 border-t border-gray-100">
                 {user ? (
                   <>
                     {/* Profile Button for Mobile */}
                     {!isAdmin() && (
-                      <Link to={`/profile?id=${user.id}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&role=${user.userRole}`} onClick={() => setIsMenuOpen(false)}>
+                      <Link to={`/profile`} onClick={() => setIsMenuOpen(false)}>
                         <Button variant="outline" className="w-full">
                           <User className="w-4 h-4 mr-2" />
                           {getDisplayName()}
@@ -195,14 +196,15 @@ const Header = () => {
                     )}
                     
                     <Button 
-                      variant="outline" 
-                      className="w-full"
+                      variant="ghost" 
                       onClick={() => {
                         logout();
                         setIsMenuOpen(false);
                       }}
+                      className="text-muted-foreground hover:text-primary transition-colors p-0 h-auto text-sm w-full"
+
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
+                      <LogOut className="w-4 h-4 mr-1" />
                       Logout
                     </Button>
                     

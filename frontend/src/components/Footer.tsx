@@ -8,15 +8,15 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
   const { user, isAdmin, logout } = useAuth();
 
-  const getAdminLink = () => {
-    if (!user) {
-      return "/admin-login";
-    }
-    if (isAdmin()) {
-      return "/admin";
-    }
-    return "/admin-login";
-  };
+  // const getAdminLink = () => {
+  //   if (!user) {
+  //     return "/admin-login";
+  //   }
+  //   if (isAdmin()) {
+  //     return "/admin";
+  //   }
+  //   return "/admin-login";
+  // };
 
   const getAdminLinkText = () => {
     if (!user) {
@@ -92,11 +92,11 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to={getAdminLink()} className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link to="/admin-login" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   {getAdminLinkText()}
                 </Link>
               </li>
-              {user && isAdmin() && (
+              {/* {user && isAdmin() && (
                 <li>
                   <Button
                     variant="ghost"
@@ -108,7 +108,7 @@ const Footer = () => {
                     Logout
                   </Button>
                 </li>
-              )}
+              )} */}
             </ul>
           </div>
 
