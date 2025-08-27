@@ -4,88 +4,122 @@ const DeviceModel = require('../models/Device');
 const DeviceRequestModel = require('../models/DeviceRequest');
 const TeamMemberModel = require('../models/TeamMember');
 const { auth, requireRole } = require('../middleware/auth');
-const emailService = require('../utils/emailService'); // EMAIL SERVICE ENABLED
+const emailService = require('../utils/emailService'); 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const router = Router();
 
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../../uploads/team-members');
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'team-member-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Allow only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
 // Test email functionality (no auth required for testing)
-router.post('/test-email-public', async (req, res) => {
-  try {
-    const { to, subject = 'Test Email from YantraDaan' } = req.body;
+// router.post('/test-email-public', async (req, res) => {
+//   try {
+//     const { to, subject = 'Test Email from YantraDaan' } = req.body;
     
-    if (!to) {
-      return res.status(400).json({ error: 'Recipient email is required' });
-    }
+//     if (!to) {
+//       return res.status(400).json({ error: 'Recipient email is required' });
+//     }
 
-    console.log('Attempting to send test email to:', to);
-    console.log('Using SMTP credentials:', {
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: process.env.SMTP_PORT || 587,
-      user: process.env.SMTP_USER || 'yantradaan@gmail.com'
-    });
+//     console.log('Attempting to send test email to:', to);
+//     console.log('Using SMTP credentials:', {
+//       host: process.env.SMTP_HOST || 'smtp.gmail.com',
+//       port: process.env.SMTP_PORT || 587,
+//       user: process.env.SMTP_USER || 'yantradaan@gmail.com'
+//     });
 
-    const testEmailHtml = emailService.emailTemplates.testEmail();
+//     const testEmailHtml = emailService.emailTemplates.testEmail();
     
-    const result = await emailService.sendEmail({
-      to: to,
-      subject: subject,
-      html: testEmailHtml
-    });
+//     const result = await emailService.sendEmail({
+//       to: to,
+//       subject: subject,
+//       html: testEmailHtml
+//     });
 
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Test email sent successfully',
-        messageId: result.messageId 
-      });
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: 'Failed to send test email',
-        details: result.error 
-      });
-    }
-  } catch (error) {
-    console.error('Error sending test email:', error);
-    res.status(500).json({ error: 'Failed to send test email', details: error.message });
-  }
-});
+//     if (result.success) {
+//       res.json({ 
+//         success: true, 
+//         message: 'Test email sent successfully',
+//         messageId: result.messageId 
+//       });
+//     } else {
+//       res.status(500).json({ 
+//         success: false, 
+//         error: 'Failed to send test email',
+//         details: result.error 
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error sending test email:', error);
+//     res.status(500).json({ error: 'Failed to send test email', details: error.message });
+//   }
+// });
 
-// Test email functionality
-router.post('/test-email', auth, requireRole(['admin']), async (req, res) => {
-  try {
-    const { to, subject = 'Test Email from YantraDaan' } = req.body;
+// // Test email functionality
+// router.post('/test-email', auth, requireRole(['admin']), async (req, res) => {
+//   try {
+//     const { to, subject = 'Test Email from YantraDaan' } = req.body;
     
-    if (!to) {
-      return res.status(400).json({ error: 'Recipient email is required' });
-    }
+//     if (!to) {
+//       return res.status(400).json({ error: 'Recipient email is required' });
+//     }
 
-    const testEmailHtml = emailService.emailTemplates.testEmail();
+//     const testEmailHtml = emailService.emailTemplates.testEmail();
     
-    const result = await emailService.sendEmail({
-      to: to,
-      subject: subject,
-      html: testEmailHtml
-    });
+//     const result = await emailService.sendEmail({
+//       to: to,
+//       subject: subject,
+//       html: testEmailHtml
+//     });
 
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Test email sent successfully',
-        messageId: result.messageId 
-      });
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: 'Failed to send test email',
-        details: result.error 
-      });
-    }
-  } catch (error) {
-    console.error('Error sending test email:', error);
-    res.status(500).json({ error: 'Failed to send test email' });
-  }
-});
+//     if (result.success) {
+//       res.json({ 
+//         success: true, 
+//         message: 'Test email sent successfully',
+//         messageId: result.messageId 
+//       });
+//     } else {
+//       res.status(500).json({ 
+//         success: false, 
+//         error: 'Failed to send test email',
+//         details: result.error 
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error sending test email:', error);
+//     res.status(500).json({ error: 'Failed to send test email' });
+//   }
+// });
 
 // Get dashboard statistics
 router.get('/stats', auth, requireRole(['admin']), async (req, res) => {
@@ -395,6 +429,7 @@ router.get('/team-members', auth, requireRole(['admin']), async (req, res) => {
     }
 
     const members = await TeamMemberModel.find(query)
+      .select('name email contact role bio status avatar socialLinks createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -417,7 +452,7 @@ router.get('/team-members', auth, requireRole(['admin']), async (req, res) => {
 // Add new team member
 router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
   try {
-    const { name, email, contact, role, bio } = req.body;
+    const { name, email, contact, role, bio, socialLinks, avatar } = req.body;
 
     // Check if team member already exists
     const existingMember = await TeamMemberModel.findOne({ email });
@@ -432,6 +467,8 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
       contact,
       role,
       bio,
+      socialLinks: socialLinks || {},
+      avatar: avatar || null,
       status: 'active'
     });
 
@@ -479,7 +516,7 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
 router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, contact, role, bio, status } = req.body;
+    const { name, email, contact, role, bio, status, socialLinks, avatar } = req.body;
 
     // Check if email is being changed and if it already exists
     if (email) {
@@ -499,6 +536,8 @@ router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) =
         role,
         bio,
         status,
+        socialLinks: socialLinks || {},
+        avatar: avatar || null,
         updatedAt: new Date()
       },
       { new: true }
@@ -625,6 +664,27 @@ router.delete('/team-members/:id', auth, requireRole(['admin']), async (req, res
   } catch (error) {
     console.error('Error deleting team member:', error);
     res.status(500).json({ error: 'Failed to delete team member' });
+  }
+});
+
+// Upload team member image
+router.post('/team-members/upload-image', auth, requireRole(['admin']), upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Generate the URL for the uploaded image
+    const imageUrl = `/uploads/team-members/${req.file.filename}`;
+    
+    res.json({
+      message: 'Image uploaded successfully',
+      imageUrl: imageUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ error: 'Failed to upload image' });
   }
 });
 

@@ -142,7 +142,7 @@ const DonatePage = () => {
         isOrganizationDonation: personalInfo.organizationName ? true : false
       };
 
-      const response = await fetch(`${config.apiUrl}${config.endpoints.donations}`, {
+      const response = await fetch(`${config.apiUrl}/api/device-donations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

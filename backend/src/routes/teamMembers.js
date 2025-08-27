@@ -7,7 +7,7 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const members = await TeamMemberModel.find({ status: 'active' })
-      .select('name role bio')
+      .select('name role bio avatar socialLinks.linkedin socialLinks.instagram')
       .sort({ createdAt: 1 });
 
     res.json({
