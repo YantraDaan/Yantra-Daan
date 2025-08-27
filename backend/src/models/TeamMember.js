@@ -37,6 +37,33 @@ const teamMemberSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  socialLinks: {
+    linkedin: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    twitter: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    instagram: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    facebook: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    website: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now
