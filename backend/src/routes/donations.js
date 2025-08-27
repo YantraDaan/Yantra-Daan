@@ -15,7 +15,6 @@ const handleValidationErrors = (req, res, next) => {
   }
   next();
 };
-
 // Create donation (authenticated users)
 router.post('/', auth, [
   body('type').isIn(['cash', 'goods', 'service']).withMessage('Type must be cash, goods, or service'),
