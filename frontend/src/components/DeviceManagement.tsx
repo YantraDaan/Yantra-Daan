@@ -459,7 +459,9 @@ const DeviceManagement = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+            );
+          }).filter(Boolean)
+        )}
       </div>
 
 
