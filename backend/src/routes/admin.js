@@ -5,42 +5,9 @@ const DeviceRequestModel = require('../models/DeviceRequest');
 const TeamMemberModel = require('../models/TeamMember');
 const { auth, requireRole } = require('../middleware/auth');
 const emailService = require('../utils/emailService'); 
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { teamMemberUpload, deviceUpload } = require('../middleware/imageUpload');
 
 const router = Router();
-
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../uploads/team-members');
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'team-member-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    // Allow only image files
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'));
-    }
-  }
-});
 
 // Test email functionality (no auth required for testing)
 // router.post('/test-email-public', async (req, res) => {
@@ -668,7 +635,7 @@ router.delete('/team-members/:id', auth, requireRole(['admin']), async (req, res
 });
 
 // Upload team member image
-router.post('/team-members/upload-image', auth, requireRole(['admin']), upload.single('image'), async (req, res) => {
+router.post('/team-members/upload-image', auth, requireRole(['admin']), teamMemberUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
@@ -685,6 +652,27 @@ router.post('/team-members/upload-image', auth, requireRole(['admin']), upload.s
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
+// Upload device image (for device donations/posts)
+router.post('/devices/upload-image', auth, deviceUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Generate the URL for the uploaded image
+    const imageUrl = `/uploads/devices/${req.file.filename}`;
+    
+    res.json({
+      message: 'Device image uploaded successfully',
+      imageUrl: imageUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Error uploading device image:', error);
+    res.status(500).json({ error: 'Failed to upload device image' });
   }
 });
 

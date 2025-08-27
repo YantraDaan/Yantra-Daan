@@ -180,7 +180,18 @@ const TeamPage = () => {
                           src={member.avatar} 
                           alt={member.name}
                           className="w-full h-full rounded-full object-cover shadow-xl border-4 border-white ring-4 ring-gray-100"
+                          onError={(e) => {
+                            // Fallback to avatar if image fails to load
+                            const target = e.currentTarget as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
                         />
+                        {/* Fallback avatar (hidden by default) */}
+                        <div className="w-24 h-24 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg hidden">
+                          <Users className="w-12 h-12 text-white" />
+                        </div>
                       </div>
                     ) : (
                       <div className="w-24 h-24 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">

@@ -75,11 +75,63 @@ const DevicePost: React.FC = () => {
     }
   };
 
-  const addImage = () => {
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, { url: '', caption: '' }]
-    }));
+  const addImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast({
+            title: "Authentication Error",
+            description: "Please login again to upload images.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const uploadedImages: Array<{url: string, caption: string}> = [];
+        
+        for (const file of Array.from(files)) {
+          const formData = new FormData();
+          formData.append('image', file);
+
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/devices/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            uploadedImages.push({
+              url: data.imageUrl,
+              caption: file.name
+            });
+          } else {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedImages]
+        }));
+        
+        toast({
+          title: "Images Uploaded Successfully!",
+          description: `${uploadedImages.length} image(s) uploaded successfully.`,
+        });
+      } catch (error) {
+        console.error('Error uploading images:', error);
+        toast({
+          title: "Upload Error",
+          description: "Failed to upload some images. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const removeImage = (index: number) => {
@@ -359,9 +411,23 @@ const DevicePost: React.FC = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Images (Optional)</h3>
-                <Button type="button" variant="outline" onClick={addImage}>
-                  Add Image
-                </Button>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="imageUpload"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={addImage}
+                    className="hidden"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => document.getElementById('imageUpload')?.click()}
+                  >
+                    Upload Images
+                  </Button>
+                </div>
               </div>
               
               {formData.images.map((image, index) => (
@@ -371,7 +437,8 @@ const DevicePost: React.FC = () => {
                     <Input
                       value={image.url}
                       onChange={(e) => updateImage(index, 'url', e.target.value)}
-                      placeholder="https://example.com/image.jpg"
+                      placeholder="Uploaded image URL"
+                      readOnly
                     />
                   </div>
                   <div>

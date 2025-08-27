@@ -194,16 +194,32 @@ const TeamMemberManagement = () => {
       
       const method = showEditDialog ? 'PUT' : 'POST';
       
+      // Prepare the data to send with proper formatting
+      const dataToSend = {
+        ...formData,
+        avatar: formData.avatar || '',
+        socialLinks: {
+          linkedin: formData.socialLinks.linkedin || '',
+          twitter: formData.socialLinks.twitter || '',
+          instagram: formData.socialLinks.instagram || '',
+          facebook: formData.socialLinks.facebook || '',
+          website: formData.socialLinks.website || ''
+        }
+      };
+      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
 
-      if (!response.ok) throw new Error('Failed to save team member');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
       toast({
         title: "Success",
@@ -212,12 +228,28 @@ const TeamMemberManagement = () => {
 
       setShowAddDialog(false);
       setShowEditDialog(false);
+      // Reset form data
+      setFormData({
+        name: '',
+        email: '',
+        contact: '',
+        role: 'Support Staff',
+        bio: '',
+        avatar: '',
+        socialLinks: {
+          linkedin: '',
+          twitter: '',
+          instagram: '',
+          facebook: '',
+          website: ''
+        }
+      });
       fetchTeamMembers();
     } catch (error) {
       console.error('Error saving team member:', error);
       toast({
         title: "Error",
-        description: "Failed to save team member",
+        description: error instanceof Error ? error.message : "Failed to save team member",
         variant: "destructive",
       });
     } finally {
@@ -426,7 +458,7 @@ const TeamMemberManagement = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member) => (
-            <Card key={member._id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+            <Card key={member._id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group min-w-[300px]">
               <CardContent className="p-6">
                 <div className="text-center">
                   {/* Avatar */}
@@ -435,12 +467,21 @@ const TeamMemberManagement = () => {
                       src={member.avatar} 
                       alt={member.name} 
                       className="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 border-2 border-white"
+                      onError={(e) => {
+                        // Fallback to avatar if image fails to load
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className={`w-20 h-20 bg-gradient-to-r ${getRoleColor(member.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300`}>
-                      <User className="w-10 h-10 text-white" />
-                    </div>
-                  )}
+                  ) : null}
+                  {/* Fallback Avatar (hidden by default if image exists) */}
+                  <div 
+                    className={`w-20 h-20 bg-gradient-to-r ${getRoleColor(member.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 ${member.avatar ? 'hidden' : ''}`}
+                  >
+                    <User className="w-10 h-10 text-white" />
+                  </div>
                   
                   {/* Name and Role */}
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">{member.name}</h3>
@@ -628,7 +669,28 @@ const TeamMemberManagement = () => {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={showAddDialog || showEditDialog} onOpenChange={setShowAddDialog}>
+      <Dialog open={showAddDialog || showEditDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowAddDialog(false);
+          setShowEditDialog(false);
+          // Reset form data when closing
+          setFormData({
+            name: '',
+            email: '',
+            contact: '',
+            role: 'Support Staff',
+            bio: '',
+            avatar: '',
+            socialLinks: {
+              linkedin: '',
+              twitter: '',
+              instagram: '',
+              facebook: '',
+              website: ''
+            }
+          });
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
