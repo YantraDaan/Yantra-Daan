@@ -59,9 +59,10 @@ export const useAuth = () => {
           console.warn('Token validation endpoint not found. Backend might not be running.');
           setIsTokenValid(true); // Assume token is valid to avoid logout
         } else {
-          // Response not ok, token is invalid
+          // Response not ok, but don't immediately logout - might be temporary
+          console.warn('Token validation failed, but not logging out immediately');
           setIsTokenValid(false);
-          auth.logout();
+          // Don't call auth.logout() here to prevent redirect loops
         }
       } catch (error) {
         console.error('Token validation error:', error);
@@ -78,12 +79,13 @@ export const useAuth = () => {
     }
   }, [auth.user]);
 
-  // Auto-logout when token expires
+  // Auto-logout when token expires - but only if we're sure the token is invalid
   useEffect(() => {
-    if (!isTokenValid && auth.user) {
+    if (!isTokenValid && auth.user && !isOnline) {
+      // Only logout if we're offline or if token validation explicitly failed
       auth.logout();
     }
-  }, [isTokenValid, auth.user, auth]);
+  }, [isTokenValid, auth.user, auth, isOnline]);
 
   // Check if user has specific role
   const hasRole = useCallback((role: string) => {

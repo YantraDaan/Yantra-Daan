@@ -93,8 +93,12 @@ const AdminDashboard = () => {
       navigate('/');
       return;
     }
-    fetchRequests();
-  }, [currentPage, statusFilter, user]);
+    
+    // Only fetch requests if user is admin and not already loading
+    if (user && user.userRole === 'admin' && !isLoading) {
+      fetchRequests();
+    }
+  }, [currentPage, statusFilter, user, isLoading]);
 
   const fetchRequests = async () => {
     try {

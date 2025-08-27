@@ -65,12 +65,13 @@ const AdminPage = () => {
 
   // Check if user is admin
   useEffect(() => {
-    if (!user) {
+    // Only redirect if we're sure there's no user
+    if (!user && !localStorage.getItem('authUser')) {
       navigate('/admin-login');
       return;
     }
     
-    if (user.userRole !== 'admin') {
+    if (user && user.userRole !== 'admin') {
       toast({
         title: "Access Denied",
         description: "You don't have permission to access the admin panel.",
@@ -80,8 +81,11 @@ const AdminPage = () => {
       return;
     }
     
-    fetchDashboardData();
-  }, [user, navigate]);
+    // Only fetch data if user is admin and not already loading
+    if (user && user.userRole === 'admin' && !isLoading) {
+      fetchDashboardData();
+    }
+  }, [user, navigate, isLoading]);
 
   const fetchDashboardData = async () => {
     try {
