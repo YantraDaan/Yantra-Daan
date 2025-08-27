@@ -268,9 +268,9 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         )}
 
         {/* Read More Button */}
-        <Link to={`/devices/:deviceId${item._id}`}>
-          <Button>
-            <Eye className="w-2 h-2" />
+        <Link to={`/devices/${item._id}`}>
+          <Button className="w-full mt-3">
+            <Eye className="w-4 h-4 mr-2" />
             Read More
           </Button>
         </Link>

@@ -87,17 +87,60 @@ const DonatePage = () => {
   };
 
   // Handle device photo upload
-  const handleDevicePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDevicePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      // For now, we'll just store file names
-      // In a real app, you'd upload these to a cloud service
-      const photoFiles = Array.from(files).map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type
-      }));
-      setDeviceInfo(prev => ({ ...prev, devicePhotos: photoFiles }));
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          toast({
+            title: "Authentication Error",
+            description: "Please login again to upload images.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const uploadedPhotos = [];
+        
+        for (const file of Array.from(files)) {
+          const formData = new FormData();
+          formData.append('image', file);
+
+          const response = await fetch(`${config.apiUrl}/api/admin/devices/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            uploadedPhotos.push({
+              url: data.imageUrl,
+              caption: file.name,
+              originalFile: file
+            });
+          } else {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+        }
+
+        setDeviceInfo(prev => ({ ...prev, devicePhotos: uploadedPhotos }));
+        
+        toast({
+          title: "Images Uploaded Successfully!",
+          description: `${uploadedPhotos.length} image(s) uploaded successfully.`,
+        });
+      } catch (error) {
+        console.error('Error uploading images:', error);
+        toast({
+          title: "Upload Error",
+          description: "Failed to upload some images. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -136,8 +179,8 @@ const DonatePage = () => {
           email: personalInfo.email || ''
         },
         devicePhotos: deviceInfo.devicePhotos.map(photo => ({
-          url: photo.name, // In real app, this would be the uploaded URL
-          caption: photo.name
+          url: photo.url, // Use the uploaded URL from backend
+          caption: photo.caption
         })),
         isOrganizationDonation: personalInfo.organizationName ? true : false
       };
@@ -194,7 +237,7 @@ const DonatePage = () => {
         });
 
         // Navigate to donor dashboard
-        navigate('/donor-dashboard');
+        navigate('/profile');
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit donation');

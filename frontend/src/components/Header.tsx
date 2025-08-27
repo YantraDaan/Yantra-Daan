@@ -188,7 +188,7 @@ const Header = () => {
                     {/* Profile Button for Mobile */}
                     {!isAdmin() && (
                       <Link to={`/profile`} onClick={() => setIsMenuOpen(false)}>
-                        <Button variant="outline" className="w-full">
+                        <Button className="w-full">
                           <User className="w-4 h-4 mr-2" />
                           {getDisplayName()}
                         </Button>
