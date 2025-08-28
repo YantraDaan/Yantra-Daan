@@ -33,9 +33,14 @@ interface DonationItem {
 interface DonationCardProps {
   item: DonationItem;
   onRequest?: (itemId: string) => void;
+  requestState?: {
+    canRequest: boolean;
+    reason: string;
+    activeRequestCount: number;
+  };
 }
 
-const DonationCard = ({ item, onRequest }: DonationCardProps) => {
+const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -77,7 +82,12 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
       return;
     }
 
-    if (user.userRole !== "requester") return;
+    if (user.userRole !== "requester" && user.userRole !== "student") return;
+
+    // Check if user can request this device
+    if (requestState && !requestState.canRequest) {
+      return;
+    }
 
     onRequest?.(item._id);
   };
@@ -240,13 +250,32 @@ const DonationCard = ({ item, onRequest }: DonationCardProps) => {
         </div>
 
         {/* Action Button */}
-        {item.isActive && user && user.userRole === 'requester' && onRequest && (
-          <Button
-            onClick={handleRequest}
-            className="w-full btn-hero"
-          >
-            Request This Item
-          </Button>
+        {item.isActive && user && (user.userRole === 'requester' || user.userRole === 'student') && onRequest && (
+          requestState && !requestState.canRequest ? (
+            <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-700 font-medium">{requestState.reason}</p>
+              {requestState.activeRequestCount > 0 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  You currently have {requestState.activeRequestCount} active request(s)
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {requestState && (
+                <div className="text-center text-xs text-gray-600">
+                  <p>You can request up to 3 devices at a time</p>
+                  <p className="text-primary font-medium">Current: {requestState.activeRequestCount || 0}/3</p>
+                </div>
+              )}
+              <Button
+                onClick={handleRequest}
+                className="w-full btn-hero"
+              >
+                Request This Item
+              </Button>
+            </div>
+          )
         )}
 
         {/* Show different messages based on user role */}

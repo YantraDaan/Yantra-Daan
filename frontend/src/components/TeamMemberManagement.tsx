@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import NoDataFound from './NoDataFound';
 import { 
   UserPlus, 
@@ -66,7 +66,7 @@ const TeamMemberManagement = () => {
   const membersPerPage = 12;
 
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isTokenValid } = useAuth();
 
   // Form state for add/edit
   const [formData, setFormData] = useState<{

@@ -92,11 +92,14 @@ const DeviceDetailPage = () => {
   const { deviceId } = useParams<{ deviceId: string }>();
   const [device, setDevice] = useState<DeviceDetail | null>(null);
   const [requesters, setRequesters] = useState<DeviceRequester[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestMessage, setRequestMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [canRequest, setCanRequest] = useState(false);
+  const [requestReason, setRequestReason] = useState("");
+  const [activeRequestCount, setActiveRequestCount] = useState(0);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -119,8 +122,15 @@ const DeviceDetailPage = () => {
     if (deviceId) {
       fetchDeviceDetails();
       fetchDeviceRequesters();
+      checkCanRequest(); // Call the new function here
     }
   }, [deviceId]);
+
+  useEffect(() => {
+    if (user && deviceId) {
+      checkCanRequest();
+    }
+  }, [user, deviceId]);
 
   const fetchDeviceDetails = async () => {
     try {
@@ -167,6 +177,28 @@ const DeviceDetailPage = () => {
     }
   };
 
+  const checkCanRequest = async () => {
+    if (!user || !deviceId) return;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/can-request/${deviceId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCanRequest(data.canRequest);
+        setRequestReason(data.reason || '');
+        setActiveRequestCount(data.activeRequestCount || 0);
+      }
+    } catch (error) {
+      console.error('Error checking request eligibility:', error);
+    }
+  };
+
   const handleRequestDevice = async () => {
     if (!user) {
       navigate("/login", {
@@ -208,6 +240,7 @@ const DeviceDetailPage = () => {
         setShowRequestForm(false);
         setRequestMessage("");
         fetchDeviceRequesters(); // Refresh requesters list
+        checkCanRequest(); // Refresh request eligibility
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit request');
@@ -418,7 +451,7 @@ const DeviceDetailPage = () => {
             </Card>
 
             {/* Request Form */}
-            {device.isActive && user && user.userRole === 'requester' && (
+            {device.isActive && user && (user.userRole === 'requester' || user.userRole === 'student') && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -427,14 +460,31 @@ const DeviceDetailPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!showRequestForm ? (
-                    <Button 
-                      onClick={() => setShowRequestForm(true)}
-                      className="w-full btn-hero"
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      Request Device
-                    </Button>
+                  {!canRequest ? (
+                    <div className="text-center space-y-3">
+                      <div className="text-amber-600 bg-amber-50 p-3 rounded-lg">
+                        <p className="font-medium">{requestReason}</p>
+                        {activeRequestCount > 0 && (
+                          <p className="text-sm text-amber-700 mt-1">
+                            You currently have {activeRequestCount} active request(s)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : !showRequestForm ? (
+                    <div className="space-y-3">
+                      <div className="text-center text-sm text-gray-600">
+                        <p>You can request up to 3 devices at a time</p>
+                        <p className="text-primary font-medium">Current: {activeRequestCount}/3</p>
+                      </div>
+                      <Button 
+                        onClick={() => setShowRequestForm(true)}
+                        className="w-full btn-hero"
+                      >
+                        <Heart className="w-4 h-4 mr-2" />
+                        Request Device
+                      </Button>
+                    </div>
                   ) : (
                     <div className="space-y-4">
                       <div>
@@ -451,19 +501,11 @@ const DeviceDetailPage = () => {
                       </div>
                       <div className="flex gap-2">
                         <Button 
-                          onClick={() => {
-                            // TODO: Implement request submission
-                            toast({
-                              title: "Request Submitted",
-                              description: "Your request has been submitted successfully!",
-                            });
-                            setShowRequestForm(false);
-                            setRequestMessage("");
-                          }}
+                          onClick={handleRequestDevice}
                           disabled={isSubmitting || !requestMessage.trim()}
                           className="flex-1 btn-hero"
                         >
-                          Submit Request
+                          {isSubmitting ? 'Submitting...' : 'Submit Request'}
                         </Button>
                         <Button 
                           variant="outline"

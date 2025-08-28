@@ -59,12 +59,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
-    const storedUser = localStorage.getItem('authUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Check for stored auth on mount and validate token
+    const validateStoredAuth = async () => {
+      const storedUser = localStorage.getItem('authUser');
+      const storedToken = localStorage.getItem('authToken');
+      
+      if (storedUser && storedToken) {
+        try {
+          // Validate token with backend
+          const response = await fetch(`${config.apiUrl}/api/auth/validate`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${storedToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.valid) {
+              // Token is valid, set user
+              setUser(JSON.parse(storedUser));
+            } else {
+              // Token is invalid, clear storage
+              localStorage.removeItem('authUser');
+              localStorage.removeItem('authToken');
+              setUser(null);
+            }
+          } else if (response.status === 404) {
+            // Endpoint not found - backend might not be running
+            console.warn('Token validation endpoint not found. Backend might not be running.');
+            // Clear storage to be safe when backend is not available
+            localStorage.removeItem('authUser');
+            localStorage.removeItem('authToken');
+            setUser(null);
+          } else {
+            // Validation failed, clear storage
+            localStorage.removeItem('authUser');
+            localStorage.removeItem('authToken');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error validating stored token:', error);
+          // On network error, clear storage to be safe
+          localStorage.removeItem('authUser');
+          localStorage.removeItem('authToken');
+          setUser(null);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    validateStoredAuth();
   }, []);
 
   const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; user?: any; error?: string; message?: string }> => {

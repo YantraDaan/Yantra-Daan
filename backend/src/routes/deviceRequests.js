@@ -41,6 +41,20 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    // Check if requester has reached the 3-device limit
+    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
+      const activeRequestCount = await DeviceRequestModel.countDocuments({
+        requesterId: req.user._id,
+        status: { $in: ['pending', 'approved'] }
+      });
+
+      if (activeRequestCount >= 3) {
+        return res.status(400).json({ 
+          error: 'You have reached the maximum limit of 3 active device requests. Please wait for existing requests to be processed before making new ones.' 
+        });
+      }
+    }
+
     // Create the request
     const request = new DeviceRequestModel({
       requesterId: req.user._id,
@@ -53,6 +67,7 @@ router.post('/', auth, async (req, res) => {
     // Populate device and requester info for notifications
     await request.populate('deviceInfo', 'title deviceType condition ownerId');
     await request.populate('requesterInfo', 'name email contact');
+    await request.populate('deviceInfo.ownerInfo', 'name email contact');
 
     // Send notification to device owner
     if (device.ownerInfo && device.ownerInfo.email) {
@@ -103,6 +118,14 @@ router.post('/', auth, async (req, res) => {
               <p><strong>Message:</strong> ${message}</p>
             </div>
             
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #166534;">Device Information:</h3>
+              <p><strong>Title:</strong> ${device.title}</p>
+              <p><strong>Type:</strong> ${device.deviceType}</p>
+              <p><strong>Condition:</strong> ${device.condition}</p>
+              <p><strong>Donor:</strong> ${device.ownerInfo?.name || 'Unknown'}</p>
+            </div>
+            
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
               Please review this request in the admin panel.
             </p>
@@ -137,9 +160,9 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
     if (status) filter.status = status;
 
     const requests = await DeviceRequestModel.find(filter)
-      .populate('requesterInfo', 'name email contact')
+      .populate('requesterInfo', 'name email contact profession address')
       .populate('deviceInfo', 'title deviceType condition ownerId')
-      .populate('deviceInfo.ownerInfo', 'name email')
+      .populate('deviceInfo.ownerInfo', 'name email contact profession address')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -273,12 +296,78 @@ router.put('/admin/:id/status', auth, async (req, res) => {
   }
 });
 
+// Check if user can request a specific device (for frontend validation)
+router.get('/can-request/:deviceId', auth, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    
+    // Check if device exists and is approved
+    const device = await DeviceModel.findById(deviceId);
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    if (device.status !== 'approved') {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'Device is not available for requests' 
+      });
+    }
+
+    // Check if user already has a request for this device
+    const existingRequest = await DeviceRequestModel.findOne({
+      requesterId: req.user._id,
+      deviceId: deviceId,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (existingRequest) {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'You already have a request for this device' 
+      });
+    }
+
+    // Check if requester has reached the 3-device limit
+    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
+      const activeRequestCount = await DeviceRequestModel.countDocuments({
+        requesterId: req.user._id,
+        status: { $in: ['pending', 'approved'] }
+      });
+
+      if (activeRequestCount >= 3) {
+        return res.json({ 
+          canRequest: false, 
+          reason: 'You have reached the maximum limit of 3 active device requests' 
+        });
+      }
+    }
+
+    return res.json({ 
+      canRequest: true,
+      activeRequestCount: req.user.userRole === 'requester' || req.user.userRole === 'student' 
+        ? await DeviceRequestModel.countDocuments({
+            requesterId: req.user._id,
+            status: { $in: ['pending', 'approved'] }
+          })
+        : 0
+    });
+
+  } catch (error) {
+    console.error('Check can request error:', error);
+    res.status(500).json({
+      error: 'Failed to check request eligibility',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 // Get user's own requests
 router.get('/my', auth, async (req, res) => {
   try {
     const requests = await DeviceRequestModel.find({ requesterId: req.user._id })
       .populate('deviceInfo', 'title deviceType condition status')
-      .populate('deviceInfo.ownerInfo', 'firstName lastName city state')
+      .populate('deviceInfo.ownerInfo', 'name email contact profession address')
       .sort({ createdAt: -1 });
 
     res.json({ requests });
