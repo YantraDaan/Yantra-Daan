@@ -8,23 +8,120 @@ import { Gift, Users, Heart, ArrowRight, MapPin, Laptop, Smartphone, Tablet } fr
 import { Link } from "react-router-dom";
 import NoDataFound from "@/components/NoDataFound";
 import { config } from "@/config/env";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
   const [approvedDevices, setApprovedDevices] = useState<any[]>([]);
+  const [deviceRequestStates, setDeviceRequestStates] = useState<{[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}}>({});
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchRecentDevices = async () => {
       try {
         const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved?page=1&limit=6`);
-        if (!response.ok) throw new Error('Failed to load featured donations');
-        const data = await response.json();
-        setApprovedDevices(data.devices || []);
+        if (response.ok) {
+          const data = await response.json();
+          setApprovedDevices(data.devices || []);
+          
+          // Check request eligibility for each device if user is logged in
+          if (user) {
+            checkDeviceRequestEligibility(data.devices || []);
+          }
+        } else {
+          throw new Error('Failed to load featured donations');
+        }
       } catch (e) {
         setApprovedDevices([]);
       }
     };
     fetchRecentDevices();
-  }, []);
+  }, [user]);
+
+  const checkDeviceRequestEligibility = async (devices: any[]) => {
+    if (!user) return;
+    
+    const requestStates: {[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}} = {};
+    
+    for (const device of devices) {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${config.apiUrl}/api/requests/can-request/${device._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          requestStates[device._id] = {
+            canRequest: data.canRequest,
+            reason: data.reason || '',
+            activeRequestCount: data.activeRequestCount || 0
+          };
+        }
+      } catch (error) {
+        console.error('Error checking request eligibility:', error);
+        requestStates[device._id] = {
+          canRequest: false,
+          reason: 'Error checking eligibility',
+          activeRequestCount: 0
+        };
+      }
+    }
+    
+    setDeviceRequestStates(requestStates);
+  };
+
+  const handleDeviceRequest = async (deviceId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to request devices",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}/api/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          deviceId: deviceId,
+          message: `I would like to request this ${approvedDevices.find(d => d._id === deviceId)?.deviceType || 'device'} as I need it for my studies/work.`
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Request Submitted",
+          description: "Your device request has been submitted successfully!",
+        });
+        
+        // Refresh request eligibility for all devices
+        checkDeviceRequestEligibility(approvedDevices);
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Request Failed",
+          description: errorData.error || "Failed to submit request",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit request. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -132,12 +229,17 @@ const Home = () => {
 
           {approvedDevices.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {approvedDevices.map((item) => (
-                <DonationCard 
-                  key={item._id} 
-                  item={{ ...item, isActive: item.status === 'approved' }}
-                />
-              ))}
+              {approvedDevices.map((item) => {
+                const requestState = deviceRequestStates[item._id] || { canRequest: true, reason: '', activeRequestCount: 0 };
+                return (
+                  <DonationCard 
+                    key={item._id} 
+                    item={{ ...item, isActive: item.status === 'approved' }}
+                    onRequest={handleDeviceRequest}
+                    requestState={requestState}
+                  />
+                );
+              })}
             </div>
           ) : (
             <NoDataFound
