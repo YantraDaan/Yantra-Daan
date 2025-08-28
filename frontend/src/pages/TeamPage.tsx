@@ -208,14 +208,16 @@ const TeamPage = () => {
                   </div>
 
                   {/* Bio */}
-                  <p className="text-gray-600 text-center leading-relaxed mb-4">
+                  <p className="text-gray-600 text-center leading-relaxed mb-4 line-clamp-5">
                     {member.bio}
                   </p>
 
                   {/* Social Links - LinkedIn & Instagram Only */}
-                  {member.socialLinks && (member.socialLinks.linkedin || member.socialLinks.instagram) && (
+                  {member.socialLinks && 
+                   ((member.socialLinks.linkedin && member.socialLinks.linkedin.trim()) || 
+                    (member.socialLinks.instagram && member.socialLinks.instagram.trim())) && (
                     <div className="flex justify-center gap-3 pt-4 border-t border-gray-100">
-                      {member.socialLinks.linkedin && (
+                      {member.socialLinks.linkedin && member.socialLinks.linkedin.trim() && (
                         <a 
                           href={member.socialLinks.linkedin} 
                           target="_blank" 
@@ -228,7 +230,7 @@ const TeamPage = () => {
                           </svg>
                         </a>
                       )}
-                      {member.socialLinks.instagram && (
+                      {member.socialLinks.instagram && member.socialLinks.instagram.trim() && (
                         <a 
                           href={member.socialLinks.instagram} 
                           target="_blank" 

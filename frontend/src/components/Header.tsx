@@ -14,7 +14,8 @@ const Header = () => {
     isAdmin, 
     isDonor, 
     isRequester,
-    getDisplayName 
+    getDisplayName,
+    isTokenValid
   } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
@@ -73,7 +74,7 @@ const Header = () => {
 
           {/* Auth Buttons - Show for non-admin users only */}
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+            {user && isTokenValid ? (
               <>
                 {/* Profile Button */}
                 {!isAdmin() && (
@@ -183,7 +184,7 @@ const Header = () => {
               ))} */}
               
               <div className="flex flex-col space-y-2 px-4 pt-4 border-t border-gray-100">
-                {user ? (
+                {user && isTokenValid ? (
                   <>
                     {/* Profile Button for Mobile */}
                     {!isAdmin() && (
