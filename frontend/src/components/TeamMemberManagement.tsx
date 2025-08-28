@@ -42,9 +42,7 @@ interface TeamMember {
   avatar?: string;
   socialLinks?: {
     linkedin: string;
-    twitter: string;
     instagram: string;
-    facebook: string;
     website: string;
   };
 }
@@ -80,9 +78,7 @@ const TeamMemberManagement = () => {
     avatar: string;
     socialLinks: {
       linkedin: string;
-      twitter: string;
       instagram: string;
-      facebook: string;
       website: string;
     };
   }>({
@@ -94,9 +90,7 @@ const TeamMemberManagement = () => {
     avatar: '',
     socialLinks: {
       linkedin: '',
-      twitter: '',
       instagram: '',
-      facebook: '',
       website: ''
     }
   });
@@ -148,9 +142,7 @@ const TeamMemberManagement = () => {
       avatar: '',
       socialLinks: {
         linkedin: '',
-        twitter: '',
         instagram: '',
-        facebook: '',
         website: ''
       }
     });
@@ -168,9 +160,7 @@ const TeamMemberManagement = () => {
       avatar: member.avatar || '',
       socialLinks: member.socialLinks || {
         linkedin: '',
-        twitter: '',
         instagram: '',
-        facebook: '',
         website: ''
       }
     });
@@ -200,9 +190,7 @@ const TeamMemberManagement = () => {
         avatar: formData.avatar || '',
         socialLinks: {
           linkedin: formData.socialLinks.linkedin || '',
-          twitter: formData.socialLinks.twitter || '',
           instagram: formData.socialLinks.instagram || '',
-          facebook: formData.socialLinks.facebook || '',
           website: formData.socialLinks.website || ''
         }
       };
@@ -238,9 +226,7 @@ const TeamMemberManagement = () => {
         avatar: '',
         socialLinks: {
           linkedin: '',
-          twitter: '',
           instagram: '',
-          facebook: '',
           website: ''
         }
       });
@@ -520,19 +506,7 @@ const TeamMemberManagement = () => {
                           </svg>
                         </a>
                       )}
-                      {member.socialLinks.twitter && (
-                        <a 
-                          href={member.socialLinks.twitter} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-600 transition-colors"
-                          title="Twitter"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.665 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                          </svg>
-                        </a>
-                      )}
+                      
                       {member.socialLinks.instagram && (
                         <a 
                           href={member.socialLinks.instagram} 
@@ -546,19 +520,7 @@ const TeamMemberManagement = () => {
                           </svg>
                         </a>
                       )}
-                      {member.socialLinks.facebook && (
-                        <a 
-                          href={member.socialLinks.facebook} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-700 hover:text-blue-900 transition-colors"
-                          title="Facebook"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                          </svg>
-                        </a>
-                      )}
+                      
                       {member.socialLinks.website && (
                         <a 
                           href={member.socialLinks.website} 
@@ -683,9 +645,7 @@ const TeamMemberManagement = () => {
             avatar: '',
             socialLinks: {
               linkedin: '',
-              twitter: '',
               instagram: '',
-              facebook: '',
               website: ''
             }
           });
@@ -780,7 +740,7 @@ const TeamMemberManagement = () => {
                   }}
                   className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                 />
-                <p className="text-xs text-gray-500">Upload a profile image (max 5MB)</p>
+                <p className="text-xs text-gray-500">Upload a profile image (max 1MB)</p>
               </div>
             </div>
 
@@ -802,20 +762,6 @@ const TeamMemberManagement = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="twitter" className="text-sm">Twitter</Label>
-                  <Input
-                    id="twitter"
-                    type="url"
-                    value={formData.socialLinks.twitter}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      socialLinks: { ...prev.socialLinks, twitter: e.target.value }
-                    }))}
-                    placeholder="https://twitter.com/username"
-                    className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
-                  />
-                </div>
-                <div>
                   <Label htmlFor="instagram" className="text-sm">Instagram</Label>
                   <Input
                     id="instagram"
@@ -826,20 +772,6 @@ const TeamMemberManagement = () => {
                       socialLinks: { ...prev.socialLinks, instagram: e.target.value }
                     }))}
                     placeholder="https://instagram.com/username"
-                    className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="facebook" className="text-sm">Facebook</Label>
-                  <Input
-                    id="facebook"
-                    type="url"
-                    value={formData.socialLinks.facebook}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      socialLinks: { ...prev.socialLinks, facebook: e.target.value }
-                    }))}
-                    placeholder="https://facebook.com/username"
                     className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                   />
                 </div>
@@ -970,19 +902,7 @@ const TeamMemberManagement = () => {
                           </a>
                         </div>
                       )}
-                      {selectedMember.socialLinks.twitter && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-400 font-medium">Twitter:</span>
-                          <a 
-                            href={selectedMember.socialLinks.twitter} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-600 underline"
-                          >
-                            View Profile
-                          </a>
-                        </div>
-                      )}
+                      
                       {selectedMember.socialLinks.instagram && (
                         <div className="flex items-center gap-2">
                           <span className="text-pink-600 font-medium">Instagram:</span>
@@ -996,19 +916,7 @@ const TeamMemberManagement = () => {
                           </a>
                         </div>
                       )}
-                      {selectedMember.socialLinks.facebook && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-700 font-medium">Facebook:</span>
-                          <a 
-                            href={selectedMember.socialLinks.facebook} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-700 hover:text-blue-900 underline"
-                          >
-                            View Profile
-                          </a>
-                        </div>
-                      )}
+                      
                       {selectedMember.socialLinks.website && (
                         <div className="flex items-center gap-2">
                           <span className="text-green-600 font-medium">Website:</span>

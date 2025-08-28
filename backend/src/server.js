@@ -2,7 +2,6 @@ require('dotenv').config({ path: './config.env' });
 
 const express = require('express');
 const cors = require('cors');
-const fileUpload = require('express-fileupload');
 const path = require('path');
 const { connectToDatabase } = require('./config/db');
 const requestsRouter = require('./routes/requests');
@@ -30,10 +29,6 @@ app.use(cors(corsOptions));
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(fileUpload({
-  createParentPath: true,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-}));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
