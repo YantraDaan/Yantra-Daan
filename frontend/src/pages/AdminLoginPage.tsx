@@ -44,7 +44,11 @@ const AdminLoginPage = () => {
             title: "Admin Login Successful!",
             description: "Welcome to the admin panel.",
           });
-          navigate("/admin");
+          
+          // Add a small delay to ensure user state is properly set
+          setTimeout(() => {
+            navigate("/admin");
+          }, 100);
         } else {
           console.log('Admin role validation failed:', { user: result.user, userRole: result.user?.userRole });
           toast({

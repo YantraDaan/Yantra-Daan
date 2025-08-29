@@ -26,10 +26,13 @@ const DonorLoginPage = () => {
     if (result.success) {
       toast({
         title: "Login successful!",
-        description: `Welcome back, ${user?.name}!`,
+        description: `Welcome back, ${result.user?.name}!`,
       });
-      // navigate("/profile", { replace: true }); // Always go to profile page after login
-      navigate(from, { replace: true });
+      
+      // Add a small delay to ensure user state is properly set
+      setTimeout(() => {
+        navigate("/profile", { replace: true }); // Always go to profile page after login
+      }, 100);
     }else{
       toast({
         title: "Login failed",
