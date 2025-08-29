@@ -46,9 +46,13 @@ const LoginPage = () => {
       if (result.user && result.user.userRole === userRole) {
         toast({
           title: "Login successful!",
-          description: `Welcome back, ${user.name}!`,
+          description: `Welcome back, ${result.user.name}!`,
         });
-        navigate("/profile", { replace: true }); // Go to profile dashboard after login
+        
+        // Add a small delay to ensure user state is properly set
+        setTimeout(() => {
+          navigate("/profile", { replace: true }); // Go to profile dashboard after login
+        }, 100);
       } else {
         // Role mismatch - show error
         const actualRole = result.user?.userRole || 'unknown';

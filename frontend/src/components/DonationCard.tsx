@@ -249,52 +249,8 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
           </div>
         </div>
 
-        {/* Action Button */}
-        {item.isActive && user && (user.userRole === 'requester' || user.userRole === 'student') && onRequest && (
-          requestState && !requestState.canRequest ? (
-            <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-700 font-medium">{requestState.reason}</p>
-              {requestState.activeRequestCount > 0 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  You currently have {requestState.activeRequestCount} active request(s)
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {requestState && (
-                <div className="text-center text-xs text-gray-600">
-                  <p>You can request up to 3 devices at a time</p>
-                  <p className="text-primary font-medium">Current: {requestState.activeRequestCount || 0}/3</p>
-                </div>
-              )}
-              <Button
-                onClick={handleRequest}
-                className="w-full btn-hero"
-              >
-                Request This Item
-              </Button>
-            </div>
-          )
-        )}
-
-        {/* Show different messages based on user role */}
-        {/* {item.isActive && user && user.userRole === 'donor' && (
-          <div className="text-center p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">Donors cannot request items</p>
-          </div>
-        )} */}
-
-        {item.isActive && !user && (
-          <Button
-            onClick={() => navigate("/login", {
-              state: { from: { pathname: window.location.pathname } },
-            })}
-            className="w-full btn-hero"
-          >
-            Login to Request
-          </Button>
-        )}
+        {/* Request button is now only shown on detailed view */}
+        {/* Users must click "Read More" to see the request button */}
 
         {/* Read More Button */}
         <Link to={`/devices/${item._id}`}>

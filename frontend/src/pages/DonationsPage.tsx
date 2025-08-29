@@ -17,7 +17,7 @@ const DonationsPage = () => {
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [donations, setDonations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [deviceRequestStates, setDeviceRequestStates] = useState<{[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}}>({});
+
 
   useEffect(() => {
     const fetchDonations = async () => {
@@ -32,10 +32,7 @@ const DonationsPage = () => {
           console.log('Devices data received:', data);
           setDonations(data.devices || []);
           
-          // Check request eligibility for each device if user is logged in
-          if (user) {
-            checkDeviceRequestEligibility(data.devices || []);
-          }
+
         } else {
           throw new Error('Failed to fetch donations');
         }
@@ -224,17 +221,12 @@ const DonationsPage = () => {
           </div>
         ) : filteredDonations.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredDonations.map((item) => {
-              const requestState = deviceRequestStates[item._id] || { canRequest: true, reason: '', activeRequestCount: 0 };
-              return (
-                <DonationCard 
-                  key={item._id} 
-                  item={item}
-                  onRequest={handleRequest}
-                  requestState={requestState}
-                />
-              );
-            })}
+            {filteredDonations.map((item) => (
+              <DonationCard 
+                key={item._id} 
+                item={item}
+              />
+            ))}
           </div>
         ) : (
           <NoDataFound
