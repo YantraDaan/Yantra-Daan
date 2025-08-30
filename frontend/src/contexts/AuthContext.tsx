@@ -82,6 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setUser(JSON.parse(storedUser));
             } else {
               // Token is invalid, clear storage
+              console.log('Stored token is invalid, clearing storage');
               localStorage.removeItem('authUser');
               localStorage.removeItem('authToken');
               setUser(null);
@@ -89,22 +90,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else if (response.status === 404) {
             // Endpoint not found - backend might not be running
             console.warn('Token validation endpoint not found. Backend might not be running.');
-            // Clear storage to be safe when backend is not available
-            localStorage.removeItem('authUser');
-            localStorage.removeItem('authToken');
-            setUser(null);
+            // Don't clear storage when backend is not available - assume token is valid
+            setUser(JSON.parse(storedUser));
           } else {
-            // Validation failed, clear storage
-            localStorage.removeItem('authUser');
-            localStorage.removeItem('authToken');
-            setUser(null);
+            // Validation failed, but don't clear storage immediately - might be temporary
+            console.warn('Token validation failed, but keeping stored auth for now');
+            // Keep the stored user to prevent unnecessary logout
+            setUser(JSON.parse(storedUser));
           }
         } catch (error) {
           console.error('Error validating stored token:', error);
-          // On network error, clear storage to be safe
-          localStorage.removeItem('authUser');
-          localStorage.removeItem('authToken');
-          setUser(null);
+          // On network error, don't clear storage - assume token is valid
+          setUser(JSON.parse(storedUser));
         }
       }
       setIsLoading(false);
@@ -214,6 +211,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const apiUser = data.user;
       const token = data.token as string;
       
+      if (!apiUser || !token) {
+        console.error('AuthContext: Invalid response structure from admin login');
+        setIsLoading(false);
+        return { 
+          success: false, 
+          error: 'Invalid response from server',
+          message: 'Server returned invalid data'
+        };
+      }
+      
       // Map backend user data to frontend User interface
       const mappedUser: User = {
         id: apiUser.id || apiUser._id,
@@ -237,9 +244,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('AuthContext: Mapped admin user:', mappedUser);
       
+      // Set user state and store in localStorage
       setUser(mappedUser);
       localStorage.setItem('authUser', JSON.stringify(mappedUser));
       localStorage.setItem('authToken', token);
+      
       setIsLoading(false);
       return { success: true, user: mappedUser };
     } catch (error) {

@@ -36,7 +36,9 @@ import {
   Calendar,
   Building2,
   GraduationCap,
-  User
+  User,
+  Search,
+  Download
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -59,19 +61,24 @@ const AdminPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("overview");
   
-  // Donor details dialog state
-  const [showDonorDetails, setShowDonorDetails] = useState(false);
-  const [selectedDonor, setSelectedDonor] = useState(null);
+  // Device details dialog state
+  const [isDeviceDetailsOpen, setIsDeviceDetailsOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState(null);
 
   // Check if user is admin
   useEffect(() => {
-    // Only redirect if we're sure there's no valid user
-    if (!user || !isTokenValid) {
+    // Add a small delay to allow auth state to stabilize
+    const authCheckTimer = setTimeout(() => {
+      // Only redirect if we're absolutely sure there's no valid user
+      if (!user) {
+        console.log('No user found, redirecting to admin login');
       navigate('/admin-login');
       return;
     }
     
+      // Check if user is admin
     if (user.userRole !== 'admin') {
+        console.log('User is not admin, redirecting to home');
       toast({
         title: "Access Denied",
         description: "You don't have permission to access the admin panel.",
@@ -81,19 +88,32 @@ const AdminPage = () => {
       return;
     }
     
-    // Only fetch data if user is admin and not already loading
-    if (user && user.userRole === 'admin' && !isLoading) {
+      // Fetch data if user is admin
+      if (user && user.userRole === 'admin') {
+        fetchDashboardData();
+      }
+    }, 500); // 500ms delay to allow auth state to stabilize
+
+    return () => clearTimeout(authCheckTimer);
+  }, [user, navigate, isLoading, toast]);
+
+  // Load data when user is available
+  useEffect(() => {
+    if (user && user.userRole === 'admin') {
       fetchDashboardData();
     }
-  }, [user, isTokenValid, navigate, isLoading]);
+  }, [user]);
+
+  // No search functionality needed - data loads directly
 
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       
-      // Fetch dashboard statistics
       const token = localStorage.getItem('authToken');
-      const statsResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/stats`, {
+      
+      // Fetch dashboard statistics from admin endpoint
+      const statsResponse = await fetch(`${config.apiUrl}/api/admin/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -109,10 +129,17 @@ const AdminPage = () => {
           approvedDevices: statsData.approvedDevices || 0,
           rejectedDevices: statsData.rejectedDevices || 0,
         });
+      } else {
+        console.error('Failed to fetch admin stats:', statsResponse.status);
+        toast({
+          title: "Warning",
+          description: "Failed to load statistics data",
+          variant: "destructive",
+        });
       }
       
-      // Fetch recent donations
-      const donationsResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/recent`, {
+      // Fetch recent device donations
+      const donationsResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=approved`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -120,11 +147,14 @@ const AdminPage = () => {
       
       if (donationsResponse.ok) {
         const donationsData = await donationsResponse.json();
-        setRecentDonations(donationsData.donations || []);
+        setRecentDonations(donationsData.devices || []);
+      } else {
+        console.error('Failed to fetch recent donations:', donationsResponse.status);
+        setRecentDonations([]);
       }
       
-      // Fetch pending devices
-      const pendingResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/pending`, {
+      // Fetch pending device approvals
+      const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -133,6 +163,9 @@ const AdminPage = () => {
       if (pendingResponse.ok) {
         const pendingData = await pendingResponse.json();
         setPendingDevices(pendingData.devices || []);
+      } else {
+        console.error('Failed to fetch pending devices:', pendingResponse.status);
+        setPendingDevices([]);
       }
       
     } catch (error) {
@@ -147,6 +180,13 @@ const AdminPage = () => {
     }
   };
 
+
+
+  // Function to refresh all data
+  const refreshAllData = async () => {
+    await fetchDashboardData();
+  };
+
   const handleTabChange = (value: string) => {
     console.log('Tab changed to:', value);
     setSelectedTab(value);
@@ -158,9 +198,253 @@ const AdminPage = () => {
     navigate('/admin-login');
   };
 
+  const exportUsersToExcel = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all users data
+      const response = await fetch(`${config.apiUrl}/api/admin/users?page=1&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const users = data.users || [];
+        
+        // Prepare data for Excel
+        const excelData = users.map((user: any) => ({
+          'User ID': user._id || '',
+          'Name': user.name || 'Anonymous',
+          'Email': user.email || '',
+          'Phone': user.contact || '',
+          'Role': user.userRole || 'User',
+          'Location': user.location ? `${user.location.city || ''}, ${user.location.state || ''}` : '',
+          'Registration Date': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
+          'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
+          'Status': user.isActive ? 'Active' : 'Inactive',
+          'isOrganization': user.isOrganization ? 'Yes' : 'No',
+          'emailUpdates' : user.emailUpdates ? 'Yes' : 'No',
+          'profession' : user.profession || ''
+        }));
+        
+        // Create CSV content
+        const headers = Object.keys(excelData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...excelData.map(row => 
+            headers.map(header => {
+              const value = row[header];
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Export Successful",
+          description: `Exported ${users.length} users to Excel file`,
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to fetch users data');
+      }
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export users data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const exportDevicesToExcel = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all devices data
+      const response = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const devices = data.devices || [];
+        
+        // Prepare data for Excel
+        const excelData = devices.map((device: any) => ({
+          'Device ID': device._id || '',
+          'Title': device.title || 'Untitled',
+          'Device Type': device.deviceType || 'Unknown',
+          'Condition': device.condition || 'Unknown',
+          'Status': device.status || 'Unknown',
+          'Description': device.description || '',
+          'Owner Name': device.ownerInfo?.name || 'Anonymous',
+          'Owner Email': device.ownerInfo?.email || '',
+          'Owner Phone': device.ownerInfo?.contact || '',
+          'Location': device.location ? `${device.location.city || ''}, ${device.location.state || ''}` : '',
+          'Donation Date': device.createdAt ? new Date(device.createdAt).toLocaleDateString() : '',
+          'Last Updated': device.updatedAt ? new Date(device.updatedAt).toLocaleDateString() : ''
+        }));
+        
+        // Create CSV content
+        const headers = Object.keys(excelData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...excelData.map(row => 
+            headers.map(header => {
+              const value = row[header];
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `devices_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Export Successful",
+          description: `Exported ${devices.length} devices to Excel file`,
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to fetch devices data');
+      }
+    } catch (error) {
+      console.error('Error exporting devices:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export devices data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const exportRequestsToExcel = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all device requests data
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/all?page=1&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const requests = data.requests || [];
+        
+        // Prepare data for Excel
+        const excelData = requests.map((request: any) => ({
+          'Request ID': request._id || '',
+          'Requester Name': request.requesterInfo?.name || 'Anonymous',
+          'Requester Email': request.requesterInfo?.email || '',
+          'Requester Phone': request.requesterInfo?.contact || '',
+          'Device Title': request.deviceInfo?.title || 'Unknown Device',
+          'Device Type': request.deviceInfo?.deviceType || 'Unknown',
+          'Device Condition': request.deviceInfo?.condition || 'Unknown',
+          'Device Owner': request.deviceInfo?.ownerInfo?.name || 'Unknown',
+          'Request Message': request.message || '',
+          'Status': request.status || 'Pending',
+          'Request Date': request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '',
+          'Last Updated': request.updatedAt ? new Date(request.updatedAt).toLocaleDateString() : ''
+        }));
+        
+        // Create CSV content
+        const headers = Object.keys(excelData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...excelData.map(row => 
+            headers.map(header => {
+              const value = row[header];
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `requests_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Export Successful",
+          description: `Exported ${requests.length} requests to Excel file`,
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to fetch requests data');
+      }
+    } catch (error) {
+      console.error('Error exporting requests:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export requests data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const showDonorInfo = (donor) => {
-    setSelectedDonor(donor);
-    setShowDonorDetails(true);
+    // This function is no longer needed as recentDonations is removed
+    // setSelectedDonor(donor);
+    // setShowDonorDetails(true);
+  };
+
+  const showDeviceDetails = (device) => {
+    // Show device details in popup instead of redirecting
+    setSelectedDevice(device);
+    setIsDeviceDetailsOpen(true);
   };
 
   if (!user || user.userRole !== 'admin') {
@@ -249,7 +533,7 @@ const AdminPage = () => {
         {selectedTab === "overview" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={fetchDashboardData} 
+              onClick={refreshAllData} 
               disabled={isLoading}
               variant="outline"
               size="sm"
@@ -282,10 +566,11 @@ const AdminPage = () => {
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("users")}
+                      onClick={exportUsersToExcel}
+                      disabled={isLoading}
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Users
                     </Button>
                   </CardContent>
                 </Card>
@@ -304,10 +589,11 @@ const AdminPage = () => {
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("devices")}
+                      onClick={exportDevicesToExcel}
+                      disabled={isLoading}
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Devices
                     </Button>
                   </CardContent>
                 </Card>
@@ -326,10 +612,11 @@ const AdminPage = () => {
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("dashboard")}
+                      onClick={exportRequestsToExcel}
+                      disabled={isLoading}
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Requests
                     </Button>
                   </CardContent>
                 </Card>
@@ -357,19 +644,69 @@ const AdminPage = () => {
                 </Card>
               </div>
 
-              {/* Recent Activity Cards */}
+              {/* Additional Stats Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-emerald-100">Approved Devices</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.approvedDevices}</div>
+                    <p className="text-xs text-emerald-100">Successfully approved</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-red-100">Rejected Devices</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <XCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.rejectedDevices}</div>
+                    <p className="text-xs text-red-100">Not approved</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-indigo-100">Success Rate</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <BarChart3 className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats.totalDevices > 0 
+                        ? Math.round((dashboardStats.approvedDevices / dashboardStats.totalDevices) * 100)
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-indigo-100">Approval rate</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+                            {/* Direct Data Display */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Donations Card */}
+                {/* Recent Device Donations Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                   <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white">Recent Device Donations</CardTitle>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
+                      Recent Device Donations
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
+                      {/* Donations List */}
                       {recentDonations.length === 0 ? (
                         <NoDataFound
                           title="No recent donations"
-                          description="No new devices have been donated recently"
+                          description="No device donations found"
                           imageType="devices"
                           variant="compact"
                         />
@@ -381,18 +718,18 @@ const AdminPage = () => {
                                 <Gift className="w-5 h-5 text-white" />
                               </div>
                               <div>
-                                <p className="font-medium text-sm text-gray-900">{donation.title}</p>
-                                <p className="text-xs text-gray-500">{donation.deviceType}</p>
+                                <p className="font-medium text-sm text-gray-900">{donation.title || 'Untitled Device'}</p>
+                                <p className="text-xs text-gray-500">{donation.deviceType || 'Unknown Type'}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                {donation.status}
+                                {donation.condition || 'Unknown'}
                               </Badge>
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => showDonorInfo(donation.ownerInfo)}
+                                onClick={() => showDeviceDetails(donation)}
                                 className="h-8 px-2"
                               >
                                 <Eye className="w-3 h-3" />
@@ -405,40 +742,44 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Pending Devices Card */}
+                {/* Pending Device Approvals Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                   <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white">Pending Device Approvals</CardTitle>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Pending Device Approvals
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
+                      {/* Pending Devices List */}
                       {pendingDevices.length === 0 ? (
                         <NoDataFound
                           title="No pending approvals"
-                          description="All devices have been reviewed and processed"
+                          description="No devices awaiting approval"
                           imageType="devices"
                           variant="compact"
                         />
                       ) : (
-                        pendingDevices.map((device: any) => (
+                        pendingDevices.slice(0, 5).map((device: any) => (
                           <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors">
                             <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                                 <Smartphone className="w-5 h-5 text-white" />
                               </div>
                               <div>
-                                <p className="font-medium text-sm text-gray-900">{device.title}</p>
-                                <p className="text-xs text-gray-500">{device.deviceType}</p>
+                                <p className="font-medium text-sm text-gray-900">{device.title || 'Untitled Device'}</p>
+                                <p className="text-xs text-gray-500">{device.deviceType || 'Unknown Type'}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                                Pending
+                                {device.condition || 'Unknown'}
                               </Badge>
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => showDonorInfo(device.ownerInfo)}
+                                onClick={() => showDeviceDetails(device)}
                                 className="h-8 px-2"
                               >
                                 <Eye className="w-3 h-3" />
@@ -520,93 +861,152 @@ const AdminPage = () => {
         </div>
       </main>
 
-      {/* Donor Details Dialog */}
-      <Dialog open={showDonorDetails} onOpenChange={setShowDonorDetails}>
-        <DialogContent className="max-w-2xl">
+      {/* Device Details Dialog */}
+      <Dialog open={isDeviceDetailsOpen} onOpenChange={setIsDeviceDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Donor Information
+              <Smartphone className="w-5 h-5" />
+              Device Details
             </DialogTitle>
           </DialogHeader>
-          {selectedDonor && (
+          {selectedDevice && (
             <div className="space-y-6">
-              {/* Basic Info */}
+              {/* Device Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Name</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{selectedDonor.name || 'N/A'}</span>
+                  <Label className="text-sm font-medium text-gray-500">Device Title</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-lg">{selectedDevice.title}</span>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Email</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{selectedDonor.email || 'N/A'}</span>
+                  <Label className="text-sm font-medium text-gray-500">Device Type</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{selectedDevice.deviceType}</span>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Contact</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{selectedDonor.contact || 'N/A'}</span>
+                  <Label className="text-sm font-medium text-gray-500">Condition</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{selectedDevice.condition}</span>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">User Type</Label>
+                  <Label className="text-sm font-medium text-gray-500">Status</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      {selectedDevice.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Device Description */}
+              {selectedDevice.description && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Description</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm leading-relaxed">{selectedDevice.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Device Owner Information */}
+              {selectedDevice.ownerInfo && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Device Owner</Label>
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">{selectedDevice.ownerInfo.name || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">{selectedDevice.ownerInfo.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Device Location */}
+              {selectedDevice.location && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Location</Label>
                   <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    {selectedDonor.isOrganization ? (
-                      <Building2 className="w-4 h-4 text-gray-400" />
-                    ) : (
-                      <GraduationCap className="w-4 h-4 text-gray-400" />
-                    )}
+                    <MapPin className="w-4 h-4 text-gray-400" />
                     <span className="font-medium">
-                      {selectedDonor.isOrganization ? 'Organization' : 'Individual'}
+                      {selectedDevice.location.city}, {selectedDevice.location.state}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Device Images */}
+              {selectedDevice.images && selectedDevice.images.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Device Images</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {selectedDevice.images.map((image: any, index: number) => (
+                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img 
+                          src={image} 
+                          alt={`Device ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Device Metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Created Date</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">
+                      {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Last Updated</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">
+                      {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Additional Info */}
-              {selectedDonor.profession && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Profession</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{selectedDonor.profession}</span>
-                  </div>
-                </div>
-              )}
-
-              {selectedDonor.address && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Address</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{selectedDonor.address}</span>
-                  </div>
-                </div>
-              )}
-
-              {selectedDonor.about && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">About</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm leading-relaxed">{selectedDonor.about}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
                 <Button 
                   variant="outline" 
-                  onClick={() => setShowDonorDetails(false)}
+                  onClick={() => setIsDeviceDetailsOpen(false)}
                 >
                   Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsDeviceDetailsOpen(false);
+                    setSelectedTab("devices");
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  View in Devices Tab
                 </Button>
               </div>
             </div>
