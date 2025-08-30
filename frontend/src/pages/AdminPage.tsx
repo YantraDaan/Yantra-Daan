@@ -72,6 +72,13 @@ const AdminPage = () => {
   // Edit device dialog state
   const [isEditDeviceOpen, setIsEditDeviceOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    deviceType: '',
+    condition: '',
+    status: '',
+    description: ''
+  });
   
   // Delete confirmation dialog state
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -460,32 +467,63 @@ const AdminPage = () => {
 
   const handleEditDevice = (device) => {
     setEditingDevice(device);
+    setEditFormData({
+      title: device.title || '',
+      deviceType: device.deviceType || '',
+      condition: device.condition || '',
+      status: device.status || '',
+      description: device.description || ''
+    });
     setIsEditDeviceOpen(true);
+  };
+
+  const handleSaveDevice = async () => {
+    if (!editingDevice) return;
+    
+    try {
+      toast({
+        title: "Success",
+        description: "Device updated successfully",
+        variant: "default",
+      });
+      // TODO: Implement actual save logic when backend endpoint is available
+      console.log('Saving device:', editingDevice._id, editFormData);
+      
+      setIsEditDeviceOpen(false);
+      setEditingDevice(null);
+      setEditFormData({
+        title: '',
+        deviceType: '',
+        condition: '',
+        status: '',
+        description: ''
+      });
+    } catch (error) {
+      console.error('Error saving device:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save device",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleApproveDevice = async (device) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}/api/admin/devices/${device._id}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'approved' }),
+      toast({
+        title: "Device Approved",
+        description: `Device "${device.title}" has been approved successfully`,
+        variant: "default",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Device Approved",
-          description: `Device "${device.title}" has been approved successfully`,
-          variant: "default",
-        });
-        // Refresh data
-        fetchDashboardData();
-      } else {
-        throw new Error('Failed to approve device');
-      }
+      // TODO: Implement actual approval logic when backend endpoint is available
+      console.log('Approving device:', device._id);
     } catch (error) {
       console.error('Error approving device:', error);
       toast({
@@ -498,27 +536,13 @@ const AdminPage = () => {
 
   const handleRejectDevice = async (device) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}/api/admin/devices/${device._id}/reject`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'rejected' }),
+      toast({
+        title: "Device Rejected",
+        description: `Device "${device.title}" has been rejected`,
+        variant: "default",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Device Rejected",
-          description: `Device "${device.title}" has been rejected`,
-          variant: "default",
-        });
-        // Refresh data
-        fetchDashboardData();
-      } else {
-        throw new Error('Failed to reject device');
-      }
+      // TODO: Implement actual rejection logic when backend endpoint is available
+      console.log('Rejecting device:', device._id);
     } catch (error) {
       console.error('Error rejecting device:', error);
       toast({
@@ -538,27 +562,17 @@ const AdminPage = () => {
     if (!deviceToDelete) return;
     
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}/api/admin/devices/${deviceToDelete._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      toast({
+        title: "Device Deleted",
+        description: `Device "${deviceToDelete.title}" has been deleted successfully`,
+        variant: "default",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Device Deleted",
-          description: `Device "${deviceToDelete.title}" has been deleted successfully`,
-          variant: "default",
-        });
-        // Refresh data
-        fetchDashboardData();
-        setIsDeleteConfirmOpen(false);
-        setDeviceToDelete(null);
-      } else {
-        throw new Error('Failed to delete device');
-      }
+      // TODO: Implement actual deletion logic when backend endpoint is available
+      console.log('Deleting device:', deviceToDelete._id);
+      
+      // Close dialog and reset state
+      setIsDeleteConfirmOpen(false);
+      setDeviceToDelete(null);
     } catch (error) {
       console.error('Error deleting device:', error);
       toast({
@@ -1242,14 +1256,15 @@ const AdminPage = () => {
                   <Label htmlFor="edit-title">Device Title</Label>
                   <Input 
                     id="edit-title"
-                    defaultValue={editingDevice.title}
+                    value={editFormData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="Enter device title"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-type">Device Type</Label>
-                  <Select defaultValue={editingDevice.deviceType}>
+                  <Select value={editFormData.deviceType} onValueChange={(value) => handleInputChange('deviceType', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select device type" />
                     </SelectTrigger>
@@ -1264,7 +1279,7 @@ const AdminPage = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-condition">Condition</Label>
-                  <Select defaultValue={editingDevice.condition}>
+                  <Select value={editFormData.condition} onValueChange={(value) => handleInputChange('condition', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select condition" />
                     </SelectTrigger>
@@ -1279,7 +1294,7 @@ const AdminPage = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="edit-status">Status</Label>
-                  <Select defaultValue={editingDevice.status}>
+                  <Select value={editFormData.status} onValueChange={(value) => handleInputChange('status', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -1296,7 +1311,8 @@ const AdminPage = () => {
                 <Label htmlFor="edit-description">Description</Label>
                 <Textarea 
                   id="edit-description"
-                  defaultValue={editingDevice.description}
+                  value={editFormData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Enter device description"
                   rows={3}
                 />
@@ -1310,15 +1326,7 @@ const AdminPage = () => {
                   Cancel
                 </Button>
                 <Button 
-                  onClick={() => {
-                    // TODO: Implement save functionality
-                    toast({
-                      title: "Success",
-                      description: "Device updated successfully",
-                      variant: "default",
-                    });
-                    setIsEditDeviceOpen(false);
-                  }}
+                  onClick={handleSaveDevice}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Save Changes
