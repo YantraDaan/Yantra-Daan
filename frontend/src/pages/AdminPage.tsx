@@ -87,14 +87,21 @@ const AdminPage = () => {
         return;
       }
       
-      // Only fetch data if user is admin and not already loading
-      if (user && user.userRole === 'admin' && !isLoading) {
+      // Fetch data if user is admin
+      if (user && user.userRole === 'admin') {
         fetchDashboardData();
       }
     }, 500); // 500ms delay to allow auth state to stabilize
 
     return () => clearTimeout(authCheckTimer);
   }, [user, navigate, isLoading, toast]);
+
+  // Load data when user is available
+  useEffect(() => {
+    if (user && user.userRole === 'admin') {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   // No search functionality needed - data loads directly
 
