@@ -381,7 +381,6 @@ const AdminPage = () => {
           'Device Title': request.deviceInfo?.title || 'Unknown Device',
           'Device Type': request.deviceInfo?.deviceType || 'Unknown',
           'Device Condition': request.deviceInfo?.condition || 'Unknown',
-          'Device Owner': request.deviceInfo?.ownerInfo?.name || 'Unknown',
           'Request Message': request.message || '',
           'Status': request.status || 'Pending',
           'Request Date': request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '',
@@ -797,7 +796,7 @@ const AdminPage = () => {
 
           {/* Devices Tab */}
           {selectedTab === "devices" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="space-y-6">
               {/* Device Management Card */}
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
@@ -812,64 +811,56 @@ const AdminPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Recent Activity Card */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Recent Device Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {recentDonations.length > 0 ? (
-                      recentDonations.slice(0, 3).map((device: any) => (
-                        <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                              <Gift className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm text-gray-900">{device.title || 'Untitled Device'}</p>
-                              <p className="text-xs text-gray-500">{device.deviceType || 'Unknown Type'}</p>
-                            </div>
-                          </div>
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {device.status || 'Approved'}
-                          </Badge>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center text-gray-500 py-4">
-                        No recent device activity
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Device Overview Card */}
+              {/* Device Details Grid */}
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
                   <CardTitle className="text-white flex items-center gap-2">
                     <Gift className="w-5 h-5" />
-                    Device Overview
+                    Device Details
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{dashboardStats.totalDevices}</div>
-                      <div className="text-sm text-green-600">Total Devices</div>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.approvedDevices}</div>
-                      <div className="text-sm text-blue-600">Approved</div>
-                    </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{dashboardStats.pendingDevices}</div>
-                      <div className="text-sm text-orange-600">Pending</div>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {recentDonations.length > 0 ? (
+                      recentDonations.map((device: any) => (
+                        <Card key={device._id} className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:border-green-300 transition-all duration-200 hover:shadow-md">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                                <Gift className="w-5 h-5 text-white" />
+                              </div>
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                {device.status || 'Approved'}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-gray-900 text-sm">{device.title || 'Untitled Device'}</h4>
+                              <p className="text-xs text-gray-600">{device.deviceType || 'Unknown Type'}</p>
+                              <p className="text-xs text-gray-600">Condition: {device.condition || 'Unknown'}</p>
+                              {device.ownerInfo && (
+                                <p className="text-xs text-gray-600">Owner: {device.ownerInfo.name || 'Anonymous'}</p>
+                              )}
+                            </div>
+                            <div className="mt-3 flex justify-end">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showDeviceDetails(device)}
+                                className="h-8 px-3 text-xs"
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center text-gray-500 py-8">
+                        <Gift className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>No devices found</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
