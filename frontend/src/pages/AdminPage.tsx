@@ -72,22 +72,22 @@ const AdminPage = () => {
       // Only redirect if we're absolutely sure there's no valid user
       if (!user) {
         console.log('No user found, redirecting to admin login');
-        navigate('/admin-login');
-        return;
-      }
-      
+      navigate('/admin-login');
+      return;
+    }
+    
       // Check if user is admin
-      if (user.userRole !== 'admin') {
+    if (user.userRole !== 'admin') {
         console.log('User is not admin, redirecting to home');
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to access the admin panel.",
-          variant: "destructive",
-        });
-        navigate('/');
-        return;
-      }
-      
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access the admin panel.",
+        variant: "destructive",
+      });
+      navigate('/');
+      return;
+    }
+    
       // Fetch data if user is admin
       if (user && user.userRole === 'admin') {
         fetchDashboardData();
@@ -152,7 +152,7 @@ const AdminPage = () => {
         console.error('Failed to fetch recent donations:', donationsResponse.status);
         setRecentDonations([]);
       }
-
+      
       // Fetch pending device approvals
       const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending`, {
         headers: {
@@ -270,6 +270,164 @@ const AdminPage = () => {
       toast({
         title: "Export Failed",
         description: "Failed to export users data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const exportDevicesToExcel = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all devices data
+      const response = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const devices = data.devices || [];
+        
+        // Prepare data for Excel
+        const excelData = devices.map((device: any) => ({
+          'Device ID': device._id || '',
+          'Title': device.title || 'Untitled',
+          'Device Type': device.deviceType || 'Unknown',
+          'Condition': device.condition || 'Unknown',
+          'Status': device.status || 'Unknown',
+          'Description': device.description || '',
+          'Owner Name': device.ownerInfo?.name || 'Anonymous',
+          'Owner Email': device.ownerInfo?.email || '',
+          'Owner Phone': device.ownerInfo?.contact || '',
+          'Location': device.location ? `${device.location.city || ''}, ${device.location.state || ''}` : '',
+          'Donation Date': device.createdAt ? new Date(device.createdAt).toLocaleDateString() : '',
+          'Last Updated': device.updatedAt ? new Date(device.updatedAt).toLocaleDateString() : ''
+        }));
+        
+        // Create CSV content
+        const headers = Object.keys(excelData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...excelData.map(row => 
+            headers.map(header => {
+              const value = row[header];
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `devices_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Export Successful",
+          description: `Exported ${devices.length} devices to Excel file`,
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to fetch devices data');
+      }
+    } catch (error) {
+      console.error('Error exporting devices:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export devices data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const exportRequestsToExcel = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all device requests data
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/all?page=1&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const requests = data.requests || [];
+        
+        // Prepare data for Excel
+        const excelData = requests.map((request: any) => ({
+          'Request ID': request._id || '',
+          'Requester Name': request.requesterInfo?.name || 'Anonymous',
+          'Requester Email': request.requesterInfo?.email || '',
+          'Requester Phone': request.requesterInfo?.contact || '',
+          'Device Title': request.deviceInfo?.title || 'Unknown Device',
+          'Device Type': request.deviceInfo?.deviceType || 'Unknown',
+          'Device Condition': request.deviceInfo?.condition || 'Unknown',
+          'Device Owner': request.deviceInfo?.ownerInfo?.name || 'Unknown',
+          'Request Message': request.message || '',
+          'Status': request.status || 'Pending',
+          'Request Date': request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '',
+          'Last Updated': request.updatedAt ? new Date(request.updatedAt).toLocaleDateString() : ''
+        }));
+        
+        // Create CSV content
+        const headers = Object.keys(excelData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...excelData.map(row => 
+            headers.map(header => {
+              const value = row[header];
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `requests_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Export Successful",
+          description: `Exported ${requests.length} requests to Excel file`,
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to fetch requests data');
+      }
+    } catch (error) {
+      console.error('Error exporting requests:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export requests data",
         variant: "destructive",
       });
     } finally {
@@ -431,10 +589,11 @@ const AdminPage = () => {
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("devices")}
+                      onClick={exportDevicesToExcel}
+                      disabled={isLoading}
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Devices
                     </Button>
                   </CardContent>
                 </Card>
@@ -453,10 +612,11 @@ const AdminPage = () => {
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("dashboard")}
+                      onClick={exportRequestsToExcel}
+                      disabled={isLoading}
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Requests
                     </Button>
                   </CardContent>
                 </Card>
