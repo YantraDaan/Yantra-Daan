@@ -797,33 +797,7 @@ const AdminPage = () => {
 
           {/* Devices Tab */}
           {selectedTab === "devices" && (
-            <div className="space-y-6">
-              {/* Device Statistics Card */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Device Statistics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{dashboardStats.totalDevices}</div>
-                      <div className="text-sm text-green-600">Total Devices</div>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.approvedDevices}</div>
-                      <div className="text-sm text-blue-600">Approved</div>
-                    </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{dashboardStats.pendingDevices}</div>
-                      <div className="text-sm text-orange-600">Pending</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Device Management Card */}
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
@@ -870,6 +844,32 @@ const AdminPage = () => {
                         No recent device activity
                       </div>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Device Overview Card */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    Device Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{dashboardStats.totalDevices}</div>
+                      <div className="text-sm text-green-600">Total Devices</div>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.approvedDevices}</div>
+                      <div className="text-sm text-blue-600">Approved</div>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">{dashboardStats.pendingDevices}</div>
+                      <div className="text-sm text-orange-600">Pending</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
