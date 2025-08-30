@@ -324,7 +324,13 @@ router.get('/can-request/:deviceId', auth, async (req, res) => {
     if (existingRequest) {
       return res.json({ 
         canRequest: false, 
-        reason: 'You already have a request for this device' 
+        reason: 'You already have a request for this device',
+        existingRequest: {
+          id: existingRequest._id,
+          status: existingRequest.status,
+          message: existingRequest.message,
+          createdAt: existingRequest.createdAt
+        }
       });
     }
 

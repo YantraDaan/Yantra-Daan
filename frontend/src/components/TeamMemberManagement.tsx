@@ -651,7 +651,7 @@ const TeamMemberManagement = () => {
           });
         }
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               {showEditDialog ? 'Edit Team Member' : 'Add New Team Member'}

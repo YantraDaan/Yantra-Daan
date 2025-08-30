@@ -5,6 +5,7 @@ const { auth } = require('../middleware/auth');
 const { 
   validateRegistration, 
   validateLogin, 
+  validateAdminLogin,
   validatePasswordReset, 
   validateNewPassword 
 } = require('../middleware/validation');
@@ -190,8 +191,8 @@ router.post('/register', validateRegistration, async (req, res) => {
   }
 });
 
-// Admin login with strict validation
-router.post('/admin-login', validateLogin, async (req, res) => {
+// Admin login with strict validation - ONLY for admin users
+router.post('/admin-login', validateAdminLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -223,7 +224,7 @@ router.post('/admin-login', validateLogin, async (req, res) => {
       console.log('Admin login rejected - user is not admin:', { email, userRole: user.userRole });
       return res.status(403).json({ 
         error: 'Access denied. Admin privileges required.',
-        message: 'This account does not have admin privileges.'
+        message: 'This account does not have admin privileges. Only admin users can use this login endpoint.'
       });
     }
 

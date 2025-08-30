@@ -795,8 +795,28 @@ const ProfilePage = () => {
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="items">My Items</TabsTrigger>
-              <TabsTrigger value="requests">Student Requests</TabsTrigger>
+              <TabsTrigger value="items" className="relative">
+                My Items
+                {(() => {
+                  const itemsWithPendingRequests = Object.values(deviceRequests).flat().filter((r: any) => r.status === 'pending').length;
+                  return itemsWithPendingRequests > 0 ? (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {itemsWithPendingRequests}
+                    </Badge>
+                  ) : null;
+                })()}
+              </TabsTrigger>
+              <TabsTrigger value="requests" className="relative">
+                Student Requests
+                {(() => {
+                  const totalPendingRequests = Object.values(deviceRequests).flat().filter((r: any) => r.status === 'pending').length;
+                  return totalPendingRequests > 0 ? (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                      {totalPendingRequests}
+                    </Badge>
+                  ) : null;
+                })()}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">

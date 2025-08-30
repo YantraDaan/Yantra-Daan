@@ -69,6 +69,20 @@ const validateLogin = [
   handleValidationErrors
 ];
 
+// Admin login validation (no userRole required)
+const validateAdminLogin = [
+  body('email')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+  
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+  
+  handleValidationErrors
+];
+
 // Password reset validation
 const validatePasswordReset = [
   body('email')
@@ -189,6 +203,7 @@ module.exports = {
   handleValidationErrors,
   validateRegistration,
   validateLogin,
+  validateAdminLogin,
   validatePasswordReset,
   validateNewPassword,
   validateDevicePost,
