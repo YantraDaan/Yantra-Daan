@@ -108,53 +108,27 @@ const AdminPage = () => {
       // Only redirect if we're absolutely sure there's no valid user
       if (!user) {
         console.log('No user found, redirecting to admin login');
-      navigate('/admin-login');
-      return;
-    }
+        navigate('/admin-login');
+        return;
+      }
     
       // Check if user is admin
-    if (user.userRole !== 'admin') {
+      if (user.userRole !== 'admin') {
         console.log('User is not admin, redirecting to home');
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access the admin panel.",
-        variant: "destructive",
-      });
-      navigate('/');
-      return;
-    }
-    
-      // Fetch data if user is admin
-      if (user && user.userRole === 'admin') {
-      fetchDashboardData();
-    }
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access the admin panel.",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
+      }
     }, 500); // 500ms delay to allow auth state to stabilize
 
     return () => clearTimeout(authCheckTimer);
-  }, [user, navigate, isLoading, toast]);
+  }, [user, navigate, toast]);
 
-  // Load data when user is available
-  useEffect(() => {
-    if (user && user.userRole === 'admin') {
-      fetchDashboardData();
-    }
-  }, [user]);
-
-  // Fetch all devices when Devices tab is selected
-  useEffect(() => {
-    if (selectedTab === "devices" && user && user.userRole === 'admin') {
-      try {
-        fetchAllDevices();
-      } catch (error) {
-        console.error('Error in useEffect for devices tab:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load devices tab",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [selectedTab, user]);
+  // No automatic data loading - data only loads when refresh buttons are clicked
 
   // No search functionality needed - data loads directly
 
@@ -966,6 +940,51 @@ const AdminPage = () => {
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isDevicesLoading ? 'animate-spin' : ''}`} />
               Refresh Devices
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Users */}
+        {selectedTab === "users" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Users
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Requests */}
+        {selectedTab === "dashboard" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Requests
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Team */}
+        {selectedTab === "team" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Team
             </Button>
           </div>
         )}
