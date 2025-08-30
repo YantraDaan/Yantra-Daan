@@ -37,7 +37,8 @@ import {
   Building2,
   GraduationCap,
   User,
-  Search
+  Search,
+  Download
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -197,6 +198,85 @@ const AdminPage = () => {
     navigate('/admin-login');
   };
 
+  const exportUsersToExcel = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all users data
+      const response = await fetch(`${config.apiUrl}/api/admin/users?page=1&limit=1000`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const users = data.users || [];
+        
+        // Prepare data for Excel
+        const excelData = users.map((user: any) => ({
+          'User ID': user._id || '',
+          'Name': user.name || 'Anonymous',
+          'Email': user.email || '',
+          'Phone': user.contact || '',
+          'Role': user.userRole || 'User',
+          'Location': user.location ? `${user.location.city || ''}, ${user.location.state || ''}` : '',
+          'Registration Date': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
+          'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
+          'Status': user.isActive ? 'Active' : 'Inactive',
+          'isOrganization': user.isOrganization ? 'Yes' : 'No',
+          'emailUpdates' : user.emailUpdates ? 'Yes' : 'No',
+          'profession' : user.profession || ''
+        }));
+        
+        // Create CSV content
+        const headers = Object.keys(excelData[0]);
+        const csvContent = [
+          headers.join(','),
+          ...excelData.map(row => 
+            headers.map(header => {
+              const value = row[header];
+              // Escape commas and quotes in CSV
+              if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Export Successful",
+          description: `Exported ${users.length} users to Excel file`,
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to fetch users data');
+      }
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export users data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const showDonorInfo = (donor) => {
     // This function is no longer needed as recentDonations is removed
     // setSelectedDonor(donor);
@@ -328,10 +408,11 @@ const AdminPage = () => {
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("users")}
+                      onClick={exportUsersToExcel}
+                      disabled={isLoading}
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Users
                     </Button>
                   </CardContent>
                 </Card>
