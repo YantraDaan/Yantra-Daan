@@ -99,9 +99,10 @@ const AdminPage = () => {
     try {
       setIsLoading(true);
       
-      // Fetch dashboard statistics
       const token = localStorage.getItem('authToken');
-      const statsResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/stats`, {
+      
+      // Fetch dashboard statistics from admin endpoint
+      const statsResponse = await fetch(`${config.apiUrl}/api/admin/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -119,8 +120,8 @@ const AdminPage = () => {
         });
       }
       
-      // Fetch recent donations
-      const donationsResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/recent`, {
+      // Fetch recent donations with text filter
+      const donationsResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=approved&search=`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -128,11 +129,14 @@ const AdminPage = () => {
       
       if (donationsResponse.ok) {
         const donationsData = await donationsResponse.json();
-        setRecentDonations(donationsData.donations || []);
+        setRecentDonations(donationsData.devices || []);
+      } else {
+        console.error('Failed to fetch recent donations:', donationsResponse.status);
+        setRecentDonations([]);
       }
       
-      // Fetch pending devices
-      const pendingResponse = await fetch(`${config.apiUrl}${config.endpoints.donations}/pending`, {
+      // Fetch pending devices with text filter
+      const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending&search=`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -141,6 +145,9 @@ const AdminPage = () => {
       if (pendingResponse.ok) {
         const pendingData = await pendingResponse.json();
         setPendingDevices(pendingData.devices || []);
+      } else {
+        console.error('Failed to fetch pending devices:', pendingResponse.status);
+        setPendingDevices([]);
       }
       
     } catch (error) {
