@@ -65,27 +65,35 @@ const AdminPage = () => {
 
   // Check if user is admin
   useEffect(() => {
-    // Only redirect if we're sure there's no valid user
-    if (!user || !isTokenValid) {
-      navigate('/admin-login');
-      return;
-    }
-    
-    if (user.userRole !== 'admin') {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access the admin panel.",
-        variant: "destructive",
-      });
-      navigate('/');
-      return;
-    }
-    
-    // Only fetch data if user is admin and not already loading
-    if (user && user.userRole === 'admin' && !isLoading) {
-      fetchDashboardData();
-    }
-  }, [user, isTokenValid, navigate, isLoading]);
+    // Add a small delay to allow auth state to stabilize
+    const authCheckTimer = setTimeout(() => {
+      // Only redirect if we're absolutely sure there's no valid user
+      if (!user) {
+        console.log('No user found, redirecting to admin login');
+        navigate('/admin-login');
+        return;
+      }
+      
+      // Check if user is admin
+      if (user.userRole !== 'admin') {
+        console.log('User is not admin, redirecting to home');
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access the admin panel.",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
+      }
+      
+      // Only fetch data if user is admin and not already loading
+      if (user && user.userRole === 'admin' && !isLoading) {
+        fetchDashboardData();
+      }
+    }, 500); // 500ms delay to allow auth state to stabilize
+
+    return () => clearTimeout(authCheckTimer);
+  }, [user, navigate, isLoading, toast]);
 
   const fetchDashboardData = async () => {
     try {
