@@ -62,6 +62,7 @@ const AdminPage = () => {
   
   const [recentDonations, setRecentDonations] = useState([]);
   const [pendingDevices, setPendingDevices] = useState([]);
+  const [allDevices, setAllDevices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("overview");
   
@@ -123,9 +124,16 @@ const AdminPage = () => {
     }
   }, [user]);
 
+  // Fetch all devices when Devices tab is selected
+  useEffect(() => {
+    if (selectedTab === "devices" && user && user.userRole === 'admin') {
+      fetchAllDevices();
+    }
+  }, [selectedTab, user]);
+
   // No search functionality needed - data loads directly
 
-  const fetchDashboardData = async () => {
+    const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       
@@ -171,7 +179,7 @@ const AdminPage = () => {
         console.error('Failed to fetch recent donations:', donationsResponse.status);
         setRecentDonations([]);
       }
-      
+
       // Fetch pending device approvals
       const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending`, {
         headers: {
@@ -192,6 +200,44 @@ const AdminPage = () => {
       toast({
         title: "Error",
         description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAllDevices = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch all devices for the Devices tab
+      const response = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=100`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAllDevices(data.devices || []);
+        console.log('Fetched devices:', data.devices);
+      } else {
+        console.error('Failed to fetch all devices:', response.status);
+        setAllDevices([]);
+        toast({
+          title: "Error",
+          description: "Failed to load devices",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching all devices:', error);
+      setAllDevices([]);
+      toast({
+        title: "Error",
+        description: "Failed to load devices",
         variant: "destructive",
       });
     } finally {
@@ -524,6 +570,11 @@ const AdminPage = () => {
       });
       // TODO: Implement actual approval logic when backend endpoint is available
       console.log('Approving device:', device._id);
+      
+      // Refresh devices data
+      if (selectedTab === "devices") {
+        fetchAllDevices();
+      }
     } catch (error) {
       console.error('Error approving device:', error);
       toast({
@@ -543,6 +594,11 @@ const AdminPage = () => {
       });
       // TODO: Implement actual rejection logic when backend endpoint is available
       console.log('Rejecting device:', device._id);
+      
+      // Refresh devices data
+      if (selectedTab === "devices") {
+        fetchAllDevices();
+      }
     } catch (error) {
       console.error('Error rejecting device:', error);
       toast({
@@ -573,6 +629,11 @@ const AdminPage = () => {
       // Close dialog and reset state
       setIsDeleteConfirmOpen(false);
       setDeviceToDelete(null);
+      
+      // Refresh devices data
+      if (selectedTab === "devices") {
+        fetchAllDevices();
+      }
     } catch (error) {
       console.error('Error deleting device:', error);
       toast({
@@ -691,6 +752,22 @@ const AdminPage = () => {
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh Data
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Devices */}
+        {selectedTab === "devices" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={fetchAllDevices} 
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh Devices
             </Button>
           </div>
         )}
@@ -958,8 +1035,8 @@ const AdminPage = () => {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {recentDonations.length > 0 ? (
-                      recentDonations.map((device: any) => (
+                    {allDevices.length > 0 ? (
+                      allDevices.map((device: any) => (
                         <Card key={device._id} className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:border-green-300 transition-all duration-200 hover:shadow-md">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-3">
@@ -1028,7 +1105,7 @@ const AdminPage = () => {
                     ) : (
                       <div className="col-span-full text-center text-gray-500 py-8">
                         <Gift className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p>No devices found</p>
+                        <p>{isLoading ? 'Loading devices...' : 'No devices found'}</p>
                       </div>
                     )}
                   </div>
