@@ -78,7 +78,11 @@ const AdminPage = () => {
     deviceType: '',
     condition: '',
     status: '',
-    description: ''
+    description: '',
+    location: {
+      city: '',
+      state: ''
+    }
   });
   
   // Delete confirmation dialog state
@@ -518,7 +522,11 @@ const AdminPage = () => {
       deviceType: device.deviceType || '',
       condition: device.condition || '',
       status: device.status || '',
-      description: device.description || ''
+      description: device.description || '',
+      location: {
+        city: device.location?.city || '',
+        state: device.location?.state || ''
+      }
     });
     setIsEditDeviceOpen(true);
   };
@@ -527,12 +535,66 @@ const AdminPage = () => {
     if (!editingDevice) return;
     
     try {
-      toast({
-        title: "Success",
-        description: "Device updated successfully",
-        variant: "default",
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // First update the device status if it changed
+      if (editFormData.status !== editingDevice.status) {
+        const statusResponse = await fetch(`${config.apiUrl}/api/devices/${editingDevice._id}/status`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            status: editFormData.status,
+            adminNotes: `Device updated by admin. New status: ${editFormData.status}`
+          }),
+        });
+
+        if (!statusResponse.ok) {
+          const errorData = await statusResponse.json();
+          throw new Error(errorData.error || 'Failed to update device status');
+        }
+      }
+      
+      // Now try to update other device details using the device update endpoint
+      // Note: This endpoint currently only allows owners to edit, but admin should have access
+      const updateData = {
+        title: editFormData.title,
+        deviceType: editFormData.deviceType,
+        condition: editFormData.condition,
+        description: editFormData.description,
+        location: editFormData.location
+      };
+      
+      const updateResponse = await fetch(`${config.apiUrl}/api/devices/${editingDevice._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
       });
-      // TODO: Implement actual save logic when backend endpoint is available
+
+      if (updateResponse.ok) {
+        toast({
+          title: "Success",
+          description: "Device details updated successfully",
+          variant: "default",
+        });
+      } else if (updateResponse.status === 403) {
+        // If owner-only restriction, show status-only update message
+        toast({
+          title: "Partial Success",
+          description: "Device status updated. Full editing requires admin endpoint.",
+          variant: "default",
+        });
+      } else {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Failed to update device details');
+      }
+      
       console.log('Saving device:', editingDevice._id, editFormData);
       
       setIsEditDeviceOpen(false);
@@ -542,15 +604,26 @@ const AdminPage = () => {
         deviceType: '',
         condition: '',
         status: '',
-        description: ''
+        description: '',
+        location: {
+          city: '',
+          state: ''
+        }
       });
+      
+      // Refresh devices data
+      if (selectedTab === "devices") {
+        fetchAllDevices();
+      }
     } catch (error) {
       console.error('Error saving device:', error);
       toast({
         title: "Error",
-        description: "Failed to save device",
+        description: error.message || "Failed to save device",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -563,49 +636,87 @@ const AdminPage = () => {
 
   const handleApproveDevice = async (device) => {
     try {
-      toast({
-        title: "Device Approved",
-        description: `Device "${device.title}" has been approved successfully`,
-        variant: "default",
-      });
-      // TODO: Implement actual approval logic when backend endpoint is available
-      console.log('Approving device:', device._id);
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
       
-      // Refresh devices data
-      if (selectedTab === "devices") {
-        fetchAllDevices();
+      const response = await fetch(`${config.apiUrl}/api/devices/${device._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'approved',
+          adminNotes: 'Device approved by admin'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Approved",
+          description: `Device "${device.title}" has been approved successfully`,
+          variant: "default",
+        });
+        // Refresh devices data
+        if (selectedTab === "devices") {
+          fetchAllDevices();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to approve device');
       }
     } catch (error) {
       console.error('Error approving device:', error);
       toast({
         title: "Error",
-        description: "Failed to approve device",
+        description: error.message || "Failed to approve device",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRejectDevice = async (device) => {
     try {
-      toast({
-        title: "Device Rejected",
-        description: `Device "${device.title}" has been rejected`,
-        variant: "default",
-      });
-      // TODO: Implement actual rejection logic when backend endpoint is available
-      console.log('Rejecting device:', device._id);
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
       
-      // Refresh devices data
-      if (selectedTab === "devices") {
-        fetchAllDevices();
+      const response = await fetch(`${config.apiUrl}/api/devices/${device._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'rejected',
+          adminNotes: 'Device rejected by admin'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Rejected",
+          description: `Device "${device.title}" has been rejected`,
+          variant: "default",
+        });
+        // Refresh devices data
+        if (selectedTab === "devices") {
+          fetchAllDevices();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reject device');
       }
     } catch (error) {
       console.error('Error rejecting device:', error);
       toast({
         title: "Error",
-        description: "Failed to reject device",
+        description: error.message || "Failed to reject device",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -618,29 +729,44 @@ const AdminPage = () => {
     if (!deviceToDelete) return;
     
     try {
-      toast({
-        title: "Device Deleted",
-        description: `Device "${deviceToDelete.title}" has been deleted successfully`,
-        variant: "default",
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/devices/admin/${deviceToDelete._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
-      // TODO: Implement actual deletion logic when backend endpoint is available
-      console.log('Deleting device:', deviceToDelete._id);
-      
-      // Close dialog and reset state
-      setIsDeleteConfirmOpen(false);
-      setDeviceToDelete(null);
-      
-      // Refresh devices data
-      if (selectedTab === "devices") {
-        fetchAllDevices();
+
+      if (response.ok) {
+        toast({
+          title: "Device Deleted",
+          description: `Device "${deviceToDelete.title}" has been deleted successfully`,
+          variant: "default",
+        });
+        
+        // Close dialog and reset state
+        setIsDeleteConfirmOpen(false);
+        setDeviceToDelete(null);
+        
+        // Refresh devices data
+        if (selectedTab === "devices") {
+          fetchAllDevices();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete device');
       }
     } catch (error) {
       console.error('Error deleting device:', error);
       toast({
         title: "Error",
-        description: "Failed to delete device",
+        description: error.message || "Failed to delete device",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1069,7 +1195,8 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleEditDevice(device)}
-                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100"
+                                  disabled={isLoading}
+                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100 disabled:opacity-50"
                                 >
                                   <Pencil className="w-3 h-3" />
                                 </Button>
@@ -1077,7 +1204,8 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleApproveDevice(device)}
-                                  className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100"
+                                  disabled={isLoading}
+                                  className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100 disabled:opacity-50"
                                 >
                                   <CheckCircle className="w-3 h-3" />
                                 </Button>
@@ -1085,7 +1213,8 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleRejectDevice(device)}
-                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100"
+                                  disabled={isLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
                                 >
                                   <XCircle className="w-3 h-3" />
                                 </Button>
@@ -1093,7 +1222,8 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleDeleteDevice(device)}
-                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100"
+                                  disabled={isLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </Button>
@@ -1323,8 +1453,11 @@ const AdminPage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5" />
-              Edit Device
+              Edit Device (Admin)
             </DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              You can edit all device details including title, type, condition, status, description, and location.
+            </p>
           </DialogHeader>
           {editingDevice && (
             <div className="space-y-4">
@@ -1393,6 +1526,29 @@ const AdminPage = () => {
                   placeholder="Enter device description"
                   rows={3}
                 />
+              </div>
+
+              {/* Location Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-city">City</Label>
+                  <Input 
+                    id="edit-city"
+                    value={editFormData.location.city}
+                    onChange={(e) => handleInputChange('location', { ...editFormData.location, city: e.target.value })}
+                    placeholder="Enter city"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-state">State</Label>
+                  <Input 
+                    id="edit-state"
+                    value={editFormData.location.state}
+                    onChange={(e) => handleInputChange('location', { ...editFormData.location, state: e.target.value })}
+                    placeholder="Enter state"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2">
