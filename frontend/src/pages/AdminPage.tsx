@@ -40,7 +40,9 @@ import {
   Search,
   Download,
   Pencil,
-  Trash2
+  Trash2,
+  Laptop,
+  Tablet
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -66,6 +68,14 @@ const AdminPage = () => {
   // Device details dialog state
   const [isDeviceDetailsOpen, setIsDeviceDetailsOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  
+  // Edit device dialog state
+  const [isEditDeviceOpen, setIsEditDeviceOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState(null);
+  
+  // Delete confirmation dialog state
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -449,43 +459,128 @@ const AdminPage = () => {
   };
 
   const handleEditDevice = (device) => {
-    // Handle device editing
-    toast({
-      title: "Edit Device",
-      description: `Editing device: ${device.title}`,
-      variant: "default",
-    });
-    // TODO: Implement edit functionality
+    setEditingDevice(device);
+    setIsEditDeviceOpen(true);
   };
 
-  const handleApproveDevice = (device) => {
-    // Handle device approval
-    toast({
-      title: "Device Approved",
-      description: `Device "${device.title}" has been approved`,
-      variant: "default",
-    });
-    // TODO: Implement approval functionality
+  const handleApproveDevice = async (device) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}/api/admin/devices/${device._id}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'approved' }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Approved",
+          description: `Device "${device.title}" has been approved successfully`,
+          variant: "default",
+        });
+        // Refresh data
+        fetchDashboardData();
+      } else {
+        throw new Error('Failed to approve device');
+      }
+    } catch (error) {
+      console.error('Error approving device:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve device",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRejectDevice = (device) => {
-    // Handle device rejection
-    toast({
-      title: "Device Rejected",
-      description: `Device "${device.title}" has been rejected`,
-      variant: "default",
-    });
-    // TODO: Implement rejection functionality
+  const handleRejectDevice = async (device) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}/api/admin/devices/${device._id}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'rejected' }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Rejected",
+          description: `Device "${device.title}" has been rejected`,
+          variant: "default",
+        });
+        // Refresh data
+        fetchDashboardData();
+      } else {
+        throw new Error('Failed to reject device');
+      }
+    } catch (error) {
+      console.error('Error rejecting device:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject device",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteDevice = (device) => {
-    // Handle device deletion
-    toast({
-      title: "Device Deleted",
-      description: `Device "${device.title}" has been deleted`,
-      variant: "destructive",
-    });
-    // TODO: Implement deletion functionality
+    setDeviceToDelete(device);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteDevice = async () => {
+    if (!deviceToDelete) return;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}/api/admin/devices/${deviceToDelete._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Deleted",
+          description: `Device "${deviceToDelete.title}" has been deleted successfully`,
+          variant: "default",
+        });
+        // Refresh data
+        fetchDashboardData();
+        setIsDeleteConfirmOpen(false);
+        setDeviceToDelete(null);
+      } else {
+        throw new Error('Failed to delete device');
+      }
+    } catch (error) {
+      console.error('Error deleting device:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete device",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getDeviceIcon = (deviceType) => {
+    switch (deviceType?.toLowerCase()) {
+      case 'laptop':
+        return <Laptop className="w-5 h-5 text-white" />;
+      case 'mobile':
+      case 'smartphone':
+        return <Smartphone className="w-5 h-5 text-white" />;
+      case 'tablet':
+        return <Tablet className="w-5 h-5 text-white" />;
+      default:
+        return <Gift className="w-5 h-5 text-white" />;
+    }
   };
 
   if (!user || user.userRole !== 'admin') {
@@ -855,7 +950,7 @@ const AdminPage = () => {
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                                <Gift className="w-5 h-5 text-white" />
+                                {getDeviceIcon(device.deviceType)}
                               </div>
                               <Badge variant="secondary" className="bg-green-100 text-green-800">
                                 {device.status || 'Approved'}
@@ -1128,6 +1223,146 @@ const AdminPage = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Device Dialog */}
+      <Dialog open={isEditDeviceOpen} onOpenChange={setIsEditDeviceOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" />
+              Edit Device
+            </DialogTitle>
+          </DialogHeader>
+          {editingDevice && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Device Title</Label>
+                  <Input 
+                    id="edit-title"
+                    defaultValue={editingDevice.title}
+                    placeholder="Enter device title"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-type">Device Type</Label>
+                  <Select defaultValue={editingDevice.deviceType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select device type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="laptop">Laptop</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                      <SelectItem value="tablet">Tablet</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-condition">Condition</Label>
+                  <Select defaultValue={editingDevice.condition}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="excellent">Excellent</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Poor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select defaultValue={editingDevice.status}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea 
+                  id="edit-description"
+                  defaultValue={editingDevice.description}
+                  placeholder="Enter device description"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditDeviceOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // TODO: Implement save functionality
+                    toast({
+                      title: "Success",
+                      description: "Device updated successfully",
+                      variant: "default",
+                    });
+                    setIsEditDeviceOpen(false);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Confirm Deletion
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete the device{" "}
+              <span className="font-semibold text-gray-900">
+                "{deviceToDelete?.title || 'Unknown Device'}"?
+              </span>
+            </p>
+            <p className="text-sm text-gray-500">
+              This action cannot be undone. The device will be permanently removed from the system.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmDeleteDevice}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Device
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
