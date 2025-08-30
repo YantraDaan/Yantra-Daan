@@ -36,7 +36,8 @@ import {
   Calendar,
   Building2,
   GraduationCap,
-  User
+  User,
+  Search
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -58,6 +59,10 @@ const AdminPage = () => {
   const [pendingDevices, setPendingDevices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("overview");
+  
+  // Search terms for filtering
+  const [donationsSearchTerm, setDonationsSearchTerm] = useState('');
+  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
   
   // Donor details dialog state
   const [showDonorDetails, setShowDonorDetails] = useState(false);
@@ -95,6 +100,31 @@ const AdminPage = () => {
     return () => clearTimeout(authCheckTimer);
   }, [user, navigate, isLoading, toast]);
 
+  // Auto-refresh filtered data when search terms change
+  useEffect(() => {
+    if (user && user.userRole === 'admin') {
+      const debounceTimer = setTimeout(() => {
+        if (donationsSearchTerm) {
+          fetchFilteredData('donations', donationsSearchTerm);
+        }
+      }, 500);
+
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [donationsSearchTerm, user]);
+
+  useEffect(() => {
+    if (user && user.userRole === 'admin') {
+      const debounceTimer = setTimeout(() => {
+        if (pendingSearchTerm) {
+          fetchFilteredData('pending', pendingSearchTerm);
+        }
+      }, 500);
+
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [pendingSearchTerm, user]);
+
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
@@ -118,10 +148,17 @@ const AdminPage = () => {
           approvedDevices: statsData.approvedDevices || 0,
           rejectedDevices: statsData.rejectedDevices || 0,
         });
+      } else {
+        console.error('Failed to fetch admin stats:', statsResponse.status);
+        toast({
+          title: "Warning",
+          description: "Failed to load statistics data",
+          variant: "destructive",
+        });
       }
       
-      // Fetch recent donations with text filter
-      const donationsResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=approved&search=`, {
+      // Fetch recent approved devices (donations)
+      const donationsResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=approved`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -135,8 +172,8 @@ const AdminPage = () => {
         setRecentDonations([]);
       }
       
-      // Fetch pending devices with text filter
-      const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending&search=`, {
+      // Fetch pending devices
+      const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -162,6 +199,55 @@ const AdminPage = () => {
     }
   };
 
+  // Function to fetch filtered data based on search terms
+  const fetchFilteredData = async (type: 'donations' | 'pending', searchTerm: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const status = type === 'donations' ? 'approved' : 'pending';
+      
+      const response = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=${status}&search=${encodeURIComponent(searchTerm)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (type === 'donations') {
+          setRecentDonations(data.devices || []);
+        } else {
+          setPendingDevices(data.devices || []);
+        }
+      } else {
+        console.error(`Failed to fetch filtered ${type}:`, response.status);
+        if (type === 'donations') {
+          setRecentDonations([]);
+        } else {
+          setPendingDevices([]);
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching filtered ${type}:`, error);
+      if (type === 'donations') {
+        setRecentDonations([]);
+      } else {
+        setPendingDevices([]);
+      }
+    }
+  };
+
+  // Function to refresh all data
+  const refreshAllData = async () => {
+    await fetchDashboardData();
+    // Also refresh filtered data if search terms exist
+    if (donationsSearchTerm) {
+      await fetchFilteredData('donations', donationsSearchTerm);
+    }
+    if (pendingSearchTerm) {
+      await fetchFilteredData('pending', pendingSearchTerm);
+    }
+  };
+
   const handleTabChange = (value: string) => {
     console.log('Tab changed to:', value);
     setSelectedTab(value);
@@ -176,6 +262,13 @@ const AdminPage = () => {
   const showDonorInfo = (donor) => {
     setSelectedDonor(donor);
     setShowDonorDetails(true);
+  };
+
+  const showDeviceDetails = (device) => {
+    // Navigate to devices tab and show device details
+    setSelectedTab("devices");
+    // You can also store the device ID in localStorage or context to highlight it in the devices tab
+    localStorage.setItem('selectedDeviceId', device._id);
   };
 
   if (!user || user.userRole !== 'admin') {
@@ -264,7 +357,7 @@ const AdminPage = () => {
         {selectedTab === "overview" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={fetchDashboardData} 
+              onClick={refreshAllData} 
               disabled={isLoading}
               variant="outline"
               size="sm"
@@ -281,6 +374,16 @@ const AdminPage = () => {
           {/* Overview Tab */}
           {selectedTab === "overview" && (
             <div className="space-y-6">
+              {/* Loading State */}
+              {isLoading && (
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center gap-2">
+                    <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+                    <span className="text-lg text-muted-foreground">Loading overview data...</span>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -372,6 +475,79 @@ const AdminPage = () => {
                 </Card>
               </div>
 
+              {/* Additional Stats Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-emerald-100">Approved Devices</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.approvedDevices}</div>
+                    <p className="text-xs text-emerald-100">Successfully approved</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-red-100">Rejected Devices</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <XCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.rejectedDevices}</div>
+                    <p className="text-xs text-red-100">Not approved</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-indigo-100">Success Rate</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <BarChart3 className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {dashboardStats.totalDevices > 0 
+                        ? Math.round((dashboardStats.approvedDevices / dashboardStats.totalDevices) * 100)
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-indigo-100">Approval rate</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Summary Section */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white">Platform Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.totalUsers}</div>
+                      <p className="text-sm text-gray-600">Total Users</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{dashboardStats.totalDevices}</div>
+                      <p className="text-sm text-gray-600">Total Devices</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">{dashboardStats.totalRequests}</div>
+                      <p className="text-sm text-gray-600">Total Requests</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">{dashboardStats.pendingDevices}</div>
+                      <p className="text-sm text-gray-600">Pending Approvals</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Recent Activity Cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Donations Card */}
@@ -380,6 +556,43 @@ const AdminPage = () => {
                     <CardTitle className="text-white">Recent Device Donations</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
+                    {/* Search Input */}
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          placeholder="Search donations..."
+                          value={donationsSearchTerm}
+                          onChange={(e) => setDonationsSearchTerm(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              fetchFilteredData('donations', donationsSearchTerm);
+                            }
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => fetchFilteredData('donations', donationsSearchTerm)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Search
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setDonationsSearchTerm('');
+                            fetchFilteredData('donations', '');
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="space-y-4">
                       {recentDonations.length === 0 ? (
                         <NoDataFound
@@ -390,7 +603,7 @@ const AdminPage = () => {
                         />
                       ) : (
                         recentDonations.slice(0, 5).map((donation: any) => (
-                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors">
+                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors cursor-pointer" onClick={() => showDeviceDetails(donation)}>
                             <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                                 <Gift className="w-5 h-5 text-white" />
@@ -426,6 +639,43 @@ const AdminPage = () => {
                     <CardTitle className="text-white">Pending Device Approvals</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
+                    {/* Search Input */}
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          placeholder="Search pending devices..."
+                          value={pendingSearchTerm}
+                          onChange={(e) => setPendingSearchTerm(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              fetchFilteredData('pending', pendingSearchTerm);
+                            }
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => fetchFilteredData('pending', pendingSearchTerm)}
+                          className="bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                          Search
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPendingSearchTerm('');
+                            fetchFilteredData('pending', '');
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="space-y-4">
                       {pendingDevices.length === 0 ? (
                         <NoDataFound
@@ -436,7 +686,7 @@ const AdminPage = () => {
                         />
                       ) : (
                         pendingDevices.map((device: any) => (
-                          <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors">
+                          <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors cursor-pointer" onClick={() => showDeviceDetails(device)}>
                             <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                                 <Smartphone className="w-5 h-5 text-white" />

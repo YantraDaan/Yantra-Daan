@@ -540,4 +540,51 @@ router.get('/admin/stats', auth, requireRole(['admin']), async (req, res) => {
   }
 });
 
+// Get all device requests for admin (admin only)
+router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '', status = '' } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    let query = {};
+    
+    if (search) {
+      query.$or = [
+        { message: { $regex: search, $options: 'i' } },
+        { 'requesterInfo.name': { $regex: search, $options: 'i' } },
+        { 'deviceInfo.title': { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const requests = await DeviceRequestModel.find(query)
+      .populate('requesterInfo', 'name email contact')
+      .populate('deviceInfo', 'title deviceType condition ownerInfo')
+      .populate('deviceInfo.ownerInfo', 'name email contact')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await DeviceRequestModel.countDocuments(query);
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    res.json({
+      requests,
+      total,
+      totalPages,
+      currentPage: parseInt(page)
+    });
+
+  } catch (error) {
+    console.error('Get admin requests error:', error);
+    res.status(500).json({
+      error: 'Failed to get device requests',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 module.exports = router;
