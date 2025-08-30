@@ -797,18 +797,83 @@ const AdminPage = () => {
 
           {/* Devices Tab */}
           {selectedTab === "devices" && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Smartphone className="w-5 h-5" />
-                  Device Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground mb-6">Manage all device donations and approvals</p>
-                <DeviceManagement />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              {/* Device Statistics Card */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    Device Statistics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{dashboardStats.totalDevices}</div>
+                      <div className="text-sm text-green-600">Total Devices</div>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.approvedDevices}</div>
+                      <div className="text-sm text-blue-600">Approved</div>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">{dashboardStats.pendingDevices}</div>
+                      <div className="text-sm text-orange-600">Pending</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Device Management Card */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Smartphone className="w-5 h-5" />
+                    Device Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-muted-foreground mb-6">Manage all device donations and approvals</p>
+                  <DeviceManagement />
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity Card */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    Recent Device Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {recentDonations.length > 0 ? (
+                      recentDonations.slice(0, 3).map((device: any) => (
+                        <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                              <Gift className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900">{device.title || 'Untitled Device'}</p>
+                              <p className="text-xs text-gray-500">{device.deviceType || 'Unknown Type'}</p>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            {device.status || 'Approved'}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        No recent device activity
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Users Tab */}
