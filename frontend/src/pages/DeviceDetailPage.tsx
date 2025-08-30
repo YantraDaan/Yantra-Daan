@@ -99,6 +99,7 @@ const DeviceDetailPage = () => {
   const [canRequest, setCanRequest] = useState(false);
   const [requestReason, setRequestReason] = useState("");
   const [activeRequestCount, setActiveRequestCount] = useState(0);
+  const [existingRequest, setExistingRequest] = useState<any>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const { user } = useAuth();
@@ -193,6 +194,7 @@ const DeviceDetailPage = () => {
         setCanRequest(data.canRequest);
         setRequestReason(data.reason || '');
         setActiveRequestCount(data.activeRequestCount || 0);
+        setExistingRequest(data.existingRequest || null);
       }
     } catch (error) {
       console.error('Error checking request eligibility:', error);
@@ -519,6 +521,45 @@ const DeviceDetailPage = () => {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Show existing request details */}
+            {existingRequest && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <CheckCircle className="w-5 h-5" />
+                    Your Request Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="bg-white p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-600">Status:</span>
+                      <Badge 
+                        variant={existingRequest.status === 'pending' ? 'secondary' : 
+                               existingRequest.status === 'approved' ? 'default' : 
+                               existingRequest.status === 'rejected' ? 'destructive' : 'secondary'}
+                        className="capitalize"
+                      >
+                        {existingRequest.status}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium">Your Message:</span>
+                      <p className="mt-1 text-gray-700">{existingRequest.message}</p>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Requested on: {new Date(existingRequest.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    {existingRequest.status === 'pending' && "Your request is being reviewed by our team."}
+                    {existingRequest.status === 'approved' && "Your request has been approved! Please contact the donor to arrange pickup."}
+                    {existingRequest.status === 'rejected' && "Your request was not approved. You can request other available devices."}
+                  </p>
                 </CardContent>
               </Card>
             )}
