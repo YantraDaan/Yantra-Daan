@@ -36,11 +36,10 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How <span className="gradient-text">Yantra Daan</span> Works
+             Make <span className="gradient-text">  Digital Access </span> For Students
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our platform makes it simple to donate and receive technology items, 
-              creating meaningful connections in your community.
+              Thousands of students are forced to pause their education just because they can’t afford a device. Donate today. Turn your e-waste into empowerment. 
             </p>
           </div>
 
@@ -114,6 +113,26 @@ const Home = () => {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              How <span className="gradient-text">Yantra Daan</span> Works
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Our platform makes it simple to donate and receive technology items, 
+              creating meaningful connections in your community.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+           
+            
+          </div>
+        </div>
+      </section>
+
       {/* Featured Donations */}
       <section className="py-20 bg-hero-bg">
         <div className="container mx-auto px-4">
@@ -147,6 +166,85 @@ const Home = () => {
               variant="full"
             />
           )}
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              <span className="gradient-text">  Give Away Your </span>  Old Device
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+             This is always wonderful to see people smile, whether they are giving away the device or receiving it. Let’s hear from them only.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Donate */}
+            <Card className="text-center group hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Gift className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-semibold">1. Donate Device</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-6">
+                 If you have a device lying around your house and wish to give it a purpose, consider donating it. Consider donating it.
+                </p>
+                <Link to="/donate">
+                  <Button variant="outline" className="group">
+                    Start Donating
+                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Connect */}
+            <Card className="text-center group hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-16 h-16 bg-gradient-to-br from-accent to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-semibold">2. Request Device</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-6">
+                  If you are a student, youth or a young changemaker who need a device feel free to request a device through our portal.
+                </p>
+                <Link to="/requests">
+                  <Button variant="outline" className="group">
+                    Find Items
+                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Impact */}
+            <Card className="text-center group hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-16 h-16 bg-gradient-to-br from-secondary to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Heart className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-semibold">3. Nominate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-6">
+                  If you know a student or youth who needs a device, you can nominate them to receive one through our platform.
+                </p>
+                <Link to="/login">
+                  <Button variant="outline" className="group">
+                    Nominate
+                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
