@@ -57,8 +57,6 @@ const AdminPage = () => {
   
   const [recentDonations, setRecentDonations] = useState([]);
   const [pendingDevices, setPendingDevices] = useState([]);
-  const [donationsSearchTerm, setDonationsSearchTerm] = useState('');
-  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("overview");
   
@@ -98,30 +96,7 @@ const AdminPage = () => {
     return () => clearTimeout(authCheckTimer);
   }, [user, navigate, isLoading, toast]);
 
-  // Auto-refresh filtered data when search terms change
-  useEffect(() => {
-    if (user && user.userRole === 'admin') {
-      const debounceTimer = setTimeout(() => {
-        if (donationsSearchTerm) {
-          fetchFilteredData('donations', donationsSearchTerm);
-        }
-      }, 500);
-
-      return () => clearTimeout(debounceTimer);
-    }
-  }, [donationsSearchTerm, user]);
-
-  useEffect(() => {
-    if (user && user.userRole === 'admin') {
-      const debounceTimer = setTimeout(() => {
-        if (pendingSearchTerm) {
-          fetchFilteredData('pending', pendingSearchTerm);
-        }
-      }, 500);
-
-      return () => clearTimeout(debounceTimer);
-    }
-  }, [pendingSearchTerm, user]);
+  // No search functionality needed - data loads directly
 
   const fetchDashboardData = async () => {
     try {
@@ -197,53 +172,11 @@ const AdminPage = () => {
     }
   };
 
-  // Function to fetch filtered data based on search terms
-  const fetchFilteredData = async (type: 'donations' | 'pending', searchTerm: string) => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const status = type === 'donations' ? 'approved' : 'pending';
-      
-      const response = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=${status}&search=${encodeURIComponent(searchTerm)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (type === 'donations') {
-          setRecentDonations(data.devices || []);
-        } else {
-          setPendingDevices(data.devices || []);
-        }
-      } else {
-        console.error(`Failed to fetch filtered ${type}:`, response.status);
-        if (type === 'donations') {
-          setRecentDonations([]);
-        } else {
-          setPendingDevices([]);
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching filtered ${type}:`, error);
-      if (type === 'donations') {
-        setRecentDonations([]);
-      } else {
-        setPendingDevices([]);
-      }
-    }
-  };
+
 
   // Function to refresh all data
   const refreshAllData = async () => {
     await fetchDashboardData();
-    // Also refresh filtered data if search terms exist
-    if (donationsSearchTerm) {
-      fetchFilteredData('donations', donationsSearchTerm);
-    }
-    if (pendingSearchTerm) {
-      fetchFilteredData('pending', pendingSearchTerm);
-    }
   };
 
   const handleTabChange = (value: string) => {
@@ -521,17 +454,6 @@ const AdminPage = () => {
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      {/* Search Input */}
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          placeholder="Search donations..."
-                          value={donationsSearchTerm}
-                          onChange={(e) => setDonationsSearchTerm(e.target.value)}
-                          className="pl-10 bg-white/80 border-green-200 focus:border-green-400"
-                        />
-                      </div>
-                      
                       {/* Donations List */}
                       {recentDonations.length === 0 ? (
                         <NoDataFound
@@ -582,17 +504,6 @@ const AdminPage = () => {
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      {/* Search Input */}
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          placeholder="Search pending devices..."
-                          value={pendingSearchTerm}
-                          onChange={(e) => setPendingSearchTerm(e.target.value)}
-                          className="pl-10 bg-white/80 border-orange-200 focus:border-orange-400"
-                        />
-                      </div>
-                      
                       {/* Pending Devices List */}
                       {pendingDevices.length === 0 ? (
                         <NoDataFound
