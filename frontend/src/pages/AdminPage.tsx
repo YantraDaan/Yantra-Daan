@@ -55,7 +55,10 @@ const AdminPage = () => {
     rejectedDevices: 0,
   });
   
-  const [recentUsers, setRecentUsers] = useState([]);
+  const [recentDonations, setRecentDonations] = useState([]);
+  const [pendingDevices, setPendingDevices] = useState([]);
+  const [donationsSearchTerm, setDonationsSearchTerm] = useState('');
+  const [pendingSearchTerm, setPendingSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("overview");
   
@@ -99,22 +102,26 @@ const AdminPage = () => {
   useEffect(() => {
     if (user && user.userRole === 'admin') {
       const debounceTimer = setTimeout(() => {
-        // No search terms to filter, so no specific data fetching here
+        if (donationsSearchTerm) {
+          fetchFilteredData('donations', donationsSearchTerm);
+        }
       }, 500);
 
       return () => clearTimeout(debounceTimer);
     }
-  }, [user]);
+  }, [donationsSearchTerm, user]);
 
   useEffect(() => {
     if (user && user.userRole === 'admin') {
       const debounceTimer = setTimeout(() => {
-        // No search terms to filter, so no specific data fetching here
+        if (pendingSearchTerm) {
+          fetchFilteredData('pending', pendingSearchTerm);
+        }
       }, 500);
 
       return () => clearTimeout(debounceTimer);
     }
-  }, [user]);
+  }, [pendingSearchTerm, user]);
 
   const fetchDashboardData = async () => {
     try {
@@ -148,19 +155,34 @@ const AdminPage = () => {
         });
       }
       
-      // Fetch recent users (registered users)
-      const usersResponse = await fetch(`${config.apiUrl}/api/admin/users?page=1&limit=5`, {
+      // Fetch recent device donations
+      const donationsResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=approved`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
       
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setRecentUsers(usersData.users || []);
+      if (donationsResponse.ok) {
+        const donationsData = await donationsResponse.json();
+        setRecentDonations(donationsData.devices || []);
       } else {
-        console.error('Failed to fetch recent users:', usersResponse.status);
-        setRecentUsers([]);
+        console.error('Failed to fetch recent donations:', donationsResponse.status);
+        setRecentDonations([]);
+      }
+
+      // Fetch pending device approvals
+      const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (pendingResponse.ok) {
+        const pendingData = await pendingResponse.json();
+        setPendingDevices(pendingData.devices || []);
+      } else {
+        console.error('Failed to fetch pending devices:', pendingResponse.status);
+        setPendingDevices([]);
       }
       
     } catch (error) {
@@ -190,24 +212,24 @@ const AdminPage = () => {
       if (response.ok) {
         const data = await response.json();
         if (type === 'donations') {
-          // setRecentDonations(data.devices || []); // This state was removed
+          setRecentDonations(data.devices || []);
         } else {
-          // setPendingDevices(data.devices || []); // This state was removed
+          setPendingDevices(data.devices || []);
         }
       } else {
         console.error(`Failed to fetch filtered ${type}:`, response.status);
         if (type === 'donations') {
-          // setRecentDonations([]); // This state was removed
+          setRecentDonations([]);
         } else {
-          // setPendingDevices([]); // This state was removed
+          setPendingDevices([]);
         }
       }
     } catch (error) {
       console.error(`Error fetching filtered ${type}:`, error);
       if (type === 'donations') {
-        // setRecentDonations([]); // This state was removed
+        setRecentDonations([]);
       } else {
-        // setPendingDevices([]); // This state was removed
+        setPendingDevices([]);
       }
     }
   };
@@ -216,7 +238,12 @@ const AdminPage = () => {
   const refreshAllData = async () => {
     await fetchDashboardData();
     // Also refresh filtered data if search terms exist
-    // No search terms to refresh, so this is empty
+    if (donationsSearchTerm) {
+      fetchFilteredData('donations', donationsSearchTerm);
+    }
+    if (pendingSearchTerm) {
+      fetchFilteredData('pending', pendingSearchTerm);
+    }
   };
 
   const handleTabChange = (value: string) => {
@@ -482,42 +509,57 @@ const AdminPage = () => {
                 </Card>
               </div>
 
-              {/* Direct Data Display */}
+                            {/* Direct Data Display */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Users Card */}
+                {/* Recent Device Donations Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white">Recent Users</CardTitle>
+                  <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
+                      Recent Device Donations
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      {recentUsers.length === 0 ? (
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search donations..."
+                          value={donationsSearchTerm}
+                          onChange={(e) => setDonationsSearchTerm(e.target.value)}
+                          className="pl-10 bg-white/80 border-green-200 focus:border-green-400"
+                        />
+                      </div>
+                      
+                      {/* Donations List */}
+                      {recentDonations.length === 0 ? (
                         <NoDataFound
-                          title="No recent users"
-                          description="No new users have registered recently"
-                          imageType="users"
+                          title="No recent donations"
+                          description="No device donations found"
+                          imageType="devices"
                           variant="compact"
                         />
                       ) : (
-                        recentUsers.slice(0, 5).map((user: any) => (
-                          <div key={user._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors">
+                        recentDonations.slice(0, 5).map((donation: any) => (
+                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                                <Users className="w-5 h-5 text-white" />
+                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                                <Gift className="w-5 h-5 text-white" />
                               </div>
                               <div>
-                                <p className="font-medium text-sm text-gray-900">{user.name || 'Anonymous'}</p>
-                                <p className="text-xs text-gray-500">{user.userRole || 'User'}</p>
+                                <p className="font-medium text-sm text-gray-900">{donation.title || 'Untitled Device'}</p>
+                                <p className="text-xs text-gray-500">{donation.deviceType || 'Unknown Type'}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                {user.userRole || 'User'}
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                {donation.condition || 'Unknown'}
                               </Badge>
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => showDonorInfo(user)}
+                                onClick={() => showDeviceDetails(donation)}
                                 className="h-8 px-2"
                               >
                                 <Eye className="w-3 h-3" />
@@ -530,44 +572,63 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Platform Activity Card */}
+                {/* Pending Device Approvals Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white">Platform Activity</CardTitle>
+                  <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Pending Device Approvals
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                          <div className="text-2xl font-bold text-purple-600">{dashboardStats.totalUsers}</div>
-                          <p className="text-sm text-purple-600">Total Users</p>
-                        </div>
-                        <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                          <div className="text-2xl font-bold text-purple-600">{dashboardStats.totalDevices}</div>
-                          <p className="text-sm text-purple-600">Total Devices</p>
-                        </div>
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search pending devices..."
+                          value={pendingSearchTerm}
+                          onChange={(e) => setPendingSearchTerm(e.target.value)}
+                          className="pl-10 bg-white/80 border-orange-200 focus:border-orange-400"
+                        />
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                          <div className="text-2xl font-bold text-purple-600">{dashboardStats.totalRequests}</div>
-                          <p className="text-sm text-purple-600">Total Requests</p>
-                        </div>
-                        <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                          <div className="text-2xl font-bold text-purple-600">{dashboardStats.pendingDevices}</div>
-                          <p className="text-sm text-purple-600">Pending Approvals</p>
-                        </div>
-                      </div>
-
-                      <div className="text-center">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setSelectedTab("dashboard")}
-                          className="bg-purple-600 hover:bg-purple-700 text-white"
-                        >
-                          View All Activity
-                        </Button>
-                      </div>
+                      {/* Pending Devices List */}
+                      {pendingDevices.length === 0 ? (
+                        <NoDataFound
+                          title="No pending approvals"
+                          description="No devices awaiting approval"
+                          imageType="devices"
+                          variant="compact"
+                        />
+                      ) : (
+                        pendingDevices.slice(0, 5).map((device: any) => (
+                          <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                                <Smartphone className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-gray-900">{device.title || 'Untitled Device'}</p>
+                                <p className="text-xs text-gray-500">{device.deviceType || 'Unknown Type'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                {device.condition || 'Unknown'}
+                              </Badge>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showDeviceDetails(device)}
+                                className="h-8 px-2"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
