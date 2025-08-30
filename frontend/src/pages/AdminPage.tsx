@@ -38,7 +38,9 @@ import {
   GraduationCap,
   User,
   Search,
-  Download
+  Download,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -446,6 +448,46 @@ const AdminPage = () => {
     setIsDeviceDetailsOpen(true);
   };
 
+  const handleEditDevice = (device) => {
+    // Handle device editing
+    toast({
+      title: "Edit Device",
+      description: `Editing device: ${device.title}`,
+      variant: "default",
+    });
+    // TODO: Implement edit functionality
+  };
+
+  const handleApproveDevice = (device) => {
+    // Handle device approval
+    toast({
+      title: "Device Approved",
+      description: `Device "${device.title}" has been approved`,
+      variant: "default",
+    });
+    // TODO: Implement approval functionality
+  };
+
+  const handleRejectDevice = (device) => {
+    // Handle device rejection
+    toast({
+      title: "Device Rejected",
+      description: `Device "${device.title}" has been rejected`,
+      variant: "default",
+    });
+    // TODO: Implement rejection functionality
+  };
+
+  const handleDeleteDevice = (device) => {
+    // Handle device deletion
+    toast({
+      title: "Device Deleted",
+      description: `Device "${device.title}" has been deleted`,
+      variant: "destructive",
+    });
+    // TODO: Implement deletion functionality
+  };
+
   if (!user || user.userRole !== 'admin') {
     return null;
   }
@@ -797,20 +839,6 @@ const AdminPage = () => {
           {/* Devices Tab */}
           {selectedTab === "devices" && (
             <div className="space-y-6">
-              {/* Device Management Card */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Smartphone className="w-5 h-5" />
-                    Device Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-muted-foreground mb-6">Manage all device donations and approvals</p>
-                  <DeviceManagement />
-                </CardContent>
-              </Card>
-
               {/* Device Details Grid */}
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
@@ -841,16 +869,49 @@ const AdminPage = () => {
                                 <p className="text-xs text-gray-600">Owner: {device.ownerInfo.name || 'Anonymous'}</p>
                               )}
                             </div>
-                            <div className="mt-3 flex justify-end">
+                            <div className="mt-3 flex justify-between items-center">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => showDeviceDetails(device)}
-                                className="h-8 px-3 text-xs"
+                                className="h-8 px-2 text-xs"
                               >
-                                <Eye className="w-3 h-3 mr-1" />
-                                View
+                                <Eye className="w-3 h-3" />
                               </Button>
+                              <div className="flex gap-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditDevice(device)}
+                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleApproveDevice(device)}
+                                  className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100"
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleRejectDevice(device)}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100"
+                                >
+                                  <XCircle className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteDevice(device)}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
