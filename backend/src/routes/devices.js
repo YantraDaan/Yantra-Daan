@@ -4,7 +4,7 @@ const DeviceRequestModel = require('../models/DeviceRequest');
 const UserModel = require('../models/UserModels');
 const { auth, requireRole } = require('../middleware/auth');
 const { validateDevicePost } = require('../middleware/validation');
-// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
+const emailService = require('../utils/emailService'); // EMAIL SERVICE ENABLED
 
 const router = Router();
 
@@ -23,19 +23,16 @@ router.post('/', auth, validateDevicePost, async (req, res) => {
     // Populate owner info for email
     await device.populate('ownerInfo');
 
-    // EMAIL NOTIFICATIONS DISABLED - Admin notification commented out
-    /*
     // Send notification to all admin users
     const adminUsers = await UserModel.find({ userRole: 'admin' });
     
     for (const admin of adminUsers) {
       await emailService.sendEmail({
         to: admin.email,
-        subject: '🆕 New Device Post Requires Approval - YantraDaan',
+        subject: '🆕 New Device Post Requires Approval - Yantra Daan',
         html: emailService.emailTemplates.newDevicePost(device.toObject(), req.user.toObject())
       });
     }
-    */
 
     res.status(201).json({
       message: 'Device post submitted successfully and is pending admin approval',
@@ -247,20 +244,18 @@ router.put('/:id/status', auth, requireRole(['admin']), async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // EMAIL NOTIFICATIONS DISABLED - Device status notifications commented out
-    /*
     // Send email notification to device owner
     try {
       if (status === 'approved') {
         await emailService.sendEmail({
           to: device.ownerInfo.email,
-          subject: '✅ Device Post Approved - YantraDaan',
+          subject: '✅ Device Post Approved - Yantra Daan',
           html: emailService.emailTemplates.devicePostApproved(device.toObject())
         });
       } else if (status === 'rejected') {
         await emailService.sendEmail({
           to: device.ownerInfo.email,
-          subject: '❌ Device Post Rejected - YantraDaan',
+          subject: '❌ Device Post Rejected - Yantra Daan',
           html: emailService.emailTemplates.devicePostRejected(device.toObject(), rejectionReason)
         });
       }
@@ -268,7 +263,6 @@ router.put('/:id/status', auth, requireRole(['admin']), async (req, res) => {
       console.error('Email notification error:', emailError);
       // Continue even if email fails
     }
-    */
 
     res.json({
       message: `Device ${status} successfully`,

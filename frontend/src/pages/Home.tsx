@@ -8,23 +8,71 @@ import { Gift, Users, Heart, ArrowRight, MapPin, Laptop, Smartphone, Tablet } fr
 import { Link } from "react-router-dom";
 import NoDataFound from "@/components/NoDataFound";
 import { config } from "@/config/env";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
   const [approvedDevices, setApprovedDevices] = useState<any[]>([]);
+  const [deviceRequestStates, setDeviceRequestStates] = useState<{[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}}>({});
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchRecentDevices = async () => {
       try {
         const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved?page=1&limit=6`);
-        if (!response.ok) throw new Error('Failed to load featured donations');
-        const data = await response.json();
-        setApprovedDevices(data.devices || []);
+        if (response.ok) {
+          const data = await response.json();
+          setApprovedDevices(data.devices || []);
+          
+          // Check request eligibility for each device if user is logged in
+          if (user) {
+            checkDeviceRequestEligibility(data.devices || []);
+          }
+        } else {
+          throw new Error('Failed to load featured donations');
+        }
       } catch (e) {
         setApprovedDevices([]);
       }
     };
     fetchRecentDevices();
-  }, []);
+  }, [user]);
+
+  const checkDeviceRequestEligibility = async (devices: any[]) => {
+    if (!user) return;
+    
+    const requestStates: {[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}} = {};
+    
+    for (const device of devices) {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${config.apiUrl}/api/requests/can-request/${device._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          requestStates[device._id] = {
+            canRequest: data.canRequest,
+            reason: data.reason || '',
+            activeRequestCount: data.activeRequestCount || 0
+          };
+        }
+      } catch (error) {
+        console.error('Error checking request eligibility:', error);
+        requestStates[device._id] = {
+          canRequest: false,
+          reason: 'Error checking eligibility',
+          activeRequestCount: 0
+        };
+      }
+    }
+    
+    setDeviceRequestStates(requestStates);
+  };
 
   return (
     <div className="min-h-screen">
@@ -36,7 +84,7 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How <span className="gradient-text">YantraDaan</span> Works
+              How <span className="gradient-text">Yantra Daan</span> Works
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Our platform makes it simple to donate and receive technology items, 

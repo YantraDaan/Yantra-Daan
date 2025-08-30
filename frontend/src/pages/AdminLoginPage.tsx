@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Mail, Lock, UserPlus } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
+
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ const AdminLoginPage = () => {
     password: "",
     contact: ""
   });
-  const { login, isLoading } = useAuth();
+  const { adminLogin, isLoading, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -27,22 +28,46 @@ const AdminLoginPage = () => {
     e.preventDefault();
     
     try {
-      // Attempt admin login with proper role validation
-      const result = await login(email, password, "admin");
+      console.log('Attempting admin login with:', { email, password: password ? '***' : 'empty' });
+      
+      // Attempt admin login using the adminLogin function
+      const result = await adminLogin(email, password);
+      console.log('Login result:', result);
+      console.log('Result user:', result.user);
+      console.log('Result user role:', result.user?.userRole);
+      
       if (result.success) {
-        toast({
-          title: "Admin Login Successful!",
-          description: "Welcome to the admin panel.",
-        });
-        navigate("/admin");
+        // Check admin role from the login response
+        // The adminLogin function returns the user in result.user
+        if (result.user && result.user.userRole === 'admin') {
+          toast({
+            title: "Admin Login Successful!",
+            description: "Welcome to the admin panel.",
+          });
+          
+          // Add a small delay to ensure user state is properly set
+          navigate("/admin");
+          
+        } else {
+          console.log('Admin role validation failed:', { user: result.user, userRole: result.user?.userRole });
+          toast({
+            title: "Access Denied",
+            description: "You don't have admin privileges. Please contact an administrator.",
+            variant: "destructive",
+          });
+          // Logout the user since they don't have admin access
+          logout();
+        }
       } else {
+        console.log('Login failed');
         toast({
           title: "Login failed",
-          description: result.error || "Invalid admin credentials. Please check your email and password.",
+          description: "Invalid admin credentials. Please check your email and password.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
         description: "An unexpected error occurred. Please try again.",
@@ -124,63 +149,68 @@ const AdminLoginPage = () => {
         </div>
 
         {/* Admin Login Form */}
-        <Card className="glass-card border-destructive/20">
+        <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-destructive">Admin Access</CardTitle>
+            <CardTitle className="flex items-center justify-center gap-2">
+              <Shield className="w-6 h-6" />
+              Admin Login
+            </CardTitle>
             <CardDescription>
-              Restricted access for administrators only
+              Access the admin panel to manage users, devices, and requests
             </CardDescription>
           </CardHeader>
-
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Login Form */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Admin Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="admin@yantradaan.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required 
-                    />
-                  </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required 
-                    />
-                  </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-destructive hover:bg-destructive/90" disabled={isLoading}>
-                {isLoading ? "Authenticating..." : "Admin Sign In"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Login to Admin Panel"}
               </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                <Link
-                  to="/"
-                  className="font-medium text-primary hover:underline"
-                >
-                  ← Back to Home
-                </Link>
-              </p>
             </form>
+
+            {/* Help Section */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">Need Help?</h4>
+              <p className="text-sm text-blue-700 mb-2">
+                If you're getting "Invalid email or password" errors:
+              </p>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Ensure the backend server is running</li>
+                <li>• Check if you have admin privileges</li>
+                <li>• Contact the system administrator</li>
+                <li>• Use the "Create Admin User" option below</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 

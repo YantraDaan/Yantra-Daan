@@ -114,6 +114,15 @@ const AboutPage = () => {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Community</h3>
                 <p className="text-gray-600">
+                  We use creative tech solutions for real-world impact.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Innovation</h3>
+                <p className="text-gray-600">
                   Building connections between donors and recipients to create lasting impact.
                 </p>
               </div>
@@ -128,6 +137,24 @@ const AboutPage = () => {
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Globe className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Sustainability</h3>
+                <p className="text-gray-600">
+                  We protect the planet through mindful tech reuse.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Award className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Transparency</h3>
+                <p className="text-gray-600">
+                  We operate with honesty and build trust through action.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4">
                   <Award className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Excellence</h3>
@@ -137,64 +164,7 @@ const AboutPage = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* Team Section */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Meet Our Team</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Our dedicated team works tirelessly to ensure every donation reaches the right student.
-          </p>
-        </div>
-
-        {/* Team Members Grid */}
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-gray-600">Loading team members...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <div className="text-center">
-              <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to load team</h3>
-              <p className="text-gray-500">{error}</p>
-              <button 
-                onClick={fetchTeamMembers}
-                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        ) : teamMembers.length === 0 ? (
-          <NoDataFound
-            title="No team members found"
-            description="Our team information is being updated."
-            imageType="users"
-            variant="full"
-          />
-        ) : (
-          <div className="grid md:grid-cols-3 gap-8">
-            {teamMembers
-              .filter(member => member.status === 'active')
-              .map((member, index) => (
-                <Card key={member._id || index} className="donation-card hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6 text-center">
-                    <div className={`w-20 h-20 bg-gradient-to-r ${getRoleColor(member.role)} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                      <User className="w-10 h-10 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">{member.name}</h3>
-                    <p className="text-primary font-medium mb-3">{member.role}</p>
-                    <p className="text-gray-600 text-sm">{member.bio}</p>
-                  </CardContent>
-                </Card>
-              ))}
-          </div>
-        )}
-        
+        </Card>        
         {/* Gallery Section */}
         <Gallery />
       </div>

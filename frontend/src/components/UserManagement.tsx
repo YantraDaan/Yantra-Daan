@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { 
   Search, 
   Users, 
@@ -98,12 +99,23 @@ const UserManagement = () => {
     address: ""
   });
 
-  const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
 
+  // Check if user is admin
   useEffect(() => {
+    if (!currentUser || currentUser.userRole !== 'admin') {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have permission to access this page.',
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
+    }
     fetchUsers();
-  }, [currentPage]);
+  }, [currentPage, roleFilter, categoryFilter, statusFilter, currentUser]);
 
   useEffect(() => {
     filterUsers();
@@ -282,7 +294,7 @@ const UserManagement = () => {
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -317,7 +329,7 @@ const UserManagement = () => {
       const token = localStorage.getItem('authToken');
       
       // Fetch user's devices
-      const devicesResponse = await fetch(`http://localhost:5000/api/devices/user/${user._id}`, {
+      const devicesResponse = await fetch(`${config.apiUrl}${config.endpoints.devices}/user/${user._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -329,7 +341,7 @@ const UserManagement = () => {
       }
       
       // Fetch user's requests
-      const requestsResponse = await fetch(`http://localhost:5000/api/device-requests/user/${user._id}`, {
+      const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/user/${user._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -587,28 +599,24 @@ const UserManagement = () => {
                     <Pencil className="w-4 h-4" />
                   </Button>
 
-                  {user._id !== currentUser?.id && (
+                  {user._id !== currentUser?._id && (
                     <Button
                       onClick={() => toggleUserStatus(user._id, user.isActive !== false)}
-                      variant="outline"
-                      className={user.isActive !== false ? "text-red-600 hover:text-red-700 hover:bg-red-50" : "text-green-600 hover:text-green-700 hover:bg-green-50"}
+                      variant={user.isActive !== false ? "destructive" : "default"}
+                      size="sm"
                     >
-                      {user.isActive !== false ? (
-                        <ToggleRight className="w-4 h-4" />
-                      ) : (
-                        <ToggleLeft className="w-4 h-4" />
-                      )}
+                      {user.isActive !== false ? "Deactivate" : "Activate"}
                     </Button>
                   )}
                   
-                  {user._id !== currentUser?.id && (
+                  {user._id !== currentUser?._id && (
                     <Button
                       onClick={() => {
                         setSelectedUser(user);
                         setShowDeleteDialog(true);
                       }}
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      variant="destructive"
+                      size="sm"
                     >
                       <Trash className="w-4 h-4" />
                     </Button>

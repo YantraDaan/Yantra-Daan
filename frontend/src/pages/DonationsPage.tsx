@@ -5,26 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import NoDataFound from "@/components/NoDataFound";
 import { config } from "@/config/env";
 
 const DonationsPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [donations, setDonations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+
   useEffect(() => {
     const fetchDonations = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${config.apiUrl}${config.endpoints.donations}/approved`);
+        console.log('Fetching approved devices from:', `${config.apiUrl}${config.endpoints.devices}/approved`);
+        
+        const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved`);
         
         if (response.ok) {
           const data = await response.json();
+          console.log('Devices data received:', data);
           setDonations(data.devices || []);
+          
+
         } else {
           throw new Error('Failed to fetch donations');
         }
@@ -40,7 +48,7 @@ const DonationsPage = () => {
       }
     };
     fetchDonations();
-  }, []);
+  }, [user]);
 
   const filteredDonations = donations.filter((item: any) => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,12 +59,88 @@ const DonationsPage = () => {
     return matchesSearch && matchesCategory && matchesCondition;
   });
 
-  const handleRequest = (itemId: string) => {
-    // Note: This would integrate with authentication and database
-    toast({
-      title: "Request Submitted!",
-      description: "The donor will be notified of your request. Please check your email for updates.",
-    });
+  const checkDeviceRequestEligibility = async (devices: any[]) => {
+    if (!user) return;
+    
+    const requestStates: {[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}} = {};
+    
+    for (const device of devices) {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${config.apiUrl}/api/requests/can-request/${device._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          requestStates[device._id] = {
+            canRequest: data.canRequest,
+            reason: data.reason || '',
+            activeRequestCount: data.activeRequestCount || 0
+          };
+        }
+      } catch (error) {
+        console.error('Error checking request eligibility:', error);
+        requestStates[device._id] = {
+          canRequest: false,
+          reason: 'Error checking eligibility',
+          activeRequestCount: 0
+        };
+      }
+    }
+    
+    setDeviceRequestStates(requestStates);
+  };
+
+  const handleRequest = async (itemId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to request devices",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}/api/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          deviceId: itemId,
+          message: `I would like to request this ${donations.find((d: any) => d._id === itemId)?.deviceType || 'device'} as I need it for my studies/work.`
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Request Submitted",
+          description: "Your device request has been submitted successfully!",
+        });
+        
+        // Refresh request eligibility for all devices
+        checkDeviceRequestEligibility(donations);
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Request Failed",
+          description: errorData.error || "Failed to submit request",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit request. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -139,9 +223,8 @@ const DonationsPage = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredDonations.map((item) => (
               <DonationCard 
-                key={item.id} 
+                key={item._id} 
                 item={item}
-                onRequest={handleRequest}
               />
             ))}
           </div>
@@ -153,14 +236,6 @@ const DonationsPage = () => {
             variant="full"
           />
         )}
-
-        {/* Note about Supabase */}
-        <div className="mt-16 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-6 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Want to request an item?</h3>
-          <p className="text-gray-600 mb-4">
-            To submit donation requests and connect with donors, you'll need to integrate with Supabase for authentication and database functionality.
-          </p>
-        </div>
       </div>
     </div>
   );

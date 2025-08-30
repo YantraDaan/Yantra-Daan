@@ -35,7 +35,8 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, userRole: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  login: (email: string, password: string, userRole?: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
+  adminLogin: (email: string, password: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   isLoading: boolean;
@@ -58,27 +59,82 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
-    const storedUser = localStorage.getItem('authUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Check for stored auth on mount and validate token
+    const validateStoredAuth = async () => {
+      const storedUser = localStorage.getItem('authUser');
+      const storedToken = localStorage.getItem('authToken');
+      
+      if (storedUser && storedToken) {
+        try {
+          // Validate token with backend
+          const response = await fetch(`${config.apiUrl}/api/auth/validate`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${storedToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.valid) {
+              // Token is valid, set user
+              setUser(JSON.parse(storedUser));
+            } else {
+              // Token is invalid, clear storage
+              localStorage.removeItem('authUser');
+              localStorage.removeItem('authToken');
+              setUser(null);
+            }
+          } else if (response.status === 404) {
+            // Endpoint not found - backend might not be running
+            console.warn('Token validation endpoint not found. Backend might not be running.');
+            // Clear storage to be safe when backend is not available
+            localStorage.removeItem('authUser');
+            localStorage.removeItem('authToken');
+            setUser(null);
+          } else {
+            // Validation failed, clear storage
+            localStorage.removeItem('authUser');
+            localStorage.removeItem('authToken');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error validating stored token:', error);
+          // On network error, clear storage to be safe
+          localStorage.removeItem('authUser');
+          localStorage.removeItem('authToken');
+          setUser(null);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    validateStoredAuth();
   }, []);
 
-  const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; error?: string; message?: string }> => {
+  const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; user?: any; error?: string; message?: string }> => {
     try {
+      console.log('AuthContext: Login attempt with:', { email, userRole, passwordLength: password?.length });
       setIsLoading(true);
+      
+      const requestBody = { email, password, userRole };
+      console.log('AuthContext: Request body:', requestBody);
+      
       const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, userRole }),
+        body: JSON.stringify(requestBody),
       });
+      
+      console.log('AuthContext: Response status:', response.status);
+      console.log('AuthContext: Response headers:', response.headers);
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('AuthContext: Error response:', errorData);
         setIsLoading(false);
         return { 
           success: false, 
@@ -88,9 +144,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       const data = await response.json();
-      const apiUser = data.user;
-      console.log("apiUser",apiUser);
+      console.log('AuthContext: Success response:', data);
       
+      const apiUser = data.user;
       const token = data.token as string;
       
       // Map backend user data to frontend User interface
@@ -113,13 +169,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         document: apiUser.document,
         profilePhoto: apiUser.profilePhoto
       };
+      
+      console.log('AuthContext: Mapped user:', mappedUser);
+      
       setUser(mappedUser);
       localStorage.setItem('authUser', JSON.stringify(mappedUser));
       localStorage.setItem('authToken', token);
       setIsLoading(false);
-      return { success: true };
+      return { success: true, user: mappedUser };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('AuthContext: Login error:', error);
+      setIsLoading(false);
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
+  const adminLogin = async (email: string, password: string): Promise<{ success: boolean; user?: any; error?: string; message?: string }> => {
+    try {
+      console.log('AuthContext: Admin login attempt with:', { email, passwordLength: password?.length });
+      setIsLoading(true);
+      
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/admin-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log('AuthContext: Admin login error response:', errorData);
+        setIsLoading(false);
+        return { 
+          success: false, 
+          error: errorData.error || 'Admin login failed',
+          message: errorData.message
+        };
+      }
+      
+      const data = await response.json();
+      console.log('AuthContext: Admin login success response:', data);
+      
+      const apiUser = data.user;
+      const token = data.token as string;
+      
+      // Map backend user data to frontend User interface
+      const mappedUser: User = {
+        id: apiUser.id || apiUser._id,
+        name: apiUser.name,
+        email: apiUser.email,
+        profileImage: undefined,
+        contact: apiUser.contact || apiUser.phone,
+        userRole: apiUser.userRole,
+        categoryType: apiUser.categoryType,
+        isOrganization: apiUser.isOrganization,
+        about: apiUser.about,
+        profession: apiUser.profession,
+        linkedIn: apiUser.linkedIn,
+        instagram: apiUser.instagram,
+        facebook: apiUser.facebook,
+        address: apiUser.address,
+        emailUpdates: apiUser.emailUpdates,
+        document: apiUser.document,
+        profilePhoto: apiUser.profilePhoto
+      };
+      
+      console.log('AuthContext: Mapped admin user:', mappedUser);
+      
+      setUser(mappedUser);
+      localStorage.setItem('authUser', JSON.stringify(mappedUser));
+      localStorage.setItem('authToken', token);
+      setIsLoading(false);
+      return { success: true, user: mappedUser };
+    } catch (error) {
+      console.error('AuthContext: Admin login error:', error);
       setIsLoading(false);
       return { success: false, error: (error as Error).message };
     }
@@ -142,6 +266,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     login,
+    adminLogin,
     logout,
     updateUser,
     isLoading

@@ -3,7 +3,7 @@ const DeviceRequestModel = require('../models/DeviceRequest');
 const DeviceModel = require('../models/Device');
 const UserModel = require('../models/UserModels');
 const { auth, requireRole } = require('../middleware/auth');
-// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
+const emailService = require('../utils/emailService'); // EMAIL SERVICE ENABLED
 
 const router = Router();
 
@@ -41,6 +41,20 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    // Check if requester has reached the 3-device limit
+    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
+      const activeRequestCount = await DeviceRequestModel.countDocuments({
+        requesterId: req.user._id,
+        status: { $in: ['pending', 'approved'] }
+      });
+
+      if (activeRequestCount >= 3) {
+        return res.status(400).json({ 
+          error: 'You have reached the maximum limit of 3 active device requests. Please wait for existing requests to be processed before making new ones.' 
+        });
+      }
+    }
+
     // Create the request
     const request = new DeviceRequestModel({
       requesterId: req.user._id,
@@ -53,14 +67,13 @@ router.post('/', auth, async (req, res) => {
     // Populate device and requester info for notifications
     await request.populate('deviceInfo', 'title deviceType condition ownerId');
     await request.populate('requesterInfo', 'name email contact');
+    await request.populate('deviceInfo.ownerInfo', 'name email contact');
 
-    // EMAIL NOTIFICATIONS DISABLED - Device owner notification commented out
-    /*
     // Send notification to device owner
     if (device.ownerInfo && device.ownerInfo.email) {
       await emailService.sendEmail({
         to: device.ownerInfo.email,
-        subject: '📱 New Device Request - YantraDaan',
+        subject: '📱 New Device Request - Yantra Daan',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #059669;">📱 New Device Request</h2>
@@ -92,7 +105,7 @@ router.post('/', auth, async (req, res) => {
     for (const admin of adminUsers) {
       await emailService.sendEmail({
         to: admin.email,
-        subject: '📱 New Device Request Requires Review - YantraDaan',
+        subject: '📱 New Device Request Requires Review - Yantra Daan',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #059669;">📱 New Device Request</h2>
@@ -105,6 +118,14 @@ router.post('/', auth, async (req, res) => {
               <p><strong>Message:</strong> ${message}</p>
             </div>
             
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #166534;">Device Information:</h3>
+              <p><strong>Title:</strong> ${device.title}</p>
+              <p><strong>Type:</strong> ${device.deviceType}</p>
+              <p><strong>Condition:</strong> ${device.condition}</p>
+              <p><strong>Donor:</strong> ${device.ownerInfo?.name || 'Unknown'}</p>
+            </div>
+            
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
               Please review this request in the admin panel.
             </p>
@@ -112,7 +133,6 @@ router.post('/', auth, async (req, res) => {
         `
       });
     }
-    */
 
     res.status(201).json({
       message: 'Device request submitted successfully',
@@ -140,9 +160,9 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
     if (status) filter.status = status;
 
     const requests = await DeviceRequestModel.find(filter)
-      .populate('requesterInfo', 'name email contact')
+      .populate('requesterInfo', 'name email contact profession address')
       .populate('deviceInfo', 'title deviceType condition ownerId')
-      .populate('deviceInfo.ownerInfo', 'name email')
+      .populate('deviceInfo.ownerInfo', 'name email contact profession address')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -234,21 +254,19 @@ router.put('/admin/:id/status', auth, async (req, res) => {
 
     await request.save();
 
-    // EMAIL NOTIFICATIONS DISABLED - Status change notifications commented out
-    /*
     // Send notifications
     if (status === 'approved') {
       // Notify requester
       await emailService.sendEmail({
         to: request.requesterInfo.email,
-        subject: '✅ Device Request Approved - YantraDaan',
+        subject: '✅ Device Request Approved - Yantra Daan',
         html: emailService.emailTemplates.requestApproved(request.toObject())
       });
 
       // Notify device owner
       await emailService.sendEmail({
         to: request.deviceInfo.ownerInfo.email,
-        subject: '📱 Device Request Approved - Contact Requester - YantraDaan',
+        subject: '📱 Device Request Approved - Contact Requester - Yantra Daan',
         html: emailService.emailTemplates.requestApprovedToOwner(request.toObject())
       });
 
@@ -256,11 +274,10 @@ router.put('/admin/:id/status', auth, async (req, res) => {
       // Notify requester of rejection
       await emailService.sendEmail({
         to: request.requesterInfo.email,
-        subject: '❌ Device Request Rejected - YantraDaan',
+        subject: '❌ Device Request Rejected - Yantra Daan',
         html: emailService.emailTemplates.requestRejected(request.toObject())
       });
     }
-    */
 
     res.json({
       message: `Device request ${status} successfully`,
@@ -279,12 +296,84 @@ router.put('/admin/:id/status', auth, async (req, res) => {
   }
 });
 
+// Check if user can request a specific device (for frontend validation)
+router.get('/can-request/:deviceId', auth, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    
+    // Check if device exists and is approved
+    const device = await DeviceModel.findById(deviceId);
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    if (device.status !== 'approved') {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'Device is not available for requests' 
+      });
+    }
+
+    // Check if user already has a request for this device
+    const existingRequest = await DeviceRequestModel.findOne({
+      requesterId: req.user._id,
+      deviceId: deviceId,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (existingRequest) {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'You already have a request for this device',
+        existingRequest: {
+          id: existingRequest._id,
+          status: existingRequest.status,
+          message: existingRequest.message,
+          createdAt: existingRequest.createdAt
+        }
+      });
+    }
+
+    // Check if requester has reached the 3-device limit
+    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
+      const activeRequestCount = await DeviceRequestModel.countDocuments({
+        requesterId: req.user._id,
+        status: { $in: ['pending', 'approved'] }
+      });
+
+      if (activeRequestCount >= 3) {
+        return res.json({ 
+          canRequest: false, 
+          reason: 'You have reached the maximum limit of 3 active device requests' 
+        });
+      }
+    }
+
+    return res.json({ 
+      canRequest: true,
+      activeRequestCount: req.user.userRole === 'requester' || req.user.userRole === 'student' 
+        ? await DeviceRequestModel.countDocuments({
+            requesterId: req.user._id,
+            status: { $in: ['pending', 'approved'] }
+          })
+        : 0
+    });
+
+  } catch (error) {
+    console.error('Check can request error:', error);
+    res.status(500).json({
+      error: 'Failed to check request eligibility',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 // Get user's own requests
 router.get('/my', auth, async (req, res) => {
   try {
     const requests = await DeviceRequestModel.find({ requesterId: req.user._id })
       .populate('deviceInfo', 'title deviceType condition status')
-      .populate('deviceInfo.ownerInfo', 'firstName lastName city state')
+      .populate('deviceInfo.ownerInfo', 'name email contact profession address')
       .sort({ createdAt: -1 });
 
     res.json({ requests });
@@ -367,6 +456,48 @@ router.get('/device/:deviceId', auth, async (req, res) => {
     
   } catch (error) {
     console.error('Get device requests error:', error);
+    res.status(500).json({
+      error: 'Failed to get device requests',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Get public device requesters for a specific device (public endpoint)
+router.get('/public/device/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    
+    // Check if the device exists and is approved
+    const device = await DeviceModel.findById(deviceId);
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+    
+    if (device.status !== 'approved') {
+      return res.status(400).json({ error: 'Device is not available for viewing requests' });
+    }
+    
+    const requests = await DeviceRequestModel.find({ deviceId })
+      .populate('requesterInfo', 'name email contact profession')
+      .select('requesterInfo message status createdAt')
+      .sort({ createdAt: -1 });
+    
+    res.json({ 
+      requests: requests.map(req => ({
+        _id: req._id,
+        name: req.requesterInfo?.name || 'Anonymous',
+        email: req.requesterInfo?.email || '',
+        contact: req.requesterInfo?.contact || '',
+        profession: req.requesterInfo?.profession || '',
+        message: req.message,
+        status: req.status,
+        createdAt: req.createdAt
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Get public device requests error:', error);
     res.status(500).json({
       error: 'Failed to get device requests',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

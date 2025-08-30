@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Search, 
   Filter, 
@@ -91,6 +91,16 @@ const DeviceManagement = () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "No authentication token found. Please login again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: devicesPerPage.toString(),
@@ -98,22 +108,34 @@ const DeviceManagement = () => {
         deviceType: typeFilter !== 'all' ? typeFilter : ''
       });
 
-      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/admin/all?${params}`, {
+      const apiUrl = `${config.apiUrl}${config.endpoints.admin}/devices?${params}`;
+      console.log('Fetching devices from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch devices');
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch devices`);
+      }
       
       const data = await response.json();
+      console.log('Devices data received:', data);
+      
       setDevices(data.devices || []);
       setTotalPages(data.totalPages || 1);
       setTotalDevices(data.total || 0);
     } catch (error) {
+      console.error('Fetch devices error:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch devices",
+        description: error instanceof Error ? error.message : "Failed to fetch devices",
         variant: "destructive"
       });
     } finally {
@@ -129,7 +151,7 @@ const DeviceManagement = () => {
       filtered = filtered.filter(device =>
         device.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         device.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        device.ownerInfo.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (device.ownerInfo?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
 
@@ -149,7 +171,7 @@ const DeviceManagement = () => {
   const updateDeviceStatus = async (deviceId: string, status: string, reason?: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/${deviceId}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.admin}/devices/${deviceId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -322,38 +344,58 @@ const DeviceManagement = () => {
 
       {/* Devices List */}
       <div className="grid gap-4">
-        {filteredDevices.map((device) => (
-          <Card key={device._id} className="hover:shadow-md transition-shadow">
+        {filteredDevices.length === 0 ? (
+          <NoDataFound
+            title="No devices found"
+            description="No devices match your current search criteria. Try adjusting your filters or search terms."
+            actionText="Clear Filters"
+            onAction={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setTypeFilter('all');
+            }}
+          />
+        ) : (
+          filteredDevices.map((device) => {
+            // Safety check for device object
+            if (!device || !device._id) {
+              console.warn('Skipping invalid device:', device);
+              return null;
+            }
+            
+            return (
+              <Card key={device._id} className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex flex-col lg:flex-row justify-between gap-4">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       {getDeviceTypeIcon(device.deviceType)}
-                      <h3 className="font-semibold text-lg">{device.title}</h3>
+                      <h3 className="font-semibold text-lg">{device.title || 'Untitled Device'}</h3>
                     </div>
                     {getStatusBadge(device.status)}
                   </div>
                   
-                  <p className="text-muted-foreground">{device.description}</p>
+                  <p className="text-muted-foreground">{device.description || 'No description available'}</p>
                   
                   <div className="flex flex-wrap gap-2 text-sm">
-                    <Badge variant="outline">{device.deviceType}</Badge>
-                    <Badge variant="outline">{device.condition}</Badge>
+                    <Badge variant="outline">{device.deviceType || 'Unknown Type'}</Badge>
+                    <Badge variant="outline">{device.condition || 'Unknown Condition'}</Badge>
                     <Badge variant="outline">
-                      {new Date(device.createdAt).toLocaleDateString()}
+                      {device.createdAt ? new Date(device.createdAt).toLocaleDateString() : 'No Date'}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">
-                      <strong>Donor:</strong> {device.ownerInfo.name} ({device.ownerInfo.email})
+                      <strong>Donor:</strong> {device.ownerInfo?.name || 'Unknown'} ({device.ownerInfo?.email || 'No email'})
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
-                                              onClick={() => handleShowDonorDetails(device.ownerInfo)}
+                      onClick={() => device.ownerInfo && handleShowDonorDetails(device.ownerInfo)}
                       className="h-8 px-2"
+                      disabled={!device.ownerInfo}
                     >
                       <Eye className="w-3 h-3 mr-1" />
                       Details
@@ -417,22 +459,12 @@ const DeviceManagement = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+            );
+          }).filter(Boolean)
+        )}
       </div>
 
-      {filteredDevices.length === 0 && (
-        <NoDataFound
-          icon={Package}
-          title="No devices found"
-          description="No devices match your current search criteria. Try adjusting your filters or search terms."
-          actionText="Clear Filters"
-          onAction={() => {
-            setSearchTerm('');
-            setStatusFilter('all');
-            setTypeFilter('all');
-          }}
-        />
-      )}
+
 
       {/* Pagination */}
       {totalPages > 1 && (

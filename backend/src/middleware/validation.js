@@ -39,8 +39,8 @@ const validateRegistration = [
   
   body('userRole')
     .optional()
-    .isIn(['donor', 'student', 'admin', 'super_admin'])
-    .withMessage('User role must be one of: donor, student, admin, super_admin'),
+    .isIn(['requester', 'donor', 'admin'])
+    .withMessage('User role must be one of: requester, donor, admin'),
   
   body('contact')
     .optional()
@@ -65,6 +65,20 @@ const validateLogin = [
     .optional()
     .isIn(['requester', 'donor', 'admin'])
     .withMessage('User role must be one of: requester, donor, admin'),
+  
+  handleValidationErrors
+];
+
+// Admin login validation (no userRole required)
+const validateAdminLogin = [
+  body('email')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+  
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
   
   handleValidationErrors
 ];
@@ -189,6 +203,7 @@ module.exports = {
   handleValidationErrors,
   validateRegistration,
   validateLogin,
+  validateAdminLogin,
   validatePasswordReset,
   validateNewPassword,
   validateDevicePost,

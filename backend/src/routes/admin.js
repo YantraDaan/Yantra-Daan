@@ -4,9 +4,89 @@ const DeviceModel = require('../models/Device');
 const DeviceRequestModel = require('../models/DeviceRequest');
 const TeamMemberModel = require('../models/TeamMember');
 const { auth, requireRole } = require('../middleware/auth');
-// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
+const emailService = require('../utils/emailService'); 
+const { teamMemberUpload, deviceUpload } = require('../middleware/imageUpload');
 
 const router = Router();
+
+// Test email functionality (no auth required for testing)
+// router.post('/test-email-public', async (req, res) => {
+//   try {
+//     const { to, subject = 'Test Email from YantraDaan' } = req.body;
+    
+//     if (!to) {
+//       return res.status(400).json({ error: 'Recipient email is required' });
+//     }
+
+//     console.log('Attempting to send test email to:', to);
+//     console.log('Using SMTP credentials:', {
+//       host: process.env.SMTP_HOST || 'smtp.gmail.com',
+//       port: process.env.SMTP_PORT || 587,
+//       user: process.env.SMTP_USER || 'yantradaan@gmail.com'
+//     });
+
+//     const testEmailHtml = emailService.emailTemplates.testEmail();
+    
+//     const result = await emailService.sendEmail({
+//       to: to,
+//       subject: subject,
+//       html: testEmailHtml
+//     });
+
+//     if (result.success) {
+//       res.json({ 
+//         success: true, 
+//         message: 'Test email sent successfully',
+//         messageId: result.messageId 
+//       });
+//     } else {
+//       res.status(500).json({ 
+//         success: false, 
+//         error: 'Failed to send test email',
+//         details: result.error 
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error sending test email:', error);
+//     res.status(500).json({ error: 'Failed to send test email', details: error.message });
+//   }
+// });
+
+// // Test email functionality
+// router.post('/test-email', auth, requireRole(['admin']), async (req, res) => {
+//   try {
+//     const { to, subject = 'Test Email from YantraDaan' } = req.body;
+    
+//     if (!to) {
+//       return res.status(400).json({ error: 'Recipient email is required' });
+//     }
+
+//     const testEmailHtml = emailService.emailTemplates.testEmail();
+    
+//     const result = await emailService.sendEmail({
+//       to: to,
+//       subject: subject,
+//       html: testEmailHtml
+//     });
+
+//     if (result.success) {
+//       res.json({ 
+//         success: true, 
+//         message: 'Test email sent successfully',
+//         messageId: result.messageId 
+//       });
+//     } else {
+//       res.status(500).json({ 
+//         success: false, 
+//         error: 'Failed to send test email',
+//         details: result.error 
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error sending test email:', error);
+//     res.status(500).json({ error: 'Failed to send test email' });
+//   }
+// });
 
 // Get dashboard statistics
 router.get('/stats', auth, requireRole(['admin']), async (req, res) => {
@@ -102,12 +182,12 @@ router.put('/users/:id/role', auth, requireRole(['admin']), async (req, res) => 
     // Send email notification about role change
     await emailService.sendEmail({
       to: user.email,
-      subject: '🔐 Role Updated - YantraDaan',
+      subject: '🔐 Role Updated - Yantra Daan',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #059669;">🔐 Role Updated</h2>
-            <p>Your role on YantraDaan has been updated.</p>
+            <p>Your role on Yantra Daan has been updated.</p>
             
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #166534;">New Role:</h3>
@@ -241,8 +321,8 @@ router.put('/devices/:id/status', auth, requireRole(['admin']), async (req, res)
       await emailService.sendEmail({
         to: device.ownerInfo.email,
         subject: status === 'approved' 
-          ? '✅ Device Post Approved - YantraDaan'
-          : '❌ Device Post Rejected - YantraDaan',
+          ? '✅ Device Post Approved - Yantra Daan'
+          : '❌ Device Post Rejected - Yantra Daan',
         html: emailTemplate
       });
     }
@@ -316,6 +396,7 @@ router.get('/team-members', auth, requireRole(['admin']), async (req, res) => {
     }
 
     const members = await TeamMemberModel.find(query)
+      .select('name email contact role bio status avatar socialLinks createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -338,7 +419,7 @@ router.get('/team-members', auth, requireRole(['admin']), async (req, res) => {
 // Add new team member
 router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
   try {
-    const { name, email, contact, role, bio } = req.body;
+    const { name, email, contact, role, bio, socialLinks, avatar } = req.body;
 
     // Check if team member already exists
     const existingMember = await TeamMemberModel.findOne({ email });
@@ -353,6 +434,8 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
       contact,
       role,
       bio,
+      socialLinks: socialLinks || {},
+      avatar: avatar || null,
       status: 'active'
     });
 
@@ -363,12 +446,12 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
     // Send welcome email
     await emailService.sendEmail({
       to: email,
-      subject: '👋 Welcome to YantraDaan Team!',
+      subject: '👋 Welcome to Yantra Daan Team!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #059669;">👋 Welcome to the Team!</h2>
           <p>Hello ${name},</p>
-          <p>Welcome to the YantraDaan team! You've been added as a <strong>${role}</strong>.</p>
+          <p>Welcome to the Yantra Daan team! You've been added as a <strong>${role}</strong>.</p>
           
           <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #166534;">Your Details:</h3>
@@ -400,7 +483,7 @@ router.post('/team-members', auth, requireRole(['admin']), async (req, res) => {
 router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, contact, role, bio, status } = req.body;
+    const { name, email, contact, role, bio, status, socialLinks, avatar } = req.body;
 
     // Check if email is being changed and if it already exists
     if (email) {
@@ -420,6 +503,8 @@ router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) =
         role,
         bio,
         status,
+        socialLinks: socialLinks || {},
+        avatar: avatar || null,
         updatedAt: new Date()
       },
       { new: true }
@@ -434,12 +519,12 @@ router.put('/team-members/:id', auth, requireRole(['admin']), async (req, res) =
     // Send update notification email
     await emailService.sendEmail({
       to: email,
-      subject: '🔄 Your YantraDaan Team Profile Has Been Updated',
+      subject: '🔄 Your Yantra Daan Team Profile Has Been Updated',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #059669;">🔄 Profile Updated</h2>
           <p>Hello ${name},</p>
-          <p>Your YantraDaan team profile has been updated by an administrator.</p>
+          <p>Your Yantra Daan team profile has been updated by an administrator.</p>
           
           <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #166534;">Updated Details:</h3>
@@ -492,12 +577,12 @@ router.patch('/team-members/:id/status', auth, requireRole(['admin']), async (re
     // Send status update email
     await emailService.sendEmail({
       to: member.email,
-      subject: `📊 Status Updated - YantraDaan`,
+      subject: `📊 Status Updated - Yantra Daan`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #059669;">📊 Status Updated</h2>
           <p>Hello ${member.name},</p>
-          <p>Your status on the YantraDaan team has been updated.</p>
+          <p>Your status on the Yantra Daan team has been updated.</p>
           
           <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #166534;">New Status:</h3>
@@ -546,6 +631,48 @@ router.delete('/team-members/:id', auth, requireRole(['admin']), async (req, res
   } catch (error) {
     console.error('Error deleting team member:', error);
     res.status(500).json({ error: 'Failed to delete team member' });
+  }
+});
+
+// Upload team member image
+router.post('/team-members/upload-image', auth, requireRole(['admin']), teamMemberUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Generate the URL for the uploaded image
+    const imageUrl = `/uploads/team-members/${req.file.filename}`;
+    
+    res.json({
+      message: 'Image uploaded successfully',
+      imageUrl: imageUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
+// Upload device image (for device donations/posts)
+router.post('/devices/upload-image', auth, deviceUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Generate the URL for the uploaded image
+    const imageUrl = `/uploads/devices/${req.file.filename}`;
+    
+    res.json({
+      message: 'Device image uploaded successfully',
+      imageUrl: imageUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Error uploading device image:', error);
+    res.status(500).json({ error: 'Failed to upload device image' });
   }
 });
 

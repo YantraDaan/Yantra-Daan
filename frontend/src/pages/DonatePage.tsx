@@ -20,10 +20,10 @@ const DonatePage = () => {
   const [searchParams] = useSearchParams();
   
   // Read URL parameters
-  const urlId = searchParams.get('id');
-  const urlName = searchParams.get('name');
-  const urlEmail = searchParams.get('email');
-  const urlRole = searchParams.get('role');
+  // const urlId = searchParams.get('id');
+  // const urlName = searchParams.get('name');
+  // const urlEmail = searchParams.get('email');
+  // const urlRole = searchParams.get('role');
   
   const [currentStep, setCurrentStep] = useState(1);
   const [donorType, setDonorType] = useState<"individual" | "organization" | null>(null);
@@ -41,11 +41,8 @@ const DonatePage = () => {
       instagram: "",
       facebook: ""
     },
-    // Organization specific
     organizationName: "",
-    // Individual specific with document
     document: "",
-    // Pickup details
     pickupTiming: "",
     address: ""
   });
@@ -90,17 +87,60 @@ const DonatePage = () => {
   };
 
   // Handle device photo upload
-  const handleDevicePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDevicePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      // For now, we'll just store file names
-      // In a real app, you'd upload these to a cloud service
-      const photoFiles = Array.from(files).map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type
-      }));
-      setDeviceInfo(prev => ({ ...prev, devicePhotos: photoFiles }));
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          toast({
+            title: "Authentication Error",
+            description: "Please login again to upload images.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const uploadedPhotos = [];
+        
+        for (const file of Array.from(files)) {
+          const formData = new FormData();
+          formData.append('image', file);
+
+          const response = await fetch(`${config.apiUrl}/api/admin/devices/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            uploadedPhotos.push({
+              url: data.imageUrl,
+              caption: file.name,
+              originalFile: file
+            });
+          } else {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+        }
+
+        setDeviceInfo(prev => ({ ...prev, devicePhotos: uploadedPhotos }));
+        
+        toast({
+          title: "Images Uploaded Successfully!",
+          description: `${uploadedPhotos.length} image(s) uploaded successfully.`,
+        });
+      } catch (error) {
+        console.error('Error uploading images:', error);
+        toast({
+          title: "Upload Error",
+          description: "Failed to upload some images. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -138,15 +178,14 @@ const DonatePage = () => {
           phone: personalInfo.contact || '',
           email: personalInfo.email || ''
         },
-        images: [], // Will be implemented later
         devicePhotos: deviceInfo.devicePhotos.map(photo => ({
-          url: `placeholder-${photo.name}`, // In real app, this would be the uploaded URL
-          caption: photo.name
+          url: photo.url, // Use the uploaded URL from backend
+          caption: photo.caption
         })),
         isOrganizationDonation: personalInfo.organizationName ? true : false
       };
 
-      const response = await fetch(`${config.apiUrl}${config.endpoints.donations}`, {
+      const response = await fetch(`${config.apiUrl}/api/device-donations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,6 +196,7 @@ const DonatePage = () => {
 
       if (response.ok) {
         const result = await response.json();
+        console.log("result donate page",result);
         toast({
           title: "Device Listed Successfully!",
           description: "Your device donation has been submitted and is pending admin approval. Thank you for your contribution!",
@@ -197,7 +237,7 @@ const DonatePage = () => {
         });
 
         // Navigate to donor dashboard
-        navigate('/donor-dashboard');
+        navigate('/profile');
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit donation');
@@ -540,11 +580,11 @@ const DonatePage = () => {
           value={deviceInfo.description}
           onChange={(e) => handleDeviceInfoChange("description", e.target.value)}
           rows={4}
-          maxLength={500}
+          maxLength={1000}
           required
         />
         <div className="text-xs text-gray-500 text-right">
-          {deviceInfo.description.length}/500 characters
+          {deviceInfo.description.length}/1000 characters
         </div>
       </div>
       

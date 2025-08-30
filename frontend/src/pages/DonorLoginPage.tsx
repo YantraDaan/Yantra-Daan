@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 const DonorLoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, isLoading } = useAuth();
+  const { login, isLoading ,user} = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,9 +26,13 @@ const DonorLoginPage = () => {
     if (result.success) {
       toast({
         title: "Login successful!",
-        description: "Welcome back, donor!",
+        description: `Welcome back, ${result.user?.name}!`,
       });
-      navigate(from, { replace: true });
+      
+      // Add a small delay to ensure user state is properly set
+      setTimeout(() => {
+        navigate("/profile", { replace: true }); // Always go to profile page after login
+      }, 100);
     }else{
       toast({
         title: "Login failed",
@@ -47,7 +51,7 @@ const DonorLoginPage = () => {
             <div className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
               <Heart className="w-8 h-8 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text">TechShare NGO</span>
+            <span className="text-2xl font-bold gradient-text">Yantra Daan</span>
           </Link>
         </div>
 

@@ -1,6 +1,3 @@
-// EMAIL SERVICE DISABLED - ALL EMAIL FUNCTIONALITY COMMENTED OUT
-
-/*
 const nodemailer = require('nodemailer');
 
 // Create transporter using SMTP
@@ -10,8 +7,8 @@ const createTransporter = () => {
     port: process.env.SMTP_PORT || 587,
     secure: false, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER || 'your-email@gmail.com',
-      pass: process.env.SMTP_PASS || 'your-app-password'
+      user: process.env.SMTP_USER || 'yantradaan@gmail.com',
+      pass: process.env.SMTP_PASS || 'ybzb hhke kfze otra'
     }
   });
 };
@@ -19,13 +16,16 @@ const createTransporter = () => {
 // Send email function
 const sendEmail = async (emailData) => {
   try {
+    console.log('Attempting to send email to:', emailData.to);
+    console.log('Email subject:', emailData.subject);
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: emailData.from || process.env.SMTP_USER || 'noreply@yantradaan.com',
+      from: emailData.from || process.env.SMTP_USER || 'yantradaan@gmail.com',
       to: emailData.to,
       subject: emailData.subject,
-      html: emailData.html
+      html: emailData.html,
+      ...(emailData.replyTo && { replyTo: emailData.replyTo })
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -42,7 +42,7 @@ const emailTemplates = {
   // New device post notification to admin
   newDevicePost: (device, donor) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">🆕 New Device Post - YantraDaan</h2>
+      <h2 style="color: #059669;">🆕 New Device Post - Yantra Daan</h2>
       <p>A new device has been posted and requires admin approval.</p>
       
       <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -71,7 +71,7 @@ const emailTemplates = {
   // Device post approved notification to donor
   devicePostApproved: (device) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">✅ Device Post Approved - YantraDaan</h2>
+      <h2 style="color: #059669;">✅ Device Post Approved - Yantra Daan</h2>
       <p>Great news! Your device post has been approved by admin.</p>
       
       <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -91,7 +91,7 @@ const emailTemplates = {
   // Device post rejected notification to donor
   devicePostRejected: (device, reason) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">❌ Device Post Rejected - YantraDaan</h2>
+      <h2 style="color: #dc2626;">❌ Device Post Rejected - Yantra Daan</h2>
       <p>Your device post has been reviewed but was not approved.</p>
       
       <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -115,7 +115,7 @@ const emailTemplates = {
   // Request approved notification to requester
   requestApproved: (request) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">✅ Device Request Approved - YantraDaan</h2>
+      <h2 style="color: #059669;">✅ Device Request Approved - Yantra Daan</h2>
       <p>Great news! Your request for a device has been approved.</p>
       
       <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -139,7 +139,7 @@ const emailTemplates = {
   // Request rejected notification to requester
   requestRejected: (request) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">❌ Device Request Rejected - YantraDaan</h2>
+      <h2 style="color: #dc2626;">❌ Device Request Rejected - Yantra Daan</h2>
       <p>Your request for a device has been reviewed but was not approved.</p>
       
       <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -162,7 +162,7 @@ const emailTemplates = {
   // Request approved notification to device owner
   requestApprovedToOwner: (request) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #059669;">📱 Device Request Approved - Contact Requester - YantraDaan</h2>
+      <h2 style="color: #059669;">📱 Device Request Approved - Contact Requester - Yantra Daan</h2>
       <p>A request for your device has been approved by admin. Please contact the requester.</p>
       
       <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -181,29 +181,26 @@ const emailTemplates = {
         Please coordinate with the requester to arrange pickup/delivery of your device.
       </p>
     </div>
+  `,
+
+  // Test email template
+  testEmail: () => `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #059669;">🧪 Test Email - YantraDaan</h2>
+      <p>This is a test email to verify that the email service is working correctly.</p>
+      
+      <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="color: #166534;">Email Service Status:</h3>
+        <p><strong>Status:</strong> ✅ Active</p>
+        <p><strong>SMTP Host:</strong> smtp.gmail.com</p>
+        <p><strong>Test Time:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+      
+      <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+        If you received this email, the email service is working correctly!
+      </p>
+    </div>
   `
-};
-
-module.exports = {
-  sendEmail,
-  emailTemplates
-};
-*/
-
-// Mock email service functions that do nothing
-const sendEmail = async (emailData) => {
-  console.log('EMAIL DISABLED - Would have sent email to:', emailData.to);
-  console.log('Subject:', emailData.subject);
-  return { success: true, messageId: 'mock-email-id' };
-};
-
-const emailTemplates = {
-  newDevicePost: () => '',
-  devicePostApproved: () => '',
-  devicePostRejected: () => '',
-  requestApproved: () => '',
-  requestRejected: () => '',
-  requestApprovedToOwner: () => ''
 };
 
 module.exports = {

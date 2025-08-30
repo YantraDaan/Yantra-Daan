@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import DeviceManagement from "@/components/DeviceManagement";
 import UserManagement from "@/components/UserManagement";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -41,7 +41,7 @@ import {
 import { config } from "@/config/env";
 
 const AdminPage = () => {
-  const { user } = useAuth();
+  const { user, isTokenValid } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -65,7 +65,8 @@ const AdminPage = () => {
 
   // Check if user is admin
   useEffect(() => {
-    if (!user) {
+    // Only redirect if we're sure there's no valid user
+    if (!user || !isTokenValid) {
       navigate('/admin-login');
       return;
     }
@@ -80,8 +81,11 @@ const AdminPage = () => {
       return;
     }
     
-    fetchDashboardData();
-  }, [user, navigate]);
+    // Only fetch data if user is admin and not already loading
+    if (user && user.userRole === 'admin' && !isLoading) {
+      fetchDashboardData();
+    }
+  }, [user, isTokenValid, navigate, isLoading]);
 
   const fetchDashboardData = async () => {
     try {
@@ -144,6 +148,7 @@ const AdminPage = () => {
   };
 
   const handleTabChange = (value: string) => {
+    console.log('Tab changed to:', value);
     setSelectedTab(value);
   };
 
@@ -294,29 +299,7 @@ const AdminPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalDevices}</div>
-                    <p className="text-xs text-green-100">All devices</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={() => setSelectedTab("devices")}
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-orange-100">Pending Approvals</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-white" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.pendingDevices}</div>
-                    <p className="text-xs text-orange-100">Device posts awaiting review</p>
+                    <p className="text-xs text-green-100">Donated items</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -338,12 +321,34 @@ const AdminPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalRequests}</div>
-                    <p className="text-xs text-purple-100">All device requests</p>
+                    <p className="text-xs text-purple-100">Device requests</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
                       onClick={() => setSelectedTab("dashboard")}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-100">Pending Approvals</CardTitle>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{dashboardStats.pendingDevices}</div>
+                    <p className="text-xs text-orange-100">Awaiting review</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      onClick={() => setSelectedTab("devices")}
                     >
                       <Eye className="w-3 h-3 mr-1" />
                       View Details
@@ -356,23 +361,23 @@ const AdminPage = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Donations Card */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white">Latest Device Donations</CardTitle>
+                  <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                    <CardTitle className="text-white">Recent Device Donations</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       {recentDonations.length === 0 ? (
                         <NoDataFound
                           title="No recent donations"
-                          description="No device donations have been submitted yet"
+                          description="No new devices have been donated recently"
                           imageType="devices"
                           variant="compact"
                         />
                       ) : (
                         recentDonations.slice(0, 5).map((donation: any) => (
-                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors">
+                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                                 <Gift className="w-5 h-5 text-white" />
                               </div>
                               <div>
@@ -381,10 +386,7 @@ const AdminPage = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge 
-                                variant={donation.status === 'approved' ? 'default' : 'secondary'}
-                                className={donation.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                              >
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
                                 {donation.status}
                               </Badge>
                               <Button 
@@ -453,16 +455,68 @@ const AdminPage = () => {
           )}
 
           {/* Devices Tab */}
-          {selectedTab === "devices" && <DeviceManagement />}
+          {selectedTab === "devices" && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Smartphone className="w-5 h-5" />
+                  Device Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground mb-6">Manage all device donations and approvals</p>
+                <DeviceManagement />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Users Tab */}
-          {selectedTab === "users" && <UserManagement />}
+          {selectedTab === "users" && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  User Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground mb-6">Manage user accounts and roles</p>
+                <UserManagement />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Admin Dashboard Tab */}
-          {selectedTab === "dashboard" && <AdminDashboard />}
+          {selectedTab === "dashboard" && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Request Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground mb-6">Review and manage device requests</p>
+                <AdminDashboard />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Team Members Tab */}
-          {selectedTab === "team" && <TeamMemberManagement />}
+          {selectedTab === "team" && (
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-t-lg">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Team Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground mb-6">Manage team members and roles</p>
+                <TeamMemberManagement />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 

@@ -1,10 +1,36 @@
-import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LogoSVG } from "@/components/ui/logoSVG";
-
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { user, isAdmin, logout } = useAuth();
+
+  // const getAdminLink = () => {
+  //   if (!user) {
+  //     return "/admin-login";
+  //   }
+  //   if (isAdmin()) {
+  //     return "/admin";
+  //   }
+  //   return "/admin-login";
+  // };
+
+  const getAdminLinkText = () => {
+    if (!user) {
+      return "Admin Login";
+    }
+    if (isAdmin()) {
+      return "Admin Panel";
+    }
+    return "Admin Login";
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <footer className="bg-card border-t">
@@ -15,23 +41,23 @@ const Footer = () => {
             <Link to="/" className="flex items-center space-x-2">
               
                <LogoSVG></LogoSVG>
-              {/* <span className="text-xl font-bold gradient-text">YantraDaan</span> */}
+              {/* <span className="text-xl font-bold gradient-text">Yantra Daan</span> */}
             </Link>
             <p className="text-muted-foreground text-sm">
               Bridging the digital divide by connecting generous donors with students and communities in need of technology.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Facebook className="w-5 h-5" />
+              <a href="https://www.facebook.com/Yantradaan" className="text-muted-foreground hover:text-primary transition-colors">
+                <Facebook className="w-5 h-5" /> <Link to="/"></Link>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              {/* <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              </a> */}
+              <a href="https://www.instagram.com/yantradaan/" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Linkedin className="w-5 h-5" />
+              <a href="https://www.linkedin.com/company/yantradaan" className="text-muted-foreground hover:text-primary transition-colors">
+                <Linkedin className="w-5 h-5" /> 
               </a>
             </div>
           </div>
@@ -65,6 +91,24 @@ const Footer = () => {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link to="/admin-login" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                  {getAdminLinkText()}
+                </Link>
+              </li>
+              {/* {user && isAdmin() && (
+                <li>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-muted-foreground hover:text-primary transition-colors p-0 h-auto text-sm"
+                  >
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Logout
+                  </Button>
+                </li>
+              )} */}
             </ul>
           </div>
 
@@ -86,17 +130,17 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-primary" />
-                <span className="text-muted-foreground text-sm">info@techshare.org</span>
+                <span className="text-muted-foreground text-sm">hello@yantradaan.org</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-primary" />
-                <span className="text-muted-foreground text-sm">+1 (555) 123-4567</span>
+                <span className="text-muted-foreground text-sm">+91 8700283813</span>
               </div>
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-primary mt-0.5" />
                 <span className="text-muted-foreground text-sm">
-                  123 Tech Street<br />
-                  Innovation City, IC 12345
+                  Okhla Industrial Area <br />
+                  Phase-2, New Delhi- 110020, India
                 </span>
               </div>
             </div>
@@ -107,7 +151,7 @@ const Footer = () => {
         <div className="mt-12 pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-muted-foreground text-sm">
-              © {currentYear} TechShare NGO. All rights reserved.
+              © {currentYear} Yantra Daan. All rights reserved.
             </div>
             <div className="flex space-x-6">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">

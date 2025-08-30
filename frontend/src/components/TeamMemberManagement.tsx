@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import NoDataFound from './NoDataFound';
 import { 
   UserPlus, 
@@ -40,6 +40,11 @@ interface TeamMember {
   status: 'active' | 'inactive';
   createdAt: string;
   avatar?: string;
+  socialLinks?: {
+    linkedin: string;
+    instagram: string;
+    website: string;
+  };
 }
 
 const TeamMemberManagement = () => {
@@ -61,7 +66,7 @@ const TeamMemberManagement = () => {
   const membersPerPage = 12;
 
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isTokenValid } = useAuth();
 
   // Form state for add/edit
   const [formData, setFormData] = useState<{
@@ -70,12 +75,24 @@ const TeamMemberManagement = () => {
     contact: string;
     role: TeamMember['role'];
     bio: string;
+    avatar: string;
+    socialLinks: {
+      linkedin: string;
+      instagram: string;
+      website: string;
+    };
   }>({
     name: '',
     email: '',
     contact: '',
     role: 'Support Staff',
-    bio: ''
+    bio: '',
+    avatar: '',
+    socialLinks: {
+      linkedin: '',
+      instagram: '',
+      website: ''
+    }
   });
 
   useEffect(() => {
@@ -121,7 +138,13 @@ const TeamMemberManagement = () => {
       email: '',
       contact: '',
       role: 'Support Staff',
-      bio: ''
+      bio: '',
+      avatar: '',
+      socialLinks: {
+        linkedin: '',
+        instagram: '',
+        website: ''
+      }
     });
     setShowAddDialog(true);
   };
@@ -133,7 +156,13 @@ const TeamMemberManagement = () => {
       email: member.email,
       contact: member.contact,
       role: member.role,
-      bio: member.bio
+      bio: member.bio,
+      avatar: member.avatar || '',
+      socialLinks: member.socialLinks || {
+        linkedin: '',
+        instagram: '',
+        website: ''
+      }
     });
     setShowEditDialog(true);
   };
@@ -155,16 +184,30 @@ const TeamMemberManagement = () => {
       
       const method = showEditDialog ? 'PUT' : 'POST';
       
+      // Prepare the data to send with proper formatting
+      const dataToSend = {
+        ...formData,
+        avatar: formData.avatar || '',
+        socialLinks: {
+          linkedin: formData.socialLinks.linkedin || '',
+          instagram: formData.socialLinks.instagram || '',
+          website: formData.socialLinks.website || ''
+        }
+      };
+      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
 
-      if (!response.ok) throw new Error('Failed to save team member');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
       toast({
         title: "Success",
@@ -173,16 +216,59 @@ const TeamMemberManagement = () => {
 
       setShowAddDialog(false);
       setShowEditDialog(false);
+      // Reset form data
+      setFormData({
+        name: '',
+        email: '',
+        contact: '',
+        role: 'Support Staff',
+        bio: '',
+        avatar: '',
+        socialLinks: {
+          linkedin: '',
+          instagram: '',
+          website: ''
+        }
+      });
       fetchTeamMembers();
     } catch (error) {
       console.error('Error saving team member:', error);
       toast({
         title: "Error",
-        description: "Failed to save team member",
+        description: error instanceof Error ? error.message : "Failed to save team member",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/team-members/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Failed to upload image');
+
+      const data = await response.json();
+      return data.imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+      return null;
     }
   };
 
@@ -358,11 +444,28 @@ const TeamMemberManagement = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member) => (
-            <Card key={member._id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+            <Card key={member._id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group min-w-[300px]">
               <CardContent className="p-6">
                 <div className="text-center">
                   {/* Avatar */}
-                  <div className={`w-20 h-20 bg-gradient-to-r ${getRoleColor(member.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300`}>
+                  {member.avatar ? (
+                    <img 
+                      src={member.avatar} 
+                      alt={member.name} 
+                      className="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 border-2 border-white"
+                      onError={(e) => {
+                        // Fallback to avatar if image fails to load
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  {/* Fallback Avatar (hidden by default if image exists) */}
+                  <div 
+                    className={`w-20 h-20 bg-gradient-to-r ${getRoleColor(member.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 ${member.avatar ? 'hidden' : ''}`}
+                  >
                     <User className="w-10 h-10 text-white" />
                   </div>
                   
@@ -386,6 +489,53 @@ const TeamMemberManagement = () => {
                       <span>{member.contact}</span>
                     </div> 
                   </div>
+
+                  {/* Social Links */}
+                  {member.socialLinks && Object.values(member.socialLinks).some(link => link) && (
+                    <div className="flex justify-center gap-2 mb-4">
+                      {member.socialLinks.linkedin && (
+                        <a 
+                          href={member.socialLinks.linkedin} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          title="LinkedIn"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.047-1.852-3.047-1.853 0-2.136 1.445-2.136 2.939v5.677H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                          </svg>
+                        </a>
+                      )}
+                      
+                      {member.socialLinks.instagram && (
+                        <a 
+                          href={member.socialLinks.instagram} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-pink-600 hover:text-pink-800 transition-colors"
+                          title="Instagram"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.928-.875-1.418-2.026-1.418-3.323s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.323z"/>
+                          </svg>
+                        </a>
+                      )}
+                      
+                      {member.socialLinks.website && (
+                        <a 
+                          href={member.socialLinks.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:text-green-800 transition-colors"
+                          title="Website"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-2 16.5v-9l6 4.5-6 4.5z"/>
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Status */}
                   <div className="flex items-center justify-center gap-2 mb-4">
@@ -481,8 +631,27 @@ const TeamMemberManagement = () => {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={showAddDialog || showEditDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showAddDialog || showEditDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowAddDialog(false);
+          setShowEditDialog(false);
+          // Reset form data when closing
+          setFormData({
+            name: '',
+            email: '',
+            contact: '',
+            role: 'Support Staff',
+            bio: '',
+            avatar: '',
+            socialLinks: {
+              linkedin: '',
+              instagram: '',
+              website: ''
+            }
+          });
+        }
+      }}>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               {showEditDialog ? 'Edit Team Member' : 'Add New Team Member'}
@@ -536,6 +705,94 @@ const TeamMemberManagement = () => {
               </Select>
             </div>
             <div>
+              <Label htmlFor="avatar">Profile Image</Label>
+              <div className="space-y-2">
+                {formData.avatar && (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={formData.avatar} 
+                      alt="Profile preview" 
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, avatar: '' }))}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+                <Input
+                  id="avatar"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const imageUrl = await handleImageUpload(file);
+                      if (imageUrl) {
+                        setFormData(prev => ({ ...prev, avatar: imageUrl }));
+                      }
+                    }
+                  }}
+                  className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+                />
+                <p className="text-xs text-gray-500">Upload a profile image (max 1MB)</p>
+              </div>
+            </div>
+
+            <div>
+              <Label>Social Links</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="linkedin" className="text-sm">LinkedIn</Label>
+                  <Input
+                    id="linkedin"
+                    type="url"
+                    value={formData.socialLinks.linkedin}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, linkedin: e.target.value }
+                    }))}
+                    placeholder="https://linkedin.com/in/username"
+                    className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="instagram" className="text-sm">Instagram</Label>
+                  <Input
+                    id="instagram"
+                    type="url"
+                    value={formData.socialLinks.instagram}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, instagram: e.target.value }
+                    }))}
+                    placeholder="https://instagram.com/username"
+                    className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="website" className="text-sm">Website</Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    value={formData.socialLinks.website}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      socialLinks: { ...prev.socialLinks, website: e.target.value }
+                    }))}
+                    placeholder="https://example.com"
+                    className="border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
               <Label htmlFor="bio">Bio</Label>
               <Textarea
                 id="bio"
@@ -584,9 +841,17 @@ const TeamMemberManagement = () => {
           {selectedMember && (
             <div className="space-y-4">
               <div className="text-center">
-                <div className={`w-24 h-24 bg-gradient-to-r ${getRoleColor(selectedMember.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-                  <User className="w-12 h-12 text-white" />
-                </div>
+                {selectedMember.avatar ? (
+                  <img 
+                    src={selectedMember.avatar} 
+                    alt={selectedMember.name} 
+                    className="w-24 h-24 rounded-full object-cover mx-auto mb-4 shadow-lg border-4 border-white"
+                  />
+                ) : (
+                  <div className={`w-24 h-24 bg-gradient-to-r ${getRoleColor(selectedMember.role)} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                    <User className="w-12 h-12 text-white" />
+                  </div>
+                )}
                 <h3 className="text-xl font-semibold text-gray-900 mb-1">{selectedMember.name}</h3>
                 <Badge className={`mb-3 ${getRoleBgColor(selectedMember.role)} border`}>
                   {selectedMember.role}
@@ -618,6 +883,56 @@ const TeamMemberManagement = () => {
                     {new Date(selectedMember.createdAt).toLocaleDateString()}
                   </p>
                 </div>
+                
+                {/* Social Links */}
+                {selectedMember.socialLinks && Object.values(selectedMember.socialLinks).some(link => link) && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Social Links</Label>
+                    <div className="space-y-2 mt-2">
+                      {selectedMember.socialLinks.linkedin && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-600 font-medium">LinkedIn:</span>
+                          <a 
+                            href={selectedMember.socialLinks.linkedin} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View Profile
+                          </a>
+                        </div>
+                      )}
+                      
+                      {selectedMember.socialLinks.instagram && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-pink-600 font-medium">Instagram:</span>
+                          <a 
+                            href={selectedMember.socialLinks.instagram} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-pink-600 hover:text-pink-800 underline"
+                          >
+                            View Profile
+                          </a>
+                        </div>
+                      )}
+                      
+                      {selectedMember.socialLinks.website && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600 font-medium">Website:</span>
+                          <a 
+                            href={selectedMember.socialLinks.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-800 underline"
+                          >
+                            Visit Website
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="flex justify-end gap-2 pt-4">
@@ -758,3 +1073,5 @@ const TeamMemberManagement = () => {
 };
 
 export default TeamMemberManagement;
+
+

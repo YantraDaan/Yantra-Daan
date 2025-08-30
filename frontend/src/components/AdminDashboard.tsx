@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Gift, 
@@ -23,6 +25,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import NoDataFound from './NoDataFound';
+import { config } from "@/config/env";
 
 interface DeviceRequest {
   _id: string;
@@ -77,10 +80,36 @@ const AdminDashboard = () => {
   const requestsPerPage = 10;
 
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
+  // STRICT ADMIN ROLE CHECK
   useEffect(() => {
-    fetchRequests();
-  }, [currentPage, statusFilter]);
+    if (!user) {
+      toast({
+        title: 'Access Denied',
+        description: 'You must be logged in to access this page.',
+        variant: 'destructive',
+      });
+      navigate('/admin-login');
+      return;
+    }
+    
+    if (user.userRole !== 'admin') {
+      toast({
+        title: 'Access Denied',
+        description: 'Only admin users can access this page. Your role: ' + user.userRole,
+        variant: 'destructive',
+      });
+      navigate('/');
+      return;
+    }
+    
+    // Only fetch requests if user is confirmed admin and not already loading
+    if (user.userRole === 'admin' && !isLoading) {
+      fetchRequests();
+    }
+  }, [currentPage, statusFilter, user, isLoading, toast, navigate]);
 
   const fetchRequests = async () => {
     try {
@@ -92,7 +121,7 @@ const AdminDashboard = () => {
         status: statusFilter !== 'all' ? statusFilter : ''
       });
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/admin/all?${params}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/all?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -138,7 +167,7 @@ const AdminDashboard = () => {
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-requests/admin/${selectedRequest._id}/status`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${selectedRequest._id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

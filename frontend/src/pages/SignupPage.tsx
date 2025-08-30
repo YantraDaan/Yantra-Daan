@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ interface PersonalInfo {
 }
 
 const SignupPage = () => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Start with email check step
   const [userRole, setUserRole] = useState<"donor" | "requester" | "">("");
   const [categoryType, setCategoryType] = useState<"individual" | "organization" | "">("");
   const [password, setPassword] = useState("");
@@ -41,6 +41,14 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isOrganization, setIsOrganization] = useState(false);
+  
+  // Email check state
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailCheckResult, setEmailCheckResult] = useState<{
+    exists: boolean;
+    message: string;
+    redirectTo: string;
+  } | null>(null);
   
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     name: "",
@@ -62,9 +70,118 @@ const SignupPage = () => {
   console.log("personalInfo 47",personalInfo);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Pre-fill email if coming from email check page
+  useEffect(() => {
+    if (location.state?.email) {
+      setPersonalInfo(prev => ({ ...prev, email: location.state.email }));
+    }
+  }, [location.state]);
+
+  // Auto-check email when email changes (with debounce)
+  useEffect(() => {
+    if (personalInfo.email && personalInfo.email.includes('@')) {
+      const timer = setTimeout(() => {
+        if (personalInfo.email.trim()) {
+          // Create a mock event for the email check
+          const mockEvent = { preventDefault: () => {} } as React.FormEvent;
+          handleEmailCheck(mockEvent);
+        }
+      }, 1000); // Wait 1 second after user stops typing
+      
+      return () => clearTimeout(timer);
+    }
+  }, [personalInfo.email]);
 
   const handlePersonalInfoChange = (field: keyof PersonalInfo, value: string) => {
     setPersonalInfo(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEmailCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!personalInfo.email.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter an email address to check.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!personalInfo.email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    setEmailCheckResult(null);
+
+    try {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/check-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: personalInfo.email.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setEmailCheckResult(result);
+        
+        if (result.exists) {
+          toast({
+            title: "Email Already Registered",
+            description: result.message,
+            variant: "destructive",
+          });
+          // Auto-redirect to login after 2 seconds
+          setTimeout(() => {
+            handleGoToLogin();
+          }, 2000);
+        } else {
+          toast({
+            title: "Email Available",
+            description: result.message,
+          });
+          // Auto-proceed to signup after 2 seconds
+          setTimeout(() => {
+            handleProceedWithSignup();
+          }, 1000);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to check email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Network Error",
+        description: "Failed to connect to server. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  const handleProceedWithSignup = () => {
+    if (emailCheckResult && !emailCheckResult.exists) {
+      setStep(1); // Move to the first signup step
+    }
+  };
+
+  const handleGoToLogin = () => {
+    navigate('/login', { state: { email: personalInfo.email } });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +193,8 @@ const SignupPage = () => {
 
   const validateStep = () => {
     switch (step) {
+      case 0:
+        return emailCheckResult && !emailCheckResult.exists; 
       case 1:
         return personalInfo.name && personalInfo.email && password && confirmPassword && password === confirmPassword;
       case 2:
@@ -126,7 +245,7 @@ const SignupPage = () => {
         document: documentInfo
       };
 
-      const response = await fetch(`${config.apiUrl}${config.endpoints.users}`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +262,7 @@ const SignupPage = () => {
       if (data) {
         toast({
           title: "Registration Successful!",
-          description: `Welcome to YantraDaan ${personalInfo.name}!`,
+          description: `Welcome to Yantra Daan ${personalInfo.name}!`,
         });
         navigate("/login");
       } else {
@@ -175,20 +294,20 @@ const SignupPage = () => {
             <div className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
               <Heart className="w-8 h-8 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text">YantraDaan</span>
+            <span className="text-2xl font-bold gradient-text">Yantra Daan</span>
           </Link>
         </div>
 
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-muted-foreground">Step {step} of 4</span>
-            <span className="text-sm text-muted-foreground">{Math.round((step / 4) * 100)}% Complete</span>
+            <span className="text-sm text-muted-foreground">Step {step === 0 ? 'Email Check ' : step} of 5</span>
+            <span className="text-sm text-muted-foreground">{step === 0 ? '0%' : `${Math.round(((step) / 4) * 100)}%`} Complete</span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div 
               className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(step / 4) * 100}%` }}
+              style={{ width: step === 0 ? '0%' : `${((step) / 4) * 100}%` }}
             />
           </div>
         </div>
@@ -197,13 +316,15 @@ const SignupPage = () => {
         <Card className="glass-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
+              {step === 0 && "Enter Your Email"}
               {step === 1 && "Create Your Account"}
               {step === 2 && "Choose Your Role"}
               {step === 3 && "Select Category"}
               {step === 4 && "Personal Information"}
             </CardTitle>
             <CardDescription>
-              {step === 1 && "Start your journey with TechShare NGO"}
+              {step === 0 && "First, let's check if your email is available"}
+              {step === 1 && "Start your journey with Yantra Daan"}
               {step === 2 && "How would you like to participate?"}
               {step === 3 && "Tell us more about yourself"}
               {step === 4 && "Complete your profile"}
@@ -212,6 +333,82 @@ const SignupPage = () => {
 
           <form onSubmit={handleSubmit}>
             <CardContent>
+              {/* Step 0: Email Check */}
+              {step === 0 && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={personalInfo.email}
+                      onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Email Check Result */}
+                  {emailCheckResult && (
+                    <div className={`p-4 rounded-lg border ${
+                      emailCheckResult.exists 
+                        ? 'bg-destructive/10 border-destructive/20' 
+                        : 'bg-green-50 border-green-200'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {emailCheckResult.exists ? (
+                          <div className="w-5 h-5 rounded-full bg-destructive flex items-center justify-center mt-0.5">
+                            <span className="text-white text-xs">!</span>
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center mt-0.5">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className={`font-medium ${
+                            emailCheckResult.exists ? 'text-destructive' : 'text-green-700'
+                          }`}>
+                            {emailCheckResult.message}
+                          </p>
+                          
+                          {/* {emailCheckResult.exists && (
+                            <div className="mt-3">
+                              <Button
+                                type="button"
+                                onClick={handleGoToLogin}
+                                variant="destructive"
+                                className="w-full"
+                              >
+                                Go to Login
+                              </Button>
+                            </div>
+                          )} */}
+                          
+                          {/* {!emailCheckResult.exists && (
+                            <div className="mt-3">
+                              <Button
+                                type="button"
+                                onClick={handleProceedWithSignup}
+                                className="w-full btn-hero"
+                              >
+                                Continue with Signup
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>S
+                            </div>
+                          )} */}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Auto-email check happens on blur */}
+                  <p className="text-sm text-muted-foreground text-center">
+                    Email will be checked automatically when you finish typing
+                  </p>
+                </div>
+              )}
+
               {/* Step 1: Basic Registration */}
               {step === 1 && (
                 <div className="space-y-6">
@@ -437,7 +634,35 @@ const SignupPage = () => {
                       />
                     </div>
                   </div>
-
+                  <div className="space-y-4">
+                    <Label className="text-base font-medium">Additional Information</Label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Address *</Label>
+                        <Textarea
+                          id="address"
+                          placeholder="Enter your full address..."
+                          value={personalInfo.address}
+                          onChange={(e) => handlePersonalInfoChange("address", e.target.value)}
+                          rows={2}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="emailUpdates" 
+                          checked={personalInfo.emailUpdates}
+                          onCheckedChange={(checked) => 
+                            setPersonalInfo(prev => ({ ...prev, emailUpdates: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="emailUpdates" className="text-sm">
+                          Send me updates and notifications via email
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-4">
                     <Label className="text-base font-medium">Social Links (Optional)</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -471,36 +696,6 @@ const SignupPage = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">Additional Information</Label>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Address *</Label>
-                        <Textarea
-                          id="address"
-                          placeholder="Enter your full address..."
-                          value={personalInfo.address}
-                          onChange={(e) => handlePersonalInfoChange("address", e.target.value)}
-                          rows={2}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="emailUpdates" 
-                          checked={personalInfo.emailUpdates}
-                          onCheckedChange={(checked) => 
-                            setPersonalInfo(prev => ({ ...prev, emailUpdates: checked as boolean }))
-                          }
-                        />
-                        <Label htmlFor="emailUpdates" className="text-sm">
-                          Send me updates and notifications via email
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-
                   {isOrganization && (
                     <div className="flex items-center space-x-2">
                       <Checkbox id="organization-behalf" />
@@ -514,16 +709,21 @@ const SignupPage = () => {
 
               {/* Navigation Buttons */}
               <div className="flex justify-between mt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBack}
-                  disabled={step === 1}
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </Button>
+                {step > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleBack}
+                    className="flex items-center space-x-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back</span>
+                  </Button>
+                )}
+                
+                {step === 0 && (
+                  <div></div> // Empty div for spacing when no back button
+                )}
 
                 {step === 4 ? (
                   <Button
@@ -546,13 +746,7 @@ const SignupPage = () => {
                 )}
               </div>
 
-              {/* Login Link */}
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                Already have an account?{" "}
-                <Link to="/login" className="font-medium text-primary hover:underline">
-                  Sign in
-                </Link>
-              </p>
+
             </CardContent>
           </form>
         </Card>
