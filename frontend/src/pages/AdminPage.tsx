@@ -73,9 +73,9 @@ const AdminPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalDevices, setTotalDevices] = useState(0);
   const [deviceFilters, setDeviceFilters] = useState({
-    status: '',
-    deviceType: '',
-    condition: ''
+    status: 'all',
+    deviceType: 'all',
+    condition: 'all'
   });
   
   // Device details dialog state
@@ -126,8 +126,8 @@ const AdminPage = () => {
     
       // Fetch data if user is admin
       if (user && user.userRole === 'admin') {
-        fetchDashboardData();
-      }
+      fetchDashboardData();
+    }
     }, 500); // 500ms delay to allow auth state to stabilize
 
     return () => clearTimeout(authCheckTimer);
@@ -158,7 +158,7 @@ const AdminPage = () => {
 
   // No search functionality needed - data loads directly
 
-    const fetchDashboardData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       
@@ -204,7 +204,7 @@ const AdminPage = () => {
         console.error('Failed to fetch recent donations:', donationsResponse.status);
         setRecentDonations([]);
       }
-
+      
       // Fetch pending device approvals
       const pendingResponse = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=5&status=pending`, {
         headers: {
@@ -244,10 +244,10 @@ const AdminPage = () => {
       if (page > 1) params.append('page', page.toString());
       params.append('limit', '12'); // Show 12 devices per page (4 rows of 3)
       
-      // Add filters if they exist
-      if (filters.status) params.append('status', filters.status);
-      if (filters.deviceType) params.append('deviceType', filters.deviceType);
-      if (filters.condition) params.append('condition', filters.condition);
+      // Add filters if they exist and are not "all"
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.deviceType && filters.deviceType !== 'all') params.append('deviceType', filters.deviceType);
+      if (filters.condition && filters.condition !== 'all') params.append('condition', filters.condition);
       
       // Fetch devices with pagination and filters
       const response = await fetch(`${config.apiUrl}/api/admin/devices?${params.toString()}`, {
@@ -700,7 +700,7 @@ const AdminPage = () => {
   };
 
   const clearFilters = () => {
-    const clearedFilters = { status: '', deviceType: '', condition: '' };
+    const clearedFilters = { status: 'all', deviceType: 'all', condition: 'all' };
     setDeviceFilters(clearedFilters);
     setCurrentPage(1);
     fetchAllDevices(1, clearedFilters);
@@ -1224,14 +1224,14 @@ const AdminPage = () => {
           {selectedTab === "devices" && (
             <div className="space-y-6">
               {/* Device Details Grid */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white flex items-center gap-2">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
+                <CardTitle className="text-white flex items-center gap-2">
                     <Gift className="w-5 h-5" />
                     Device Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
                   {/* Filter Controls */}
                   <div className="mb-6 space-y-4">
                     <div className="flex flex-wrap gap-4 items-center">
@@ -1242,7 +1242,7 @@ const AdminPage = () => {
                             <SelectValue placeholder="All" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="approved">Approved</SelectItem>
                             <SelectItem value="rejected">Rejected</SelectItem>
@@ -1257,7 +1257,7 @@ const AdminPage = () => {
                             <SelectValue placeholder="All" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
                             <SelectItem value="laptop">Laptop</SelectItem>
                             <SelectItem value="mobile">Mobile</SelectItem>
                             <SelectItem value="tablet">Tablet</SelectItem>
@@ -1273,7 +1273,7 @@ const AdminPage = () => {
                             <SelectValue placeholder="All" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="all">All</SelectItem>
                             <SelectItem value="excellent">Excellent</SelectItem>
                             <SelectItem value="good">Good</SelectItem>
                             <SelectItem value="fair">Fair</SelectItem>
@@ -1365,8 +1365,8 @@ const AdminPage = () => {
                                 </Button>
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
+              </CardContent>
+            </Card>
                       ))
                     ) : (
                       <div className="col-span-full text-center text-gray-500 py-8">
