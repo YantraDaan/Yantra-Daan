@@ -294,7 +294,6 @@ const DeviceDetailPage = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{device.title}</h1>
-              <p className="text-gray-600">Device ID: {device._id}</p>
             </div>
           </div>
         </div>
@@ -370,7 +369,7 @@ const DeviceDetailPage = () => {
                     <p className="text-lg font-semibold">{device.deviceType}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Condition</label>
+                    <label className="text-sm font-medium text-gray-500 pr-1">Condition</label>
                     <Badge className="bg-blue-100 text-blue-800">
                       {device.condition.charAt(0).toUpperCase() + device.condition.slice(1)}
                     </Badge>
@@ -453,7 +452,7 @@ const DeviceDetailPage = () => {
             </Card>
 
             {/* Request Form */}
-            {device.isActive && user && (user.userRole === 'requester' || user.userRole === 'student') && (
+            {device.isActive && user && (user.userRole === 'requester') && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -668,11 +667,11 @@ const DeviceDetailPage = () => {
                 <Separator />
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  {/* <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-gray-400" />
                     <span className="text-sm">{device.ownerInfo.email}</span>
-                  </div>
-                  {device.ownerInfo.contact && (
+                  </div> */}
+                  {/* {device.ownerInfo.contact && (
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-400" />
                       <span className="text-sm">{device.ownerInfo.contact}</span>
@@ -683,7 +682,7 @@ const DeviceDetailPage = () => {
                       <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                       <span className="text-sm">{device.ownerInfo.address}</span>
                     </div>
-                  )}
+                  )} */}
                   {device.ownerInfo.profession && (
                     <div className="flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-gray-400" />

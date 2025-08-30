@@ -82,7 +82,7 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
       return;
     }
 
-    if (user.userRole !== "requester" && user.userRole !== "student") return;
+    if (user.userRole !== "requester") return;
 
     // Check if user can request this device
     if (requestState && !requestState.canRequest) {

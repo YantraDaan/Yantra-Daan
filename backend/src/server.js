@@ -49,14 +49,6 @@ app.get('/', (req, res) => {
     status: 'Yantra Daan API Server Running',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      devices: '/api/devices',
-      requests: '/api/device-requests',
-      users: '/api/users',
-      admin: '/api/admin'
-    }
   });
 });
 
