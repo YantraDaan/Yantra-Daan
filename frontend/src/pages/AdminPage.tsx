@@ -67,6 +67,10 @@ const AdminPage = () => {
   // Donor details dialog state
   const [showDonorDetails, setShowDonorDetails] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState(null);
+  
+  // Device details dialog state
+  const [showDeviceDetails, setShowDeviceDetails] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -265,10 +269,9 @@ const AdminPage = () => {
   };
 
   const showDeviceDetails = (device) => {
-    // Navigate to devices tab and show device details
-    setSelectedTab("devices");
-    // You can also store the device ID in localStorage or context to highlight it in the devices tab
-    localStorage.setItem('selectedDeviceId', device._id);
+    // Show device details in popup instead of redirecting
+    setSelectedDevice(device);
+    setShowDeviceDetails(true);
   };
 
   if (!user || user.userRole !== 'admin') {
@@ -374,16 +377,6 @@ const AdminPage = () => {
           {/* Overview Tab */}
           {selectedTab === "overview" && (
             <div className="space-y-6">
-              {/* Loading State */}
-              {isLoading && (
-                <div className="text-center py-12">
-                  <div className="inline-flex items-center gap-2">
-                    <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-                    <span className="text-lg text-muted-foreground">Loading overview data...</span>
-                  </div>
-                </div>
-              )}
-
               {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -521,33 +514,6 @@ const AdminPage = () => {
                 </Card>
               </div>
 
-              {/* Summary Section */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white">Platform Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{dashboardStats.totalUsers}</div>
-                      <p className="text-sm text-gray-600">Total Users</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{dashboardStats.totalDevices}</div>
-                      <p className="text-sm text-gray-600">Total Devices</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{dashboardStats.totalRequests}</div>
-                      <p className="text-sm text-gray-600">Total Requests</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">{dashboardStats.pendingDevices}</div>
-                      <p className="text-sm text-gray-600">Pending Approvals</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Recent Activity Cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Donations Card */}
@@ -603,7 +569,7 @@ const AdminPage = () => {
                         />
                       ) : (
                         recentDonations.slice(0, 5).map((donation: any) => (
-                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors cursor-pointer" onClick={() => showDeviceDetails(donation)}>
+                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors">
                             <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                                 <Gift className="w-5 h-5 text-white" />
@@ -620,7 +586,7 @@ const AdminPage = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => showDonorInfo(donation.ownerInfo)}
+                                onClick={() => showDeviceDetails(donation)}
                                 className="h-8 px-2"
                               >
                                 <Eye className="w-3 h-3" />
@@ -784,6 +750,159 @@ const AdminPage = () => {
           )}
         </div>
       </main>
+
+      {/* Device Details Dialog */}
+      <Dialog open={showDeviceDetails} onOpenChange={setShowDeviceDetails}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              Device Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedDevice && (
+            <div className="space-y-6">
+              {/* Device Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Device Title</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-lg">{selectedDevice.title}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Device Type</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{selectedDevice.deviceType}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Condition</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{selectedDevice.condition}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Status</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      {selectedDevice.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Device Description */}
+              {selectedDevice.description && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Description</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm leading-relaxed">{selectedDevice.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Device Owner Information */}
+              {selectedDevice.ownerInfo && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Device Owner</Label>
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">{selectedDevice.ownerInfo.name || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">{selectedDevice.ownerInfo.email || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Device Location */}
+              {selectedDevice.location && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Location</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">
+                      {selectedDevice.location.city}, {selectedDevice.location.state}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Device Images */}
+              {selectedDevice.images && selectedDevice.images.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Device Images</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {selectedDevice.images.map((image: any, index: number) => (
+                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img 
+                          src={image} 
+                          alt={`Device ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Device Metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Created Date</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">
+                      {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-500">Last Updated</Label>
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">
+                      {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDeviceDetails(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowDeviceDetails(false);
+                    setSelectedTab("devices");
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  View in Devices Tab
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Donor Details Dialog */}
       <Dialog open={showDonorDetails} onOpenChange={setShowDonorDetails}>
