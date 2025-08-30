@@ -60,7 +60,7 @@ const AdminPage = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
   
   // Device details dialog state
-  const [showDeviceDetails, setShowDeviceDetails] = useState(false);
+  const [isDeviceDetailsOpen, setIsDeviceDetailsOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
 
   // Check if user is admin
@@ -239,7 +239,7 @@ const AdminPage = () => {
   const showDeviceDetails = (device) => {
     // Show device details in popup instead of redirecting
     setSelectedDevice(device);
-    setShowDeviceDetails(true);
+    setIsDeviceDetailsOpen(true);
   };
 
   if (!user || user.userRole !== 'admin') {
@@ -642,7 +642,7 @@ const AdminPage = () => {
       </main>
 
       {/* Device Details Dialog */}
-      <Dialog open={showDeviceDetails} onOpenChange={setShowDeviceDetails}>
+      <Dialog open={isDeviceDetailsOpen} onOpenChange={setIsDeviceDetailsOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -775,13 +775,13 @@ const AdminPage = () => {
               <div className="flex justify-end gap-2">
                 <Button 
                   variant="outline" 
-                  onClick={() => setShowDeviceDetails(false)}
+                  onClick={() => setIsDeviceDetailsOpen(false)}
                 >
                   Close
                 </Button>
                 <Button 
                   onClick={() => {
-                    setShowDeviceDetails(false);
+                    setIsDeviceDetailsOpen(false);
                     setSelectedTab("devices");
                   }}
                   className="bg-blue-600 hover:bg-blue-700"
