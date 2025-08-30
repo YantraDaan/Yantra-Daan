@@ -64,7 +64,19 @@ const AdminPage = () => {
   const [pendingDevices, setPendingDevices] = useState([]);
   const [allDevices, setAllDevices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDevicesLoading, setIsDevicesLoading] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
+  
+  // Device tab pagination and filter states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDevices, setTotalDevices] = useState(0);
+  const [deviceFilters, setDeviceFilters] = useState({
+    status: '',
+    deviceType: '',
+    condition: ''
+  });
   
   // Device details dialog state
   const [isDeviceDetailsOpen, setIsDeviceDetailsOpen] = useState(false);
@@ -211,13 +223,23 @@ const AdminPage = () => {
     }
   };
 
-  const fetchAllDevices = async () => {
+  const fetchAllDevices = async (page = 1, filters = deviceFilters) => {
     try {
-      setIsLoading(true);
+      setIsDevicesLoading(true);
       const token = localStorage.getItem('authToken');
       
-      // Fetch all devices for the Devices tab
-      const response = await fetch(`${config.apiUrl}/api/admin/devices?page=1&limit=100`, {
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '12' // Show 12 devices per page (4 rows of 3)
+      });
+      
+      if (filters.status) params.append('status', filters.status);
+      if (filters.deviceType) params.append('deviceType', filters.deviceType);
+      if (filters.condition) params.append('condition', filters.condition);
+      
+      // Fetch devices with pagination and filters
+      const response = await fetch(`${config.apiUrl}/api/devices/admin/all?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -226,10 +248,15 @@ const AdminPage = () => {
       if (response.ok) {
         const data = await response.json();
         setAllDevices(data.devices || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalDevices(data.total || 0);
+        setCurrentPage(page);
         console.log('Fetched devices:', data.devices);
       } else {
         console.error('Failed to fetch all devices:', response.status);
         setAllDevices([]);
+        setTotalPages(1);
+        setTotalDevices(0);
         toast({
           title: "Error",
           description: "Failed to load devices",
@@ -239,13 +266,15 @@ const AdminPage = () => {
     } catch (error) {
       console.error('Error fetching all devices:', error);
       setAllDevices([]);
+      setTotalPages(1);
+      setTotalDevices(0);
       toast({
         title: "Error",
         description: "Failed to load devices",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsDevicesLoading(false);
     }
   };
 
@@ -535,7 +564,7 @@ const AdminPage = () => {
     if (!editingDevice) return;
     
     try {
-      setIsLoading(true);
+      setIsActionLoading(true);
       const token = localStorage.getItem('authToken');
       
       // First update the device status if it changed
@@ -634,9 +663,28 @@ const AdminPage = () => {
     }));
   };
 
+  const handleFilterChange = (filterType, value) => {
+    const newFilters = { ...deviceFilters, [filterType]: value };
+    setDeviceFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+    fetchAllDevices(1, newFilters);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    fetchAllDevices(page, deviceFilters);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = { status: '', deviceType: '', condition: '' };
+    setDeviceFilters(clearedFilters);
+    setCurrentPage(1);
+    fetchAllDevices(1, clearedFilters);
+  };
+
   const handleApproveDevice = async (device) => {
     try {
-      setIsLoading(true);
+      setIsActionLoading(true);
       const token = localStorage.getItem('authToken');
       
       const response = await fetch(`${config.apiUrl}/api/devices/${device._id}/status`, {
@@ -679,7 +727,7 @@ const AdminPage = () => {
 
   const handleRejectDevice = async (device) => {
     try {
-      setIsLoading(true);
+      setIsActionLoading(true);
       const token = localStorage.getItem('authToken');
       
       const response = await fetch(`${config.apiUrl}/api/devices/${device._id}/status`, {
@@ -729,7 +777,7 @@ const AdminPage = () => {
     if (!deviceToDelete) return;
     
     try {
-      setIsLoading(true);
+      setIsActionLoading(true);
       const token = localStorage.getItem('authToken');
       
       const response = await fetch(`${config.apiUrl}/api/devices/admin/${deviceToDelete._id}`, {
@@ -886,13 +934,13 @@ const AdminPage = () => {
         {selectedTab === "devices" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={fetchAllDevices} 
-              disabled={isLoading}
+              onClick={() => fetchAllDevices(currentPage, deviceFilters)} 
+              disabled={isDevicesLoading}
               variant="outline"
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${isDevicesLoading ? 'animate-spin' : ''}`} />
               Refresh Devices
             </Button>
           </div>
@@ -1160,6 +1208,70 @@ const AdminPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
+                  {/* Filter Controls */}
+                  <div className="mb-6 space-y-4">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Status:</Label>
+                        <Select value={deviceFilters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Type:</Label>
+                        <Select value={deviceFilters.deviceType} onValueChange={(value) => handleFilterChange('deviceType', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="laptop">Laptop</SelectItem>
+                            <SelectItem value="mobile">Mobile</SelectItem>
+                            <SelectItem value="tablet">Tablet</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Condition:</Label>
+                        <Select value={deviceFilters.condition} onValueChange={(value) => handleFilterChange('condition', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All</SelectItem>
+                            <SelectItem value="excellent">Excellent</SelectItem>
+                            <SelectItem value="good">Good</SelectItem>
+                            <SelectItem value="fair">Fair</SelectItem>
+                            <SelectItem value="poor">Poor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button onClick={clearFilters} variant="outline" size="sm">
+                        Clear Filters
+                      </Button>
+                    </div>
+                    
+                    {/* Results Summary */}
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                      <span>
+                        Showing {((currentPage - 1) * 12) + 1}-{Math.min(currentPage * 12, totalDevices)} of {totalDevices} devices
+                      </span>
+                      <span>Page {currentPage} of {totalPages}</span>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {allDevices.length > 0 ? (
                       allDevices.map((device: any) => (
@@ -1195,7 +1307,7 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleEditDevice(device)}
-                                  disabled={isLoading}
+                                  disabled={isActionLoading}
                                   className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100 disabled:opacity-50"
                                 >
                                   <Pencil className="w-3 h-3" />
@@ -1204,7 +1316,7 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleApproveDevice(device)}
-                                  disabled={isLoading}
+                                  disabled={isActionLoading}
                                   className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100 disabled:opacity-50"
                                 >
                                   <CheckCircle className="w-3 h-3" />
@@ -1213,7 +1325,7 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleRejectDevice(device)}
-                                  disabled={isLoading}
+                                  disabled={isActionLoading}
                                   className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
                                 >
                                   <XCircle className="w-3 h-3" />
@@ -1222,7 +1334,7 @@ const AdminPage = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => handleDeleteDevice(device)}
-                                  disabled={isLoading}
+                                  disabled={isActionLoading}
                                   className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
                                 >
                                   <Trash2 className="w-3 h-3" />
@@ -1235,10 +1347,61 @@ const AdminPage = () => {
                     ) : (
                       <div className="col-span-full text-center text-gray-500 py-8">
                         <Gift className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p>{isLoading ? 'Loading devices...' : 'No devices found'}</p>
+                        <p>{isDevicesLoading ? 'Loading devices...' : 'No devices found'}</p>
                       </div>
                     )}
                   </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex justify-center items-center gap-2">
+                      <Button 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || isDevicesLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Previous
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              disabled={isDevicesLoading}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || isDevicesLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
