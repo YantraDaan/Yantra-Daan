@@ -143,7 +143,16 @@ const AdminPage = () => {
   // Fetch all devices when Devices tab is selected
   useEffect(() => {
     if (selectedTab === "devices" && user && user.userRole === 'admin') {
-      fetchAllDevices();
+      try {
+        fetchAllDevices();
+      } catch (error) {
+        console.error('Error in useEffect for devices tab:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load devices tab",
+          variant: "destructive",
+        });
+      }
     }
   }, [selectedTab, user]);
 
@@ -228,18 +237,20 @@ const AdminPage = () => {
       setIsDevicesLoading(true);
       const token = localStorage.getItem('authToken');
       
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '12' // Show 12 devices per page (4 rows of 3)
-      });
+      // Build query parameters - start with basic parameters
+      const params = new URLSearchParams();
       
+      // Add pagination if supported
+      if (page > 1) params.append('page', page.toString());
+      params.append('limit', '12'); // Show 12 devices per page (4 rows of 3)
+      
+      // Add filters if they exist
       if (filters.status) params.append('status', filters.status);
       if (filters.deviceType) params.append('deviceType', filters.deviceType);
       if (filters.condition) params.append('condition', filters.condition);
       
       // Fetch devices with pagination and filters
-      const response = await fetch(`${config.apiUrl}/api/devices/admin/all?${params.toString()}`, {
+      const response = await fetch(`${config.apiUrl}/api/admin/devices?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -247,11 +258,18 @@ const AdminPage = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setAllDevices(data.devices || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalDevices(data.total || 0);
+        console.log('API Response:', data);
+        
+        // Handle different response structures
+        const devices = data.devices || data.data || [];
+        const total = data.total || data.count || devices.length;
+        const totalPages = data.totalPages || Math.ceil(total / 12) || 1;
+        
+        setAllDevices(devices);
+        setTotalPages(totalPages);
+        setTotalDevices(total);
         setCurrentPage(page);
-        console.log('Fetched devices:', data.devices);
+        console.log('Fetched devices:', devices);
       } else {
         console.error('Failed to fetch all devices:', response.status);
         setAllDevices([]);
@@ -259,7 +277,7 @@ const AdminPage = () => {
         setTotalDevices(0);
         toast({
           title: "Error",
-          description: "Failed to load devices",
+          description: `Failed to load devices (${response.status})`,
           variant: "destructive",
         });
       }
@@ -288,6 +306,12 @@ const AdminPage = () => {
   const handleTabChange = (value: string) => {
     console.log('Tab changed to:', value);
     setSelectedTab(value);
+    
+    // Debug logging for devices tab
+    if (value === "devices") {
+      console.log('Devices tab selected, user:', user);
+      console.log('User role:', user?.userRole);
+    }
   };
 
   const handleLogout = () => {
@@ -1347,7 +1371,7 @@ const AdminPage = () => {
                     ) : (
                       <div className="col-span-full text-center text-gray-500 py-8">
                         <Gift className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p>{isDevicesLoading ? 'Loading devices...' : 'No devices found'}</p>
+                        <p>{isDevicesLoading ? 'Loading devices...' : allDevices.length === 0 ? 'No devices found' : 'No devices match current filters'}</p>
                       </div>
                     )}
                   </div>
