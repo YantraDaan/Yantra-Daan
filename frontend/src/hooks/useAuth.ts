@@ -50,10 +50,10 @@ export const useAuth = () => {
           const data = await response.json();
           setIsTokenValid(data.valid);
           
-          if (!data.valid) {
-            // Token is invalid, logout user
-            auth.logout();
-          }
+          // if (!data.valid) {
+          //   // Token is invalid, logout user
+          //   auth.logout();
+          // }
         } else if (response.status === 404) {
           // Endpoint not found - backend might not be running
           console.warn('Token validation endpoint not found. Backend might not be running.');
@@ -115,7 +115,7 @@ export const useAuth = () => {
 
   // Check if user can access admin features
   const canAccessAdmin = useCallback(() => {
-    return isAdmin() || auth.user?.email === 'admin@techshare.com';
+    return isAdmin() || auth.user?.email === 'yantradaan@gmail.com';
   }, [isAdmin, auth.user]);
 
   return {
