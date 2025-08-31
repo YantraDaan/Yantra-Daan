@@ -109,6 +109,23 @@ const AdminPage = () => {
   const [isTeamMemberDetailsOpen, setIsTeamMemberDetailsOpen] = useState(false);
   const [selectedTeamMember, setSelectedTeamMember] = useState(null);
   
+  // Requester details dialog state
+  const [isRequesterDetailsOpen, setIsRequesterDetailsOpen] = useState(false);
+  const [selectedRequester, setSelectedRequester] = useState(null);
+  
+  // Requester data states
+  const [allRequesters, setAllRequesters] = useState([]);
+  const [isRequestersLoading, setIsRequestersLoading] = useState(false);
+  const [hasInitialRequesters, setHasInitialRequesters] = useState(false);
+  const [currentRequesterPage, setCurrentRequesterPage] = useState(1);
+  const [totalRequesterPages, setTotalRequesterPages] = useState(1);
+  const [totalRequesters, setTotalRequesters] = useState(0);
+  const [requesterFilters, setRequesterFilters] = useState({
+    status: 'all',
+    deviceType: 'all',
+    priority: 'all'
+  });
+  
   // Edit device dialog state
   const [isEditDeviceOpen, setIsEditDeviceOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
@@ -209,6 +226,24 @@ const AdminPage = () => {
       setHasInitialUsers(true);
     }
   }, [selectedTab, user, hasInitialUsers]);
+
+  // Load requesters data when Requests tab is first selected
+  useEffect(() => {
+    if (selectedTab === "dashboard" && user && user.userRole === 'admin' && !hasInitialRequesters) {
+      // Only load if requests tab is selected and hasn't been loaded yet
+      fetchAllRequesters();
+      setHasInitialRequesters(true);
+    }
+  }, [selectedTab, user, hasInitialRequesters]);
+
+  // Load requesters data when Requests tab is first selected
+  useEffect(() => {
+    if (selectedTab === "dashboard" && user && user.userRole === 'admin' && !hasInitialRequesters) {
+      // Only load if requests tab is selected and hasn't been loaded yet
+      fetchAllRequesters();
+      setHasInitialRequesters(true);
+    }
+  }, [selectedTab, user, hasInitialRequesters]);
 
   // No search functionality needed - data loads directly
 
@@ -414,7 +449,69 @@ const AdminPage = () => {
     }
   };
 
-
+  const fetchAllRequesters = async (page = 1, filters = requesterFilters) => {
+    try {
+      setIsRequestersLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      
+      // Add pagination
+      if (page > 1) params.append('page', page.toString());
+      params.append('limit', '12'); // Show 12 requesters per page (4 rows of 3)
+      
+      // Add filters if they exist and are not "all"
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.deviceType && filters.deviceType !== 'all') params.append('deviceType', filters.deviceType);
+      if (filters.priority && filters.priority !== 'all') params.append('priority', filters.priority);
+      
+      // Fetch requesters with pagination and filters
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/all?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Requesters API Response:', data);
+        
+        // Handle different response structures
+        const requesters = data.requests || data.data || [];
+        const total = data.total || data.count || requesters.length;
+        const totalPages = data.totalPages || Math.ceil(total / 12) || 1;
+        
+        setAllRequesters(requesters);
+        setTotalRequesterPages(totalPages);
+        setTotalRequesters(total);
+        setCurrentRequesterPage(page);
+        console.log('Fetched requesters:', requesters);
+      } else {
+        console.error('Failed to fetch all requesters:', response.status);
+        setAllRequesters([]);
+        setTotalRequesterPages(1);
+        setTotalRequesters(0);
+        toast({
+          title: "Error",
+          description: `Failed to load requesters (${response.status})`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching all requesters:', error);
+      setAllRequesters([]);
+      setTotalRequesterPages(1);
+      setTotalRequesters(0);
+      toast({
+        title: "Error",
+        description: "Failed to load requesters",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRequestersLoading(false);
+    }
+  };
 
   // Function to refresh all data
   const refreshAllData = async () => {
@@ -436,8 +533,9 @@ const AdminPage = () => {
 
   // Function to refresh requests tab
   const refreshRequestsTab = () => {
-    // Force re-render of AdminDashboard component
-    setSelectedTab("dashboard");
+    // Reset flag and refresh requesters data
+    setHasInitialRequesters(false);
+    fetchAllRequesters(currentRequesterPage, requesterFilters);
   };
 
   // Function to refresh team tab
@@ -722,6 +820,8 @@ const AdminPage = () => {
     setSelectedTeamMember(teamMember);
     setIsTeamMemberDetailsOpen(true);
   };
+
+
 
   const handleEditDevice = (device) => {
     console.log('Editing device:', device);
@@ -1233,6 +1333,198 @@ const AdminPage = () => {
     }));
   };
 
+  // Requester action functions
+
+  const handleRequesterFilterChange = (filterType, value) => {
+    const newFilters = { ...requesterFilters, [filterType]: value };
+    setRequesterFilters(newFilters);
+    setCurrentRequesterPage(1); // Reset to first page when filters change
+    fetchAllRequesters(1, newFilters);
+  };
+
+  const handleRequesterPageChange = (page) => {
+    setCurrentRequesterPage(page);
+    fetchAllRequesters(page, requesterFilters);
+  };
+
+  const clearRequesterFilters = () => {
+    const clearedFilters = { status: 'all', deviceType: 'all', priority: 'all' };
+    setRequesterFilters(clearedFilters);
+    setCurrentRequesterPage(1);
+    fetchAllRequesters(1, clearedFilters);
+  };
+
+  const handleDeleteRequester = async (requester) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/${requester._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Request Deleted",
+          description: `Request from "${requester.requesterInfo?.name || 'Unknown User'}" has been deleted successfully`,
+          variant: "default",
+        });
+        
+        // Refresh requesters data
+        if (selectedTab === "dashboard") {
+          fetchAllRequesters();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete request');
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleInterviewRequester = async (requester) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/${requester._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'interview',
+          adminNotes: 'Request scheduled for interview'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Interview Scheduled",
+          description: `Request from "${requester.requesterInfo?.name || 'Unknown User'}" has been scheduled for interview`,
+          variant: "default",
+        });
+        
+        // Refresh requesters data
+        if (selectedTab === "dashboard") {
+          fetchAllRequesters();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to schedule interview');
+      }
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to schedule interview",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRejectRequester = async (requester) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/${requester._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'rejected',
+          adminNotes: 'Request rejected by admin'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Request Rejected",
+          description: `Request from "${requester.requesterInfo?.name || 'Unknown User'}" has been rejected`,
+          variant: "default",
+        });
+        
+        // Refresh requesters data
+        if (selectedTab === "dashboard") {
+          fetchAllRequesters();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reject request');
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleApproveRequester = async (requester) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/device-requests/admin/${requester._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'approved',
+          adminNotes: 'Request approved by admin'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Request Approved",
+          description: `Request from "${requester.requesterInfo?.name || 'Unknown User'}" has been approved`,
+          variant: "default",
+        });
+        
+        // Refresh requesters data
+        if (selectedTab === "dashboard") {
+          fetchAllRequesters();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to approve request');
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const getDeviceIcon = (deviceType) => {
     switch (deviceType?.toLowerCase()) {
       case 'laptop':
@@ -1296,6 +1588,34 @@ const AdminPage = () => {
         return 'bg-red-100 text-red-800';
       case 'suspended':
         return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRequesterStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'interview':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRequesterPriorityBadgeColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'high':
+        return 'bg-red-100 text-red-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'low':
+        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -2139,18 +2459,231 @@ const AdminPage = () => {
 
           {/* Admin Dashboard Tab */}
           {selectedTab === "dashboard" && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Request Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground mb-6">Review and manage device requests</p>
-                <AdminDashboard />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              {/* Requester Details Grid */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Request Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {/* Filter Controls */}
+                  <div className="mb-6 space-y-4">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Status:</Label>
+                        <Select value={requesterFilters.status} onValueChange={(value) => handleRequesterFilterChange('status', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="interview">Interview</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Device Type:</Label>
+                        <Select value={requesterFilters.deviceType} onValueChange={(value) => handleRequesterFilterChange('deviceType', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="laptop">Laptop</SelectItem>
+                            <SelectItem value="mobile">Mobile</SelectItem>
+                            <SelectItem value="tablet">Tablet</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Priority:</Label>
+                        <Select value={requesterFilters.priority} onValueChange={(value) => handleRequesterFilterChange('priority', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button onClick={clearRequesterFilters} variant="outline" size="sm">
+                        Clear Filters
+                      </Button>
+                    </div>
+                    
+                    {/* Results Summary */}
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                      <span>
+                        Showing {((currentRequesterPage - 1) * 12) + 1}-{Math.min(currentRequesterPage * 12, totalRequesters)} of {totalRequesters} requests
+                      </span>
+                      <span>Page {currentRequesterPage} of {totalRequesterPages}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allRequesters.length > 0 ? (
+                      allRequesters.map((requester: any) => (
+                        <Card key={requester._id} className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:border-purple-300 transition-all duration-200 hover:shadow-md">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                                <User className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="flex gap-1">
+                                <Badge variant="secondary" className={getRequesterStatusBadgeColor(requester.status)}>
+                                  {requester.status || 'Pending'}
+                                </Badge>
+                                {requester.priority && (
+                                  <Badge variant="secondary" className={getRequesterPriorityBadgeColor(requester.priority)}>
+                                    {requester.priority}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-gray-900 text-sm">
+                                {requester.requesterInfo?.name || requester.requesterInfo?.firstName + ' ' + requester.requesterInfo?.lastName || 'Anonymous User'}
+                              </h4>
+                              <p className="text-xs text-gray-600">{requester.requesterInfo?.email || 'No email'}</p>
+                              {requester.requesterInfo?.contact && (
+                                <p className="text-xs text-gray-600">Phone: {requester.requesterInfo.contact}</p>
+                              )}
+                              {requester.deviceInfo && (
+                                <p className="text-xs text-gray-600">Device: {requester.deviceInfo.title || 'Unknown Device'}</p>
+                              )}
+                              {requester.message && (
+                                <p className="text-xs text-gray-600 line-clamp-2">"{requester.message}"</p>
+                              )}
+                            </div>
+                            <div className="mt-3 flex justify-between items-center">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showRequesterDetails(requester)}
+                                className="h-8 px-2 text-xs bg-purple-50 border-purple-200 hover:bg-purple-100"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                              <div className="flex gap-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleInterviewRequester(requester)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100 disabled:opacity-50"
+                                  title="Schedule Interview"
+                                >
+                                  <Calendar className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleApproveRequester(requester)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100 disabled:opacity-50"
+                                  title="Approve Request"
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleRejectRequester(requester)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                  title="Reject Request"
+                                >
+                                  <XCircle className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteRequester(requester)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                  title="Delete Request"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center text-gray-500 py-8">
+                        <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>{isRequestersLoading ? 'Loading requests...' : allRequesters.length === 0 ? 'No requests found' : 'No requests match current filters'}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalRequesterPages > 1 && (
+                    <div className="mt-6 flex justify-center items-center gap-2">
+                      <Button 
+                        onClick={() => handleRequesterPageChange(currentRequesterPage - 1)}
+                        disabled={currentRequesterPage === 1 || isRequestersLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Previous
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, totalRequesterPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalRequesterPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentRequesterPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentRequesterPage >= totalRequesterPages - 2) {
+                            pageNum = totalRequesterPages - 4 + i;
+                          } else {
+                            pageNum = currentRequesterPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              onClick={() => handleRequesterPageChange(pageNum)}
+                              disabled={isRequestersLoading}
+                              variant={currentRequesterPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleRequesterPageChange(currentRequesterPage + 1)}
+                        disabled={currentRequesterPage === totalRequesterPages || isRequestersLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Team Members Tab */}
