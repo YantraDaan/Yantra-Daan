@@ -100,7 +100,11 @@ const AdminPage = () => {
     location: {
       city: '',
       state: ''
-    }
+    },
+    brand: '',
+    model: '',
+    year: '',
+    specifications: ''
   });
   
   // Delete confirmation dialog state
@@ -600,7 +604,11 @@ const AdminPage = () => {
       location: {
         city: device.location?.city || '',
         state: device.location?.state || ''
-      }
+      },
+      brand: device.brand || '',
+      model: device.model || '',
+      year: device.year || '',
+      specifications: device.specifications || ''
     };
     console.log('Setting form data:', formData);
     setEditFormData(formData);
@@ -637,17 +645,20 @@ const AdminPage = () => {
         }
       }
       
-      // Now try to update other device details using the device update endpoint
-      // Note: This endpoint currently only allows owners to edit, but admin should have access
+      // Now update device details using the admin-specific endpoint
       const updateData = {
         title: editFormData.title,
         deviceType: editFormData.deviceType,
         condition: editFormData.condition,
         description: editFormData.description,
-        location: editFormData.location
+        location: editFormData.location,
+        brand: editFormData.brand,
+        model: editFormData.model,
+        year: editFormData.year,
+        specifications: editFormData.specifications
       };
       
-      const updateResponse = await fetch(`${config.apiUrl}/api/devices/${editingDevice._id}`, {
+      const updateResponse = await fetch(`${config.apiUrl}/api/devices/admin/${editingDevice._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -660,13 +671,6 @@ const AdminPage = () => {
         toast({
           title: "Success",
           description: "Device details updated successfully",
-          variant: "default",
-        });
-      } else if (updateResponse.status === 403) {
-        // If owner-only restriction, show status-only update message
-        toast({
-          title: "Partial Success",
-          description: "Device status updated. Full editing requires admin endpoint.",
           variant: "default",
         });
       } else {
@@ -687,7 +691,11 @@ const AdminPage = () => {
         location: {
           city: '',
           state: ''
-        }
+        },
+        brand: '',
+        model: '',
+        year: '',
+        specifications: ''
       });
       
       // Refresh devices data
@@ -2044,8 +2052,57 @@ const AdminPage = () => {
                   value={editFormData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Enter device description"
-                  rows={3}
+                  rows={4}
                 />
+              </div>
+
+              {/* Additional Device Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-brand">Brand</Label>
+                  <Input 
+                    id="edit-brand"
+                    value={editFormData.brand}
+                    onChange={(e) => handleInputChange('brand', e.target.value)}
+                    placeholder="Enter device brand"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-model">Model</Label>
+                  <Input 
+                    id="edit-model"
+                    value={editFormData.model}
+                    onChange={(e) => handleInputChange('model', e.target.value)}
+                    placeholder="Enter device model"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-year">Year</Label>
+                  <Input 
+                    id="edit-year"
+                    type="number"
+                    value={editFormData.year}
+                    onChange={(e) => handleInputChange('year', e.target.value)}
+                    placeholder="Enter manufacturing year"
+                    min="1990"
+                    max={new Date().getFullYear()}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-specifications">Technical Specifications</Label>
+                  <Textarea 
+                    id="edit-specifications"
+                    value={editFormData.specifications}
+                    onChange={(e) => handleInputChange('specifications', e.target.value)}
+                    placeholder="Enter technical specifications"
+                    rows={3}
+                  />
+                </div>
               </div>
 
               {/* Location Fields */}
