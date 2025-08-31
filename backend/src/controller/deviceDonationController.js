@@ -5,6 +5,9 @@ const UserModel = require('../models/UserModels');
 // Create a new device donation post
 const createDeviceDonation = async (req, res) => {
   try {
+    console.log('Creating device donation with data:', req.body);
+    console.log('User ID:', req.user._id);
+    
     const {
       title,
       description,
@@ -18,6 +21,7 @@ const createDeviceDonation = async (req, res) => {
 
     // Validate required fields only
     if (!title || !description || !deviceType || !condition) {
+      console.log('Missing required fields:', { title, description, deviceType, condition });
       return res.status(400).json({
         error: 'Missing required fields',
         required: ['title', 'description', 'deviceType', 'condition']
@@ -38,6 +42,7 @@ const createDeviceDonation = async (req, res) => {
       status: 'pending' // Always starts as pending for admin approval
     };
 
+    console.log('Device data to save:', deviceData);
     const device = new DeviceModel(deviceData);
     await device.save();
 

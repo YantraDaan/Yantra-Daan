@@ -775,9 +775,8 @@ router.post('/devices/upload-image', auth, requireRole(['admin']), deviceUpload.
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Generate the full URL for the uploaded image
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const imageUrl = `${baseUrl}/uploads/devices/${req.file.filename}`;
+    // Generate the relative path for the uploaded image (frontend will construct full URL)
+    const imageUrl = `devices/${req.file.filename}`;
     
     res.json({
       message: 'Device image uploaded successfully',

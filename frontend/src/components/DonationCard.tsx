@@ -139,42 +139,32 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
             src={getImageUrl(item.devicePhotos[0].url)}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-
-            // onError={(e) => {
-            //   console.log('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
-            //   console.log('Original image path:', item.devicePhotos[0].url);
-            //   console.log('Constructed URL:', getImageUrl(item.devicePhotos[0].url));
-            //   e.currentTarget.style.display = "none";
-            //   // Show fallback content
-            //   const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-            //   if (fallback) {
-            //     fallback.classList.remove('hidden');
-            //   }
-            // }
-          // }
-          //   onLoad={() => {
-          //     console.log('Image loaded successfully:', getImageUrl(item.devicePhotos[0].url));
-          //   }}
+            onError={(e) => {
+              console.error('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
+              const target = e.target as HTMLImageElement;
+              target.style.display = "none";
+              const fallback = target.parentElement?.querySelector('.image-fallback') as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+            onLoad={() => {
+              console.log('Image loaded successfully:', getImageUrl(item.devicePhotos[0].url));
+            }}
           />
         ) : item.images && item.images.length > 0 ? (
           <img
             src={getImageUrl(item.images[0])}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            // onError={(e) => {
-            //   console.log('Image failed to load:', getImageUrl(item.images[0]));
-            //   console.log('Original image path:', item.images[0]);
-            //   console.log('Constructed URL:', getImageUrl(item.images[0]));
-            //   e.currentTarget.style.display = "none";
-            //   // Show fallback content
-            //   const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-            //   if (fallback) {
-            //     fallback.classList.remove('hidden');
-            //   }
-            // }}
-            // onLoad={() => {
-            //   console.log('Image loaded successfully:', getImageUrl(item.images[0]));
-            // }}
+            onError={(e) => {
+              console.error('Image failed to load:', getImageUrl(item.images[0]));
+              const target = e.target as HTMLImageElement;
+              target.style.display = "none";
+              const fallback = target.parentElement?.querySelector('.image-fallback') as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+            onLoad={() => {
+              console.log('Image loaded successfully:', getImageUrl(item.images[0]));
+            }}
           />
         ) : null}
 
