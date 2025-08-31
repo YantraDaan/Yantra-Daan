@@ -586,8 +586,9 @@ const AdminPage = () => {
   };
 
   const handleEditDevice = (device) => {
+    console.log('Editing device:', device);
     setEditingDevice(device);
-    setEditFormData({
+    const formData = {
       title: device.title || '',
       deviceType: device.deviceType || '',
       condition: device.condition || '',
@@ -597,12 +598,17 @@ const AdminPage = () => {
         city: device.location?.city || '',
         state: device.location?.state || ''
       }
-    });
+    };
+    console.log('Setting form data:', formData);
+    setEditFormData(formData);
     setIsEditDeviceOpen(true);
   };
 
   const handleSaveDevice = async () => {
     if (!editingDevice) return;
+    
+    console.log('Saving device with data:', editFormData);
+    console.log('Original device:', editingDevice);
     
     try {
       setIsActionLoading(true);
@@ -873,6 +879,19 @@ const AdminPage = () => {
     }
   };
 
+  const getStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (!user || user.userRole !== 'admin') {
     return null;
   }
@@ -1042,43 +1061,43 @@ const AdminPage = () => {
             <div className="space-y-6">
               {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-gradient-to-br from-green-400 to-emerald-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-green-200 to-emerald-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-green-100">Total Users</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Users className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Total Users</CardTitle>
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Users className="h-4 w-4 text-green-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.totalUsers}</div>
-                    <p className="text-xs text-green-100">Registered users</p>
-                                          <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                        onClick={exportUsersToExcel}
-                        disabled={isRefreshLoading}
-                      >
-                        <Download className="w-3 h-3 mr-1" />
-                        Export Users
-                      </Button>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalUsers}</div>
+                    <p className="text-xs text-gray-600">Registered users</p>
+                                                                                     <Button 
+                         variant="outline" 
+                         size="sm" 
+                         className="mt-3 bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
+                         onClick={exportUsersToExcel}
+                         disabled={isRefreshLoading}
+                       >
+                         <Download className="w-3 h-3 mr-1" />
+                         Export Users
+                       </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-green-100">Total Devices</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Gift className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Total Devices</CardTitle>
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-blue-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.totalDevices}</div>
-                    <p className="text-xs text-green-100">Donated items</p>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalDevices}</div>
+                    <p className="text-xs text-gray-600">Donated items</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      className="mt-3 bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
                       onClick={exportDevicesToExcel}
                       disabled={isRefreshLoading}
                     >
@@ -1088,20 +1107,20 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-purple-200 to-purple-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-100">Total Requests</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Total Requests</CardTitle>
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-purple-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.totalRequests}</div>
-                    <p className="text-xs text-purple-100">Device requests</p>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalRequests}</div>
+                    <p className="text-xs text-gray-600">Device requests</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      className="mt-3 bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200"
                       onClick={exportRequestsToExcel}
                       disabled={isRefreshLoading}
                     >
@@ -1111,20 +1130,20 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-orange-200 to-orange-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-orange-100">Pending Approvals</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Pending Approvals</CardTitle>
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-orange-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.pendingDevices}</div>
-                    <p className="text-xs text-orange-100">Awaiting review</p>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.pendingDevices}</div>
+                    <p className="text-xs text-gray-600">Awaiting review</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      className="mt-3 bg-orange-100 border-orange-300 text-orange-700 hover:bg-orange-200"
                       onClick={() => setSelectedTab("devices")}
                     >
                       <Eye className="w-3 h-3 mr-1" />
@@ -1370,7 +1389,7 @@ const AdminPage = () => {
                               <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                                 {getDeviceIcon(device.deviceType)}
                               </div>
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className={getStatusBadgeColor(device.status)}>
                                 {device.status || 'Approved'}
                               </Badge>
                             </div>
