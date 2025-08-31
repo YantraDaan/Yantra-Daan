@@ -768,15 +768,16 @@ router.post('/team-members/upload-image', auth, requireRole(['admin']), teamMemb
   }
 });
 
-// Upload device image (for device donations/posts)
-router.post('/devices/upload-image', auth, deviceUpload.single('image'), async (req, res) => {
+// Upload device image (for device donations/posts) - Admin only
+router.post('/devices/upload-image', auth, requireRole(['admin']), deviceUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Generate the URL for the uploaded image
-    const imageUrl = `/uploads/devices/${req.file.filename}`;
+    // Generate the full URL for the uploaded image
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/uploads/devices/${req.file.filename}`;
     
     res.json({
       message: 'Device image uploaded successfully',

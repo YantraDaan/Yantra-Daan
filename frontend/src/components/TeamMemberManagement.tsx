@@ -39,6 +39,7 @@ interface TeamMember {
   bio: string;
   status: 'active' | 'inactive';
   createdAt: string;
+  updatedAt?: string;
   avatar?: string;
   socialLinks?: {
     linkedin: string;
@@ -47,7 +48,11 @@ interface TeamMember {
   };
 }
 
-const TeamMemberManagement = () => {
+interface TeamMemberManagementProps {
+  onShowMemberDetails?: (member: TeamMember) => void;
+}
+
+const TeamMemberManagement = ({ onShowMemberDetails }: TeamMemberManagementProps) => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -331,8 +336,14 @@ const TeamMemberManagement = () => {
   };
 
   const handleShowMemberDetails = (member: TeamMember) => {
-    setSelectedMemberForDetails(member);
-    setShowMemberDetails(true);
+    if (onShowMemberDetails) {
+      // Use parent function if provided
+      onShowMemberDetails(member);
+    } else {
+      // Fallback to local state
+      setSelectedMemberForDetails(member);
+      setShowMemberDetails(true);
+    }
   };
 
   const filteredMembers = teamMembers.filter(member => {
