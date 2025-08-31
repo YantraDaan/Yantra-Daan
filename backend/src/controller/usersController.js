@@ -423,40 +423,21 @@ const uploadProfilePhoto = async (req, res) => {
     }
     
     console.log("Uploading profile photo for user ID:", userId);
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
+    console.log("Request file:", req.file);
     
     // Check if file was uploaded
-    if (!req.files || !req.files.profilePhoto) {
+    if (!req.file) {
       return res.status(400).json({ error: "Profile photo file is required" });
     }
     
-    const uploadedFile = req.files.profilePhoto;
-    console.log("Uploaded file:", uploadedFile);
-    
-    // Generate unique filename
-    const timestamp = Date.now();
-    const fileExtension = uploadedFile.name.split('.').pop();
-    const filename = `profile_${userId}_${timestamp}.${fileExtension}`;
-    
-    // Move file to uploads directory
-    const uploadPath = `./uploads/${filename}`;
-    
-    // Ensure uploads directory exists
-    const fs = require('fs');
-    if (!fs.existsSync('./uploads')) {
-      fs.mkdirSync('./uploads', { recursive: true });
-    }
-    
-    await uploadedFile.mv(uploadPath);
-    console.log("File saved to:", uploadPath);
+    console.log("Uploaded file:", req.file);
     
     // Update user profile with photo info
     const photoInfo = {
-      filename: filename,
-      originalName: uploadedFile.name,
-      mimetype: uploadedFile.mimetype,
-      size: uploadedFile.size,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
       uploadDate: new Date()
     };
     

@@ -2437,8 +2437,23 @@ const AdminPage = () => {
                         <Card key={user._id} className="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-white" />
+                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center overflow-hidden">
+                                {user.profilePhoto?.filename ? (
+                                  <img 
+                                    src={`${config.apiUrl}/uploads/${user.profilePhoto.filename}`}
+                                    alt={user.name || 'User Profile'}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={`w-full h-full bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center ${user.profilePhoto?.filename ? 'hidden' : ''}`}>
+                                  <User className="w-5 h-5 text-white" />
+                                </div>
                               </div>
                               <div className="flex gap-1">
                                 <Badge variant="secondary" className={getUserRoleBadgeColor(user.userRole)}>
@@ -3302,6 +3317,42 @@ const AdminPage = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Profile Image */}
+              {selectedUser.profilePhoto?.filename && (
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <Image className="w-5 h-5 text-gray-600" />
+                      Profile Image
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="flex justify-center">
+                      <div className="w-32 h-32 bg-white rounded-lg border border-gray-200 overflow-hidden shadow-lg">
+                        <img 
+                          src={`${config.apiUrl}/uploads/${selectedUser.profilePhoto.filename}`}
+                          alt={selectedUser.name || 'User Profile'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Profile image failed to load:', `${config.apiUrl}/uploads/${selectedUser.profilePhoto.filename}`);
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                          onLoad={() => {
+                            console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/${selectedUser.profilePhoto.filename}`);
+                          }}
+                        />
+                        <div className="hidden w-full h-full bg-gradient-to-r from-gray-500 to-gray-600 rounded-lg flex items-center justify-center">
+                          <User className="w-16 h-16 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Contact Information */}
               <Card className="border border-gray-200 shadow-sm">

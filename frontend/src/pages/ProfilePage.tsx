@@ -322,54 +322,63 @@ const ProfilePage = () => {
   };
 
   const handleProfilePhotoUpload = async (file: File) => {
-    // if (!file) {
-    //   toast({
-    //     title: "No Photo Selected",
-    //     description: "Please select a photo to upload.",
-    //     variant: "destructive"
-    //   });
-    //   return;
-    // }
+    if (!file) {
+      toast({
+        title: "No Photo Selected",
+        description: "Please select a photo to upload.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // try {
-    //   const formData = new FormData();
-    //   formData.append('profilePhoto', file);
+    try {
+      const formData = new FormData();
+      formData.append('profilePhoto', file);
 
-    //   const response = await fetch(`http://localhost:5000/api/users/profile/photo`, {
-    //     method: 'POST',
-    //     headers: {
-    //       'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-    //     },
-    //     body: formData
-    //   });
+      console.log('Uploading profile photo:', file.name);
+      console.log('Using endpoint:', `${config.apiUrl}/api/users/upload-photo`);
 
-    //   if (response.ok) {
-    //     const result = await response.json();
-    //     toast({
-    //       title: "Photo Updated",
-    //       description: "Your profile photo has been successfully updated.",
-    //     });
+      const response = await fetch(`${config.apiUrl}/api/users/upload-photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: formData
+      });
+
+      console.log('Upload response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Upload response data:', result);
         
-    //     // Refresh user data to show new photo
-    //     if (result.user) {
-    //       // Update local storage with new user data
-    //       localStorage.setItem('authUser', JSON.stringify(result.user));
-    //       // Force page reload to show new photo
-    //       window.location.reload();
-    //     }
+        toast({
+          title: "Photo Updated",
+          description: "Your profile photo has been successfully updated.",
+        });
         
-    //     setProfilePhoto(null);
-    //   } else {
-    //     throw new Error('Failed to upload photo');
-    //   }
-    // } catch (error) {
-    //   toast({
-    //     title: "Upload Failed",
-    //     description: "Failed to upload profile photo. Please try again.",
-    //     variant: "destructive"
-    //   });
-    //   console.error("Photo upload error:", error);
-    // }
+        // Refresh user data to show new photo
+        if (result.user) {
+          // Update local storage with new user data
+          localStorage.setItem('authUser', JSON.stringify(result.user));
+          // Update user context
+          updateUser(result.user);
+        }
+        
+        setProfilePhoto(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Upload failed:', errorData);
+        throw new Error(errorData.error || 'Failed to upload photo');
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload profile photo. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Photo upload error:", error);
+    }
   };
 
   const handleCancelRequest = async (requestId: string) => {
@@ -571,13 +580,17 @@ const ProfilePage = () => {
                   {user.profilePhoto?.filename ? (
                     <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary">
                       <img 
-                        src=""
+                        src={`${config.apiUrl}/uploads/${user.profilePhoto.filename}`}
                         alt="Profile" 
                         className="w-full h-full object-cover"
                         onError={(e) => {
+                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
                           // Fallback to icon if image fails to load
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                        onLoad={() => {
+                          console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
                         }}
                       />
                       <div className={`w-full h-full bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center ${user.profilePhoto?.filename ? 'hidden' : ''}`}>

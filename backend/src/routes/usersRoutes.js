@@ -2,6 +2,7 @@ const { Router } = require('express');
 const UserModel = require('../models/UserModels');
 const PasswordResetTokenModel = require('../models/PasswordResetToken');
 const { auth, requireRole } = require('../middleware/auth');
+const { profileUpload } = require('../middleware/imageUpload');
 const { 
   getAllUsers, 
   getUserById,
@@ -24,7 +25,7 @@ router.post("/login", loginUser);
 // Protected routes (require authentication)
 router.get("/me", auth, getUserProfile);
 router.put("/me", auth, updateUserProfile);
-router.post("/upload-photo", auth, uploadProfilePhoto);
+router.post("/upload-photo", auth, profileUpload.single('profilePhoto'), uploadProfilePhoto);
 
 // Admin routes (require admin role)
 router.get('/', auth, requireRole(['admin']), async (req, res) => {
