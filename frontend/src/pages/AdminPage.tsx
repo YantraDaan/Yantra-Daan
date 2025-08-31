@@ -66,12 +66,15 @@ const AdminPage = () => {
   const [recentDonations, setRecentDonations] = useState([]);
   const [pendingDevices, setPendingDevices] = useState([]);
   const [allDevices, setAllDevices] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDevicesLoading, setIsDevicesLoading] = useState(false);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isRefreshLoading, setIsRefreshLoading] = useState(false);
   const [hasInitialData, setHasInitialData] = useState(false);
   const [hasInitialDevices, setHasInitialDevices] = useState(false);
+  const [hasInitialUsers, setHasInitialUsers] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
   
   // Device tab pagination and filter states
@@ -84,9 +87,23 @@ const AdminPage = () => {
     condition: 'all'
   });
   
+  // User tab pagination and filter states
+  const [currentUserPage, setCurrentUserPage] = useState(1);
+  const [totalUserPages, setTotalUserPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [userFilters, setUserFilters] = useState({
+    role: 'all',
+    status: 'all',
+    organization: 'all'
+  });
+  
   // Device details dialog state
   const [isDeviceDetailsOpen, setIsDeviceDetailsOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  
+  // User details dialog state
+  const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   
   // Edit device dialog state
   const [isEditDeviceOpen, setIsEditDeviceOpen] = useState(false);
@@ -155,6 +172,15 @@ const AdminPage = () => {
       setHasInitialDevices(true);
     }
   }, [selectedTab, user, hasInitialDevices]);
+
+  // Load users data when Users tab is first selected
+  useEffect(() => {
+    if (selectedTab === "users" && user && user.userRole === 'admin' && !hasInitialUsers) {
+      // Only load if users tab is selected and hasn't been loaded yet
+      fetchAllUsers();
+      setHasInitialUsers(true);
+    }
+  }, [selectedTab, user, hasInitialUsers]);
 
   // No search functionality needed - data loads directly
 
@@ -296,6 +322,70 @@ const AdminPage = () => {
     }
   };
 
+  const fetchAllUsers = async (page = 1, filters = userFilters) => {
+    try {
+      setIsUsersLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      
+      // Add pagination
+      if (page > 1) params.append('page', page.toString());
+      params.append('limit', '12'); // Show 12 users per page (4 rows of 3)
+      
+      // Add filters if they exist and are not "all"
+      if (filters.role && filters.role !== 'all') params.append('role', filters.role);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.organization && filters.organization !== 'all') params.append('organization', filters.organization);
+      
+      // Fetch users with pagination and filters
+      const response = await fetch(`${config.apiUrl}/api/admin/users?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Users API Response:', data);
+        
+        // Handle different response structures
+        const users = data.users || data.data || [];
+        const total = data.total || data.count || users.length;
+        const totalPages = data.totalPages || Math.ceil(total / 12) || 1;
+        
+        setAllUsers(users);
+        setTotalUserPages(totalPages);
+        setTotalUsers(total);
+        setCurrentUserPage(page);
+        console.log('Fetched users:', users);
+      } else {
+        console.error('Failed to fetch all users:', response.status);
+        setAllUsers([]);
+        setTotalUserPages(1);
+        setTotalUsers(0);
+        toast({
+          title: "Error",
+          description: `Failed to load users (${response.status})`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      setAllUsers([]);
+      setTotalUserPages(1);
+      setTotalUsers(0);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUsersLoading(false);
+    }
+  };
+
 
 
   // Function to refresh all data
@@ -311,8 +401,9 @@ const AdminPage = () => {
 
   // Function to refresh users tab
   const refreshUsersTab = () => {
-    // Force re-render of UserManagement component
-    setSelectedTab("users");
+    // Reset flag and refresh users data
+    setHasInitialUsers(false);
+    fetchAllUsers(currentUserPage, userFilters);
   };
 
   // Function to refresh requests tab
@@ -592,6 +683,12 @@ const AdminPage = () => {
     setIsDeviceDetailsOpen(true);
   };
 
+  const showUserDetails = (user) => {
+    // Show user details in popup
+    setSelectedUser(user);
+    setIsUserDetailsOpen(true);
+  };
+
   const handleEditDevice = (device) => {
     console.log('Editing device:', device);
     setEditingDevice(device);
@@ -738,6 +835,25 @@ const AdminPage = () => {
     setDeviceFilters(clearedFilters);
     setCurrentPage(1);
     fetchAllDevices(1, clearedFilters);
+  };
+
+  const handleUserFilterChange = (filterType, value) => {
+    const newFilters = { ...userFilters, [filterType]: value };
+    setUserFilters(newFilters);
+    setCurrentUserPage(1); // Reset to first page when filters change
+    fetchAllUsers(1, newFilters);
+  };
+
+  const handleUserPageChange = (page) => {
+    setCurrentUserPage(page);
+    fetchAllUsers(page, userFilters);
+  };
+
+  const clearUserFilters = () => {
+    const clearedFilters = { role: 'all', status: 'all', organization: 'all' };
+    setUserFilters(clearedFilters);
+    setCurrentUserPage(1);
+    fetchAllUsers(1, clearedFilters);
   };
 
   const handleApproveDevice = async (device) => {
@@ -913,6 +1029,32 @@ const AdminPage = () => {
         return 'bg-yellow-100 text-yellow-800';
       case 'poor':
         return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUserRoleBadgeColor = (role) => {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return 'bg-purple-100 text-purple-800';
+      case 'donor':
+        return 'bg-blue-100 text-blue-800';
+      case 'requester':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUserStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'inactive':
+        return 'bg-red-100 text-red-800';
+      case 'suspended':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -1543,18 +1685,182 @@ const AdminPage = () => {
 
           {/* Users Tab */}
           {selectedTab === "users" && (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  User Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground mb-6">Manage user accounts and roles</p>
-                <UserManagement />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              {/* User Details Grid */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    User Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {/* Filter Controls */}
+                  <div className="mb-6 space-y-4">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Role:</Label>
+                        <Select value={userFilters.role} onValueChange={(value) => handleUserFilterChange('role', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="donor">Donor</SelectItem>
+                            <SelectItem value="requester">Requester</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Status:</Label>
+                        <Select value={userFilters.status} onValueChange={(value) => handleUserFilterChange('status', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Organization:</Label>
+                        <Select value={userFilters.organization} onValueChange={(value) => handleUserFilterChange('organization', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button onClick={clearUserFilters} variant="outline" size="sm">
+                        Clear Filters
+                      </Button>
+                    </div>
+                    
+                    {/* Results Summary */}
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                      <span>
+                        Showing {((currentUserPage - 1) * 12) + 1}-{Math.min(currentUserPage * 12, totalUsers)} of {totalUsers} users
+                      </span>
+                      <span>Page {currentUserPage} of {totalUserPages}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allUsers.length > 0 ? (
+                      allUsers.map((user: any) => (
+                        <Card key={user._id} className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 hover:border-orange-300 transition-all duration-200 hover:shadow-md">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                                <User className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="flex gap-1">
+                                <Badge variant="secondary" className={getUserRoleBadgeColor(user.userRole)}>
+                                  {user.userRole || 'User'}
+                                </Badge>
+                                <Badge variant="secondary" className={getUserStatusBadgeColor(user.isActive ? 'active' : 'inactive')}>
+                                  {user.isActive ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-gray-900 text-sm">{user.name || user.firstName + ' ' + user.lastName || 'Anonymous User'}</h4>
+                              <p className="text-xs text-gray-600">{user.email || 'No email'}</p>
+                              {user.contact && (
+                                <p className="text-xs text-gray-600">Phone: {user.contact}</p>
+                              )}
+                              {user.profession && (
+                                <p className="text-xs text-gray-600">Profession: {user.profession}</p>
+                              )}
+                              {user.isOrganization && (
+                                <p className="text-xs text-gray-600 text-orange-600 font-medium">Organization Account</p>
+                              )}
+                            </div>
+                            <div className="mt-3 flex justify-end">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showUserDetails(user)}
+                                className="h-8 px-2 text-xs bg-orange-50 border-orange-200 hover:bg-orange-100"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center text-gray-500 py-8">
+                        <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>{isUsersLoading ? 'Loading users...' : allUsers.length === 0 ? 'No users found' : 'No users match current filters'}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalUserPages > 1 && (
+                    <div className="mt-6 flex justify-center items-center gap-2">
+                      <Button 
+                        onClick={() => handleUserPageChange(currentUserPage - 1)}
+                        disabled={currentUserPage === 1 || isUsersLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Previous
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, totalUserPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalUserPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentUserPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentUserPage >= totalUserPages - 2) {
+                            pageNum = totalUserPages - 4 + i;
+                          } else {
+                            pageNum = currentUserPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              onClick={() => handleUserPageChange(pageNum)}
+                              disabled={isUsersLoading}
+                              variant={currentUserPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handleUserPageChange(currentUserPage + 1)}
+                        disabled={currentUserPage === totalUserPages || isUsersLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Admin Dashboard Tab */}
@@ -1968,6 +2274,246 @@ const AdminPage = () => {
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   View in Devices Tab
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Dialog */}
+      <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <User className="w-6 h-6" />
+              User Details - {selectedUser?.name || selectedUser?.firstName + ' ' + selectedUser?.lastName || 'Unknown User'}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-6">
+              {/* User Basic Information */}
+              <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border border-orange-200">
+                <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  User Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-orange-700">Full Name</Label>
+                    <div className="p-3 bg-white rounded-lg border border-orange-100">
+                      <span className="font-medium text-lg text-gray-800">
+                        {selectedUser.name || selectedUser.firstName + ' ' + selectedUser.lastName || 'Anonymous User'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-orange-700">User Role</Label>
+                    <div className="p-3 bg-white rounded-lg border border-orange-100">
+                      <Badge variant="secondary" className={getUserRoleBadgeColor(selectedUser.userRole)}>
+                        {selectedUser.userRole || 'User'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-orange-700">Status</Label>
+                    <div className="p-3 bg-white rounded-lg border border-orange-100">
+                      <Badge variant="secondary" className={getUserStatusBadgeColor(selectedUser.isActive ? 'active' : 'inactive')}>
+                        {selectedUser.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-orange-700">User ID</Label>
+                    <div className="p-3 bg-white rounded-lg border border-orange-100">
+                      <span className="font-mono text-sm text-gray-600">{selectedUser._id || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Email Address</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-gray-800">{selectedUser.email || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Phone Number</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-gray-800">{selectedUser.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {selectedUser.firstName && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-blue-700">First Name</Label>
+                      <div className="p-3 bg-white rounded-lg border border-blue-100">
+                        <span className="font-medium text-gray-800">{selectedUser.firstName}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedUser.lastName && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-blue-700">Last Name</Label>
+                      <div className="p-3 bg-white rounded-lg border border-blue-100">
+                        <span className="font-medium text-gray-800">{selectedUser.lastName}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedUser.profession && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-blue-700">Profession</Label>
+                      <div className="p-3 bg-white rounded-lg border border-blue-100">
+                        <span className="font-medium text-gray-800">{selectedUser.profession}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Details */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Account Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-green-700">Organization Account</Label>
+                    <div className="p-3 bg-white rounded-lg border border-green-100">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-green-600" />
+                        <span className="font-medium text-gray-800">
+                          {selectedUser.isOrganization ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-green-700">Email Updates</Label>
+                    <div className="p-3 bg-white rounded-lg border border-green-100">
+                      <span className="font-medium text-gray-800">
+                        {selectedUser.emailUpdates ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-green-700">Account Status</Label>
+                    <div className="p-3 bg-white rounded-lg border border-green-100">
+                      <Badge variant="secondary" className={getUserStatusBadgeColor(selectedUser.isActive ? 'active' : 'inactive')}>
+                        {selectedUser.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Information */}
+              {selectedUser.location && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                  <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Location Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">City</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <span className="font-medium text-gray-800">{selectedUser.location.city || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">State</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <span className="font-medium text-gray-800">{selectedUser.location.state || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Account Metadata */}
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Account Metadata
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Last Login</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsUserDetailsOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsUserDetailsOpen(false);
+                    setSelectedTab("users");
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View in Users Tab
                 </Button>
               </div>
             </div>
