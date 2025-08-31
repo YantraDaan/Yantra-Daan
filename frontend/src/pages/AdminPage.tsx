@@ -356,6 +356,18 @@ const AdminPage = () => {
         const total = data.total || data.count || devices.length;
         const totalPages = data.totalPages || Math.ceil(total / 12) || 1;
         
+        // Debug device images
+        devices.forEach((device: any, index: number) => {
+          console.log(`Device ${index + 1}:`, {
+            id: device._id,
+            title: device.title,
+            images: device.images,
+            devicePhotos: device.devicePhotos,
+            hasImages: !!(device.images && device.images.length > 0),
+            hasDevicePhotos: !!(device.devicePhotos && device.devicePhotos.length > 0)
+          });
+        });
+        
         setAllDevices(devices);
         setTotalPages(totalPages);
         setTotalDevices(total);
@@ -1960,9 +1972,29 @@ const AdminPage = () => {
                         recentDonations.slice(0, 5).map((donation: any) => (
                           <div key={donation._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
-                                <Gift className="w-5 h-5 text-white" />
-                              </div>
+                              {/* Device Image Preview */}
+                              {(donation.images && donation.images.length > 0) || (donation.devicePhotos && donation.devicePhotos.length > 0) ? (
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden border border-gray-300">
+                                  <img 
+                                    src={(donation.images && donation.images[0]?.url) || (donation.devicePhotos && donation.devicePhotos[0]?.url) || ''}
+                                    alt={donation.title || 'Device'}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-xs">
+                                    <Gift className="w-4 h-4" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
+                                  <Gift className="w-5 h-5 text-white" />
+                                </div>
+                              )}
                               <div>
                                 <p className="font-medium text-sm text-gray-900">{donation.title || 'Untitled Device'}</p>
                                 <p className="text-xs text-gray-500">{donation.deviceType || 'Unknown Type'}</p>
@@ -2010,9 +2042,29 @@ const AdminPage = () => {
                         pendingDevices.slice(0, 5).map((device: any) => (
                           <div key={device._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
-                                <Smartphone className="w-5 h-5 text-white" />
-                              </div>
+                              {/* Device Image Preview */}
+                              {(device.images && device.images.length > 0) || (device.devicePhotos && device.devicePhotos.length > 0) ? (
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden border border-gray-300">
+                                  <img 
+                                    src={(device.images && device.images[0]?.url) || (device.devicePhotos && device.devicePhotos[0]?.url) || ''}
+                                    alt={device.title || 'Device'}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-xs">
+                                    <Smartphone className="w-4 h-4" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
+                                  <Smartphone className="w-5 h-5 text-white" />
+                                </div>
+                              )}
                               <div>
                                 <p className="font-medium text-sm text-gray-900">{device.title || 'Untitled Device'}</p>
                                 <p className="text-xs text-gray-500">{device.deviceType || 'Unknown Type'}</p>
@@ -2122,6 +2174,60 @@ const AdminPage = () => {
                       allDevices.map((device: any) => (
                         <Card key={device._id} className="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                           <CardContent className="p-4">
+                            {/* Device Image Preview */}
+                            {(() => {
+                              const hasImages = (device.images && device.images.length > 0) || (device.devicePhotos && device.devicePhotos.length > 0);
+                              const imageUrl = (device.images && device.images[0]?.url) || (device.devicePhotos && device.devicePhotos[0]?.url) || '';
+                              
+                              console.log(`Device ${device._id} image debug:`, {
+                                hasImages,
+                                imageUrl,
+                                images: device.images,
+                                devicePhotos: device.devicePhotos
+                              });
+                              
+                              if (hasImages && imageUrl) {
+                                return (
+                                  <div className="mb-3">
+                                    <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                      <img 
+                                        src={imageUrl}
+                                        alt={device.title || 'Device'}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          console.error('Image failed to load:', imageUrl);
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = 'none';
+                                          const fallback = target.nextElementSibling as HTMLElement;
+                                          if (fallback) fallback.style.display = 'flex';
+                                        }}
+                                        onLoad={() => {
+                                          console.log('Image loaded successfully:', imageUrl);
+                                        }}
+                                      />
+                                      <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
+                                        <div className="text-center">
+                                          <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                          <p>No Image</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <div className="mb-3">
+                                    <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                                      <div className="text-center text-gray-400">
+                                        <Image className="w-8 h-8 mx-auto mb-2" />
+                                        <p className="text-sm">No Image</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            })()}
+                            
                             <div className="flex items-center justify-between mb-3">
                               <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
                                 {getDeviceIcon(device.deviceType)}
@@ -3001,46 +3107,61 @@ const AdminPage = () => {
                 <CardHeader className="bg-gray-50 border-b border-gray-200">
                   <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
                     <Image className="w-5 h-5 text-gray-600" />
-                    Device Images ({selectedDevice.images && selectedDevice.images.length > 0 ? selectedDevice.images.length : 0})
+                    Device Images ({(() => {
+                      const totalImages = (selectedDevice.images && selectedDevice.images.length > 0 ? selectedDevice.images.length : 0) + 
+                                       (selectedDevice.devicePhotos && selectedDevice.devicePhotos.length > 0 ? selectedDevice.devicePhotos.length : 0);
+                      return totalImages;
+                    })()})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {selectedDevice.images && selectedDevice.images.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {selectedDevice.images.map((image: any, index: number) => (
-                          <div key={index} className="aspect-square bg-gray-100 rounded-md overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors group">
-                            <img 
-                              src={image} 
-                              alt={`Device ${index + 1}`}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const fallback = target.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
-                              <div className="text-center">
-                                <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                                <p>Image {index + 1}</p>
+                  {(() => {
+                    const allImages = [
+                      ...(selectedDevice.images || []).map((img: any) => typeof img === 'string' ? { url: img, caption: 'Device Image' } : img),
+                      ...(selectedDevice.devicePhotos || [])
+                    ];
+                    
+                    if (allImages.length > 0) {
+                      return (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {allImages.map((image: any, index: number) => (
+                              <div key={index} className="aspect-square bg-gray-100 rounded-md overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors group">
+                                <img 
+                                  src={image.url || image} 
+                                  alt={`Device ${index + 1}`}
+                                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                                <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
+                                  <div className="text-center">
+                                    <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                    <p>Image {index + 1}</p>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                      <div className="text-center text-sm text-gray-600">
-                        <p>Click on images to view larger versions</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Image className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500">No images available for this device</p>
-                      <p className="text-sm text-gray-400 mt-2">Images will appear here when uploaded by the owner</p>
-                    </div>
-                  )}
+                          <div className="text-center text-sm text-gray-600">
+                            <p>Click on images to view larger versions</p>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="text-center py-8">
+                          <Image className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                          <p className="text-gray-500">No images available for this device</p>
+                          <p className="text-sm text-gray-400 mt-2">Images will appear here when uploaded by the owner</p>
+                        </div>
+                      );
+                    }
+                  })()}
                 </CardContent>
               </Card>
 

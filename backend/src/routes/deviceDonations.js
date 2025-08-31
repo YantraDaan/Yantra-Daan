@@ -4,6 +4,7 @@ const { validateDevicePost } = require('../middleware/validation');
 const DeviceModel = require('../models/Device');
 const UserModel = require('../models/UserModels');
 const DeviceRequestModel = require('../models/DeviceRequest');
+const { deviceUpload } = require('../middleware/imageUpload');
 const {
   createDeviceDonation,
   getApprovedDeviceDonations,
@@ -32,6 +33,28 @@ router.delete('/my/:id', auth, deleteUserDeviceDonation);
 // Admin routes (require admin role)
 router.get('/admin/all', auth, requireRole(['admin']), getAllDeviceDonationsForAdmin);
 router.put('/admin/:id/status', auth, requireRole(['admin']), updateDeviceDonationStatus);
+
+// Image upload for device donations (authenticated users)
+router.post('/upload-image', auth, deviceUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Generate the full URL for the uploaded image
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const imageUrl = `${baseUrl}/uploads/devices/${req.file.filename}`;
+    
+    res.json({
+      message: 'Device image uploaded successfully',
+      imageUrl: imageUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Error uploading device image:', error);
+    res.status(500).json({ error: 'Failed to upload device image' });
+  }
+});
 
 // Get recent donations (public)
 router.get('/recent', async (req, res) => {

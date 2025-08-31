@@ -107,7 +107,7 @@ const DonatePage = () => {
           const formData = new FormData();
           formData.append('image', file);
 
-          const response = await fetch(`${config.apiUrl}/api/admin/devices/upload-image`, {
+          const response = await fetch(`${config.apiUrl}/api/device-donations/upload-image`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`

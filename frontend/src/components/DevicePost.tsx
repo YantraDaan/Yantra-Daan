@@ -79,7 +79,7 @@ const DevicePost: React.FC = () => {
     const files = event.target.files;
     if (files) {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken'); // Fixed: Changed from 'token' to 'authToken'
         if (!token) {
           toast({
             title: "Authentication Error",
@@ -95,23 +95,30 @@ const DevicePost: React.FC = () => {
           const formData = new FormData();
           formData.append('image', file);
 
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/devices/upload-image`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
-          });
+                  console.log('Uploading image:', file.name, 'to endpoint:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-donations/upload-image`);
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-donations/upload-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
 
-          if (response.ok) {
-            const data = await response.json();
-            uploadedImages.push({
-              url: data.imageUrl,
-              caption: file.name
-            });
-          } else {
-            throw new Error(`Failed to upload ${file.name}`);
-          }
+        console.log('Upload response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Upload response data:', data);
+          uploadedImages.push({
+            url: data.imageUrl,
+            caption: file.name
+          });
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Upload failed for', file.name, ':', errorData);
+          throw new Error(`Failed to upload ${file.name}: ${errorData.error || response.statusText}`);
+        }
         }
 
         setFormData(prev => ({
@@ -200,17 +207,29 @@ const DevicePost: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken'); // Fixed: Changed from 'token' to 'authToken'
+      const submissionData = {
+        ...formData,
+        // Ensure both images and devicePhotos are sent for compatibility
+        devicePhotos: formData.images
+      };
+      
+      console.log('Submitting device with data:', submissionData);
+      console.log('Using token:', token ? 'Present' : 'Missing');
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/device-donations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submissionData),
       });
 
+      console.log('Device submission response status:', response.status);
+      
       const data = await response.json();
+      console.log('Device submission response data:', data);
 
       if (response.ok) {
         toast({
@@ -233,6 +252,7 @@ const DevicePost: React.FC = () => {
         throw new Error(data.error || 'Failed to post device');
       }
     } catch (error) {
+      console.error('Device submission error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : 'Failed to post device',
