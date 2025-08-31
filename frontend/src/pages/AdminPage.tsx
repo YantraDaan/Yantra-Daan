@@ -63,9 +63,10 @@ const AdminPage = () => {
   const [recentDonations, setRecentDonations] = useState([]);
   const [pendingDevices, setPendingDevices] = useState([]);
   const [allDevices, setAllDevices] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDevicesLoading, setIsDevicesLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isRefreshLoading, setIsRefreshLoading] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
   
   // Device tab pagination and filter states
@@ -274,7 +275,30 @@ const AdminPage = () => {
 
   // Function to refresh all data
   const refreshAllData = async () => {
-    await fetchDashboardData();
+    try {
+      setIsRefreshLoading(true);
+      await fetchDashboardData();
+    } finally {
+      setIsRefreshLoading(false);
+    }
+  };
+
+  // Function to refresh users tab
+  const refreshUsersTab = () => {
+    // Force re-render of UserManagement component
+    setSelectedTab("users");
+  };
+
+  // Function to refresh requests tab
+  const refreshRequestsTab = () => {
+    // Force re-render of AdminDashboard component
+    setSelectedTab("dashboard");
+  };
+
+  // Function to refresh team tab
+  const refreshTeamTab = () => {
+    // Force re-render of TeamMemberManagement component
+    setSelectedTab("team");
   };
 
   const handleTabChange = (value: string) => {
@@ -650,7 +674,7 @@ const AdminPage = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -719,7 +743,7 @@ const AdminPage = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -762,7 +786,7 @@ const AdminPage = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
 
@@ -804,16 +828,16 @@ const AdminPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete device');
       }
-    } catch (error) {
-      console.error('Error deleting device:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete device",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+          } catch (error) {
+        console.error('Error deleting device:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete device",
+          variant: "destructive",
+        });
+      } finally {
+        setIsActionLoading(false);
+      }
   };
 
   const getDeviceIcon = (deviceType) => {
@@ -917,12 +941,12 @@ const AdminPage = () => {
           <div className="mb-6 flex justify-end">
             <Button 
               onClick={refreshAllData} 
-              disabled={isLoading}
+              disabled={isRefreshLoading}
               variant="outline"
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshLoading ? 'animate-spin' : ''}`} />
               Refresh Data
             </Button>
           </div>
@@ -948,7 +972,7 @@ const AdminPage = () => {
         {selectedTab === "users" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={() => window.location.reload()} 
+              onClick={refreshUsersTab} 
               variant="outline"
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200"
@@ -963,10 +987,10 @@ const AdminPage = () => {
         {selectedTab === "dashboard" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={() => window.location.reload()} 
+              onClick={refreshRequestsTab} 
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-purple-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200"
+              className="bg-white/80 backdrop-blur-sm border-purple-200 hover:border-purple-300 transition-all duration-200"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Requests
@@ -978,7 +1002,7 @@ const AdminPage = () => {
         {selectedTab === "team" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={() => window.location.reload()} 
+              onClick={refreshTeamTab} 
               variant="outline"
               size="sm"
               className="bg-white/80 backdrop-blur-sm border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
@@ -1006,16 +1030,16 @@ const AdminPage = () => {
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalUsers}</div>
                     <p className="text-xs text-blue-100">Registered users</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={exportUsersToExcel}
-                      disabled={isLoading}
-                    >
-                      <Download className="w-3 h-3 mr-1" />
-                      Export Users
-                    </Button>
+                                          <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                        onClick={exportUsersToExcel}
+                        disabled={isRefreshLoading}
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Export Users
+                      </Button>
                   </CardContent>
                 </Card>
 
@@ -1034,7 +1058,7 @@ const AdminPage = () => {
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
                       onClick={exportDevicesToExcel}
-                      disabled={isLoading}
+                      disabled={isRefreshLoading}
                     >
                       <Download className="w-3 h-3 mr-1" />
                       Export Devices
@@ -1057,7 +1081,7 @@ const AdminPage = () => {
                       size="sm" 
                       className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
                       onClick={exportRequestsToExcel}
-                      disabled={isLoading}
+                      disabled={isRefreshLoading}
                     >
                       <Download className="w-3 h-3 mr-1" /> 
                       Export Requests
