@@ -105,6 +105,10 @@ const AdminPage = () => {
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   
+  // Team member details dialog state
+  const [isTeamMemberDetailsOpen, setIsTeamMemberDetailsOpen] = useState(false);
+  const [selectedTeamMember, setSelectedTeamMember] = useState(null);
+  
   // Edit device dialog state
   const [isEditDeviceOpen, setIsEditDeviceOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
@@ -711,6 +715,12 @@ const AdminPage = () => {
     // Show user details in popup
     setSelectedUser(user);
     setIsUserDetailsOpen(true);
+  };
+
+  const showTeamMemberDetails = (teamMember) => {
+    // Show team member details in popup
+    setSelectedTeamMember(teamMember);
+    setIsTeamMemberDetailsOpen(true);
   };
 
   const handleEditDevice = (device) => {
@@ -2154,7 +2164,7 @@ const AdminPage = () => {
               </CardHeader>
               <CardContent className="p-6">
                 <p className="text-muted-foreground mb-6">Manage team members and roles</p>
-                <TeamMemberManagement />
+                <TeamMemberManagement onShowMemberDetails={showTeamMemberDetails} />
               </CardContent>
             </Card>
           )}
@@ -3209,6 +3219,253 @@ const AdminPage = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Team Member Details Dialog */}
+      <Dialog open={isTeamMemberDetailsOpen} onOpenChange={setIsTeamMemberDetailsOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <UserPlus className="w-6 h-6" />
+              Team Member Details - {selectedTeamMember?.name || 'Unknown Member'}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTeamMember && (
+            <div className="space-y-6">
+              {/* Team Member Basic Information */}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                <h3 className="text-lg font-semibold text-indigo-800 mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Team Member Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-indigo-700">Full Name</Label>
+                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                      <span className="font-medium text-lg text-gray-800">{selectedTeamMember.name || 'N/A'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-indigo-700">Role</Label>
+                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 border-indigo-200">
+                        {selectedTeamMember.role || 'N/A'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-indigo-700">Status</Label>
+                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                      <Badge variant="secondary" className={selectedTeamMember.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                        {selectedTeamMember.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-indigo-700">Member ID</Label>
+                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                      <span className="font-mono text-sm text-gray-600">{selectedTeamMember._id || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Email Address</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-gray-800">{selectedTeamMember.email || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Phone Number</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-gray-800">{selectedTeamMember.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio and Description */}
+              {selectedTeamMember.bio && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Biography & Description
+                  </h3>
+                  <div className="p-4 bg-white rounded-lg border border-green-100">
+                    <p className="text-sm leading-relaxed text-gray-700">{selectedTeamMember.bio}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Social Links */}
+              {selectedTeamMember.socialLinks && Object.values(selectedTeamMember.socialLinks).some(link => link) && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                  <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Social Media & Links
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {selectedTeamMember.socialLinks.linkedin && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">LinkedIn</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <a 
+                            href={selectedTeamMember.socialLinks.linkedin} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
+                          >
+                            View LinkedIn Profile
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedTeamMember.socialLinks.instagram && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Instagram</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <a 
+                            href={selectedTeamMember.socialLinks.instagram} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-pink-600 hover:text-pink-800 transition-colors font-medium"
+                          >
+                            View Instagram Profile
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedTeamMember.socialLinks.website && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Website</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <a 
+                            href={selectedTeamMember.socialLinks.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-800 transition-colors font-medium"
+                          >
+                            Visit Website
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Avatar/Profile Image */}
+              {selectedTeamMember.avatar && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
+                  <h3 className="text-lg font-semibold text-amber-800 mb-4 flex items-center gap-2">
+                    <Image className="w-5 h-5" />
+                    Profile Image
+                  </h3>
+                  <div className="flex justify-center">
+                    <div className="w-32 h-32 bg-white rounded-lg border border-amber-100 overflow-hidden shadow-lg">
+                      <img 
+                        src={selectedTeamMember.avatar} 
+                        alt={selectedTeamMember.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden w-full h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center">
+                        <User className="w-16 h-16 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Account Metadata */}
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Account Metadata
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Created Date</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedTeamMember.createdAt ? new Date(selectedTeamMember.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedTeamMember.updatedAt ? new Date(selectedTeamMember.updatedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsTeamMemberDetailsOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsTeamMemberDetailsOpen(false);
+                    setSelectedTab("team");
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View in Team Tab
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
