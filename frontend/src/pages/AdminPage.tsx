@@ -67,6 +67,8 @@ const AdminPage = () => {
   const [isDevicesLoading, setIsDevicesLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isRefreshLoading, setIsRefreshLoading] = useState(false);
+  const [hasInitialData, setHasInitialData] = useState(false);
+  const [hasInitialDevices, setHasInitialDevices] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
   
   // Device tab pagination and filter states
@@ -129,7 +131,23 @@ const AdminPage = () => {
     return () => clearTimeout(authCheckTimer);
   }, [user, navigate, toast]);
 
-  // No automatic data loading - data only loads when refresh buttons are clicked
+  // Load data automatically on first visit
+  useEffect(() => {
+    if (user && user.userRole === 'admin' && !hasInitialData) {
+      // Auto-load data on first visit only
+      fetchDashboardData();
+      setHasInitialData(true);
+    }
+  }, [user, hasInitialData]);
+
+  // Load devices data when Devices tab is first selected
+  useEffect(() => {
+    if (selectedTab === "devices" && user && user.userRole === 'admin' && !hasInitialDevices) {
+      // Only load if devices tab is selected and hasn't been loaded yet
+      fetchAllDevices();
+      setHasInitialDevices(true);
+    }
+  }, [selectedTab, user, hasInitialDevices]);
 
   // No search functionality needed - data loads directly
 
@@ -278,6 +296,7 @@ const AdminPage = () => {
     try {
       setIsRefreshLoading(true);
       await fetchDashboardData();
+      setHasInitialData(true); // Mark as loaded
     } finally {
       setIsRefreshLoading(false);
     }
@@ -956,7 +975,10 @@ const AdminPage = () => {
         {selectedTab === "devices" && (
           <div className="mb-6 flex justify-end">
             <Button 
-              onClick={() => fetchAllDevices(currentPage, deviceFilters)} 
+              onClick={() => {
+                setHasInitialDevices(false); // Reset flag to allow fresh load
+                fetchAllDevices(currentPage, deviceFilters);
+              }} 
               disabled={isDevicesLoading}
               variant="outline"
               size="sm"
