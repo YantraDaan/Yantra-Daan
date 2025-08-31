@@ -163,7 +163,7 @@ router.put('/users/:id/role', auth, requireRole(['admin']), async (req, res) => 
     const { id } = req.params;
     const { userRole } = req.body;
 
-    if (!['requester', 'donor', 'admin'].includes(userRole)) {
+    if (!['user', 'requester', 'donor', 'admin'].includes(userRole)) {
       return res.status(400).json({ error: 'Invalid user role' });
     }
 
@@ -206,6 +206,119 @@ router.put('/users/:id/role', auth, requireRole(['admin']), async (req, res) => 
   } catch (error) {
     console.error('Error updating user role:', error);
     res.status(500).json({ error: 'Failed to update user role' });
+  }
+});
+
+// Update user details (comprehensive update)
+router.put('/users/:id', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      name, 
+      firstName, 
+      lastName, 
+      email, 
+      contact, 
+      profession, 
+      userRole, 
+      isActive, 
+      isOrganization, 
+      emailUpdates, 
+      location 
+    } = req.body;
+
+    // Validate user role if provided
+    if (userRole && !['user', 'requester', 'donor', 'admin'].includes(userRole)) {
+      return res.status(400).json({ error: 'Invalid user role' });
+    }
+
+    // Check if email is being changed and if it's already taken
+    if (email) {
+      const existingUser = await UserModel.findOne({ email, _id: { $ne: id } });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (contact !== undefined) updateData.contact = contact;
+    if (profession !== undefined) updateData.profession = profession;
+    if (userRole !== undefined) updateData.userRole = userRole;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (isOrganization !== undefined) updateData.isOrganization = isOrganization;
+    if (emailUpdates !== undefined) updateData.emailUpdates = emailUpdates;
+    if (location !== undefined) updateData.location = location;
+
+    // Add admin notes and timestamp
+    updateData.adminNotes = `User updated by admin on ${new Date().toISOString()}`;
+    updateData.updatedAt = new Date();
+
+    const user = await UserModel.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ 
+      message: 'User updated successfully by admin', 
+      user 
+    });
+
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ 
+      error: 'Failed to update user', 
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Update user status (active/inactive toggle)
+router.put('/users/:id/status', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive, adminNotes } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ error: 'isActive must be a boolean value' });
+    }
+
+    const updateData = { 
+      isActive,
+      updatedAt: new Date()
+    };
+    
+    if (adminNotes) updateData.adminNotes = adminNotes;
+
+    const user = await UserModel.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+      user
+    });
+
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({
+      error: 'Failed to update user status',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 });
 

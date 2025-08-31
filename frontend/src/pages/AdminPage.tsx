@@ -124,9 +124,33 @@ const AdminPage = () => {
     specifications: ''
   });
   
+  // Edit user dialog state
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserFormData, setEditUserFormData] = useState({
+    name: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    contact: '',
+    profession: '',
+    userRole: '',
+    isActive: true,
+    isOrganization: false,
+    emailUpdates: true,
+    location: {
+      city: '',
+      state: ''
+    }
+  });
+  
   // Delete confirmation dialog state
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState(null);
+  
+  // Delete user confirmation dialog state
+  const [isDeleteUserConfirmOpen, setIsDeleteUserConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -992,6 +1016,213 @@ const AdminPage = () => {
       }
   };
 
+  // User action functions
+  const handleEditUser = (user) => {
+    console.log('Editing user:', user);
+    setEditingUser(user);
+    const formData = {
+      name: user.name || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      contact: user.contact || '',
+      profession: user.profession || '',
+      userRole: user.userRole || '',
+      isActive: user.isActive !== undefined ? user.isActive : true,
+      isOrganization: user.isOrganization || false,
+      emailUpdates: user.emailUpdates !== undefined ? user.emailUpdates : true,
+      location: {
+        city: user.location?.city || '',
+        state: user.location?.state || ''
+      }
+    };
+    console.log('Setting user form data:', formData);
+    setEditUserFormData(formData);
+    setIsEditUserOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    
+    console.log('Saving user with data:', editUserFormData);
+    console.log('Original user:', editingUser);
+    
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const updateData = {
+        name: editUserFormData.name,
+        firstName: editUserFormData.firstName,
+        lastName: editUserFormData.lastName,
+        email: editUserFormData.email,
+        contact: editUserFormData.contact,
+        profession: editUserFormData.profession,
+        userRole: editUserFormData.userRole,
+        isActive: editUserFormData.isActive,
+        isOrganization: editUserFormData.isOrganization,
+        emailUpdates: editUserFormData.emailUpdates,
+        location: editUserFormData.location
+      };
+      
+      const response = await fetch(`${config.apiUrl}/api/admin/users/${editingUser._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "User details updated successfully",
+          variant: "default",
+        });
+        
+        setIsEditUserOpen(false);
+        setEditingUser(null);
+        setEditUserFormData({
+          name: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          contact: '',
+          profession: '',
+          userRole: '',
+          isActive: true,
+          isOrganization: false,
+          emailUpdates: true,
+          location: {
+            city: '',
+            state: ''
+          }
+        });
+        
+        // Refresh users data
+        if (selectedTab === "users") {
+          fetchAllUsers();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user');
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleToggleUserStatus = async (user) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const newStatus = !user.isActive;
+      
+      const response = await fetch(`${config.apiUrl}/api/admin/users/${user._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          isActive: newStatus,
+          adminNotes: `User status ${newStatus ? 'activated' : 'deactivated'} by admin`
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: `User ${newStatus ? 'Activated' : 'Deactivated'}`,
+          description: `User "${user.name || user.firstName + ' ' + user.lastName}" has been ${newStatus ? 'activated' : 'deactivated'}`,
+          variant: "default",
+        });
+        
+        // Refresh users data
+        if (selectedTab === "users") {
+          fetchAllUsers();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user status');
+      }
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteUser = (user) => {
+    setUserToDelete(user);
+    setIsDeleteUserConfirmOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/admin/users/${userToDelete._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: "User Deleted",
+          description: `User "${userToDelete.name || userToDelete.firstName + ' ' + userToDelete.lastName}" has been deleted successfully`,
+          variant: "default",
+        });
+        
+        // Close dialog and reset state
+        setIsDeleteUserConfirmOpen(false);
+        setUserToDelete(null);
+        
+        // Refresh users data
+        if (selectedTab === "users") {
+          fetchAllUsers();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleUserInputChange = (field, value) => {
+    setEditUserFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const getDeviceIcon = (deviceType) => {
     switch (deviceType?.toLowerCase()) {
       case 'laptop':
@@ -1787,7 +2018,7 @@ const AdminPage = () => {
                                 <p className="text-xs text-gray-600 text-orange-600 font-medium">Organization Account</p>
                               )}
                             </div>
-                            <div className="mt-3 flex justify-end">
+                            <div className="mt-3 flex justify-between items-center">
                               <Button 
                                 variant="outline" 
                                 size="sm"
@@ -1796,6 +2027,39 @@ const AdminPage = () => {
                               >
                                 <Eye className="w-3 h-3" />
                               </Button>
+                              <div className="flex gap-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditUser(user)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100 disabled:opacity-50"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleToggleUserStatus(user)}
+                                  disabled={isActionLoading}
+                                  className={`h-8 px-2 text-xs disabled:opacity-50 ${
+                                    user.isActive 
+                                      ? 'bg-red-50 border-red-200 hover:bg-red-100' 
+                                      : 'bg-green-50 border-green-200 hover:bg-green-100'
+                                  }`}
+                                >
+                                  {user.isActive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(user)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -2724,6 +2988,224 @@ const AdminPage = () => {
                 className="bg-red-600 hover:bg-red-700"
               >
                 Delete Device
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" />
+              Edit User (Admin)
+            </DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              You can edit all user details including name, contact information, role, and account settings.
+            </p>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-name">Full Name</Label>
+                  <Input 
+                    id="edit-user-name"
+                    value={editUserFormData.name}
+                    onChange={(e) => handleUserInputChange('name', e.target.value)}
+                    placeholder="Enter full name"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-email">Email Address</Label>
+                  <Input 
+                    id="edit-user-email"
+                    type="email"
+                    value={editUserFormData.email}
+                    onChange={(e) => handleUserInputChange('email', e.target.value)}
+                    placeholder="Enter email address"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-firstName">First Name</Label>
+                  <Input 
+                    id="edit-user-firstName"
+                    value={editUserFormData.firstName}
+                    onChange={(e) => handleUserInputChange('firstName', e.target.value)}
+                    placeholder="Enter first name"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-lastName">Last Name</Label>
+                  <Input 
+                    id="edit-user-lastName"
+                    value={editUserFormData.lastName}
+                    onChange={(e) => handleUserInputChange('lastName', e.target.value)}
+                    placeholder="Enter last name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-contact">Phone Number</Label>
+                  <Input 
+                    id="edit-user-contact"
+                    value={editUserFormData.contact}
+                    onChange={(e) => handleUserInputChange('contact', e.target.value)}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-profession">Profession</Label>
+                  <Input 
+                    id="edit-user-profession"
+                    value={editUserFormData.profession}
+                    onChange={(e) => handleUserInputChange('profession', e.target.value)}
+                    placeholder="Enter profession"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-role">User Role</Label>
+                  <Select value={editUserFormData.userRole} onValueChange={(value) => handleUserInputChange('userRole', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="donor">Donor</SelectItem>
+                      <SelectItem value="requester">Requester</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-status">Account Status</Label>
+                  <Select value={editUserFormData.isActive.toString()} onValueChange={(value) => handleUserInputChange('isActive', value === 'true')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Active</SelectItem>
+                      <SelectItem value="false">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-organization">Organization Account</Label>
+                  <Select value={editUserFormData.isOrganization.toString()} onValueChange={(value) => handleUserInputChange('isOrganization', value === 'true')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select organization status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Yes</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-emailUpdates">Email Updates</Label>
+                  <Select value={editUserFormData.emailUpdates.toString()} onValueChange={(value) => handleUserInputChange('emailUpdates', value === 'true')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select email updates" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Enabled</SelectItem>
+                      <SelectItem value="false">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Location Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-city">City</Label>
+                  <Input 
+                    id="edit-user-city"
+                    value={editUserFormData.location.city}
+                    onChange={(e) => handleUserInputChange('location', { ...editUserFormData.location, city: e.target.value })}
+                    placeholder="Enter city"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-state">State</Label>
+                  <Input 
+                    id="edit-user-state"
+                    value={editUserFormData.location.state}
+                    onChange={(e) => handleUserInputChange('location', { ...editUserFormData.location, state: e.target.value })}
+                    placeholder="Enter state"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditUserOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveUser}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={isDeleteUserConfirmOpen} onOpenChange={setIsDeleteUserConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Confirm User Deletion
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete the user{" "}
+              <span className="font-semibold text-gray-900">
+                "{userToDelete?.name || userToDelete?.firstName + ' ' + userToDelete?.lastName || 'Unknown User'}"?
+              </span>
+            </p>
+            <p className="text-sm text-gray-500">
+              This action cannot be undone. The user account will be permanently removed from the system.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteUserConfirmOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmDeleteUser}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete User
               </Button>
             </div>
           </div>
