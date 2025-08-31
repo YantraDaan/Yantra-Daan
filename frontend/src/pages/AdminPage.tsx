@@ -915,7 +915,7 @@ const AdminPage = () => {
             <TabsList className="grid w-full grid-cols-5 h-16 bg-transparent border-0">
               <TabsTrigger 
                 value="overview" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-blue-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-400 data-[state=active]:to-emerald-400 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-green-50"
               >
                 <BarChart3 className="w-4 h-4" />
                 Overview
@@ -963,7 +963,7 @@ const AdminPage = () => {
               disabled={isRefreshLoading}
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+              className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshLoading ? 'animate-spin' : ''}`} />
               Refresh Data
@@ -1042,16 +1042,16 @@ const AdminPage = () => {
             <div className="space-y-6">
               {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-green-400 to-emerald-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-blue-100">Total Users</CardTitle>
+                    <CardTitle className="text-sm font-medium text-green-100">Total Users</CardTitle>
                     <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                       <Users className="h-4 w-4 text-white" />
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{dashboardStats.totalUsers}</div>
-                    <p className="text-xs text-blue-100">Registered users</p>
+                    <p className="text-xs text-green-100">Registered users</p>
                                           <Button 
                         variant="outline" 
                         size="sm" 
