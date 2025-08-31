@@ -278,6 +278,50 @@ router.put('/:id/status', auth, requireRole(['admin']), async (req, res) => {
   }
 });
 
+// Update device details (admin only)
+router.put('/admin/:id', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { title, deviceType, condition, description, location, brand, model, year, specifications } = req.body;
+    
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (deviceType !== undefined) updateData.deviceType = deviceType;
+    if (condition !== undefined) updateData.condition = condition;
+    if (description !== undefined) updateData.description = description;
+    if (location !== undefined) updateData.location = location;
+    if (brand !== undefined) updateData.brand = brand;
+    if (model !== undefined) updateData.model = model;
+    if (year !== undefined) updateData.year = year;
+    if (specifications !== undefined) updateData.specifications = specifications;
+    
+    // Add admin notes
+    updateData.adminNotes = `Device updated by admin on ${new Date().toISOString()}`;
+    updateData.updatedAt = new Date();
+
+    const device = await DeviceModel.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('ownerInfo', 'name email');
+
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    res.json({
+      message: 'Device updated successfully by admin',
+      device
+    });
+
+  } catch (error) {
+    console.error('Admin update device error:', error);
+    res.status(500).json({
+      error: 'Failed to update device',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 // Delete device (admin only)
 router.delete('/admin/:id', auth, requireRole(['admin']), async (req, res) => {
   try {

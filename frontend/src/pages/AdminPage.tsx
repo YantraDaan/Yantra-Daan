@@ -38,7 +38,14 @@ import {
   GraduationCap,
   User,
   Search,
-  Download
+  Download,
+  Pencil,
+  Trash2,
+  Laptop,
+  Tablet,
+  FileText,
+  Image,
+  Tag
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -58,12 +65,51 @@ const AdminPage = () => {
   
   const [recentDonations, setRecentDonations] = useState([]);
   const [pendingDevices, setPendingDevices] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [allDevices, setAllDevices] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDevicesLoading, setIsDevicesLoading] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isRefreshLoading, setIsRefreshLoading] = useState(false);
+  const [hasInitialData, setHasInitialData] = useState(false);
+  const [hasInitialDevices, setHasInitialDevices] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
+  
+  // Device tab pagination and filter states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDevices, setTotalDevices] = useState(0);
+  const [deviceFilters, setDeviceFilters] = useState({
+    status: 'all',
+    deviceType: 'all',
+    condition: 'all'
+  });
   
   // Device details dialog state
   const [isDeviceDetailsOpen, setIsDeviceDetailsOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  
+  // Edit device dialog state
+  const [isEditDeviceOpen, setIsEditDeviceOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    deviceType: '',
+    condition: '',
+    status: '',
+    description: '',
+    location: {
+      city: '',
+      state: ''
+    },
+    brand: '',
+    model: '',
+    year: '',
+    specifications: ''
+  });
+  
+  // Delete confirmation dialog state
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -72,37 +118,43 @@ const AdminPage = () => {
       // Only redirect if we're absolutely sure there's no valid user
       if (!user) {
         console.log('No user found, redirecting to admin login');
-      navigate('/admin-login');
-      return;
-    }
+        navigate('/admin-login');
+        return;
+      }
     
       // Check if user is admin
-    if (user.userRole !== 'admin') {
+      if (user.userRole !== 'admin') {
         console.log('User is not admin, redirecting to home');
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access the admin panel.",
-        variant: "destructive",
-      });
-      navigate('/');
-      return;
-    }
-    
-      // Fetch data if user is admin
-      if (user && user.userRole === 'admin') {
-        fetchDashboardData();
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access the admin panel.",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
       }
     }, 500); // 500ms delay to allow auth state to stabilize
 
     return () => clearTimeout(authCheckTimer);
-  }, [user, navigate, isLoading, toast]);
+  }, [user, navigate, toast]);
 
-  // Load data when user is available
+  // Load data automatically on first visit
   useEffect(() => {
-    if (user && user.userRole === 'admin') {
+    if (user && user.userRole === 'admin' && !hasInitialData) {
+      // Auto-load data on first visit only
       fetchDashboardData();
+      setHasInitialData(true);
     }
-  }, [user]);
+  }, [user, hasInitialData]);
+
+  // Load devices data when Devices tab is first selected
+  useEffect(() => {
+    if (selectedTab === "devices" && user && user.userRole === 'admin' && !hasInitialDevices) {
+      // Only load if devices tab is selected and hasn't been loaded yet
+      fetchAllDevices();
+      setHasInitialDevices(true);
+    }
+  }, [selectedTab, user, hasInitialDevices]);
 
   // No search functionality needed - data loads directly
 
@@ -180,16 +232,110 @@ const AdminPage = () => {
     }
   };
 
+  const fetchAllDevices = async (page = 1, filters = deviceFilters) => {
+    try {
+      setIsDevicesLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Build query parameters - start with basic parameters
+      const params = new URLSearchParams();
+      
+      // Add pagination if supported
+      if (page > 1) params.append('page', page.toString());
+      params.append('limit', '12'); // Show 12 devices per page (4 rows of 3)
+      
+      // Add filters if they exist and are not "all"
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.deviceType && filters.deviceType !== 'all') params.append('deviceType', filters.deviceType);
+      if (filters.condition && filters.condition !== 'all') params.append('condition', filters.condition);
+      
+      // Fetch devices with pagination and filters
+      const response = await fetch(`${config.apiUrl}/api/admin/devices?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        // Handle different response structures
+        const devices = data.devices || data.data || [];
+        const total = data.total || data.count || devices.length;
+        const totalPages = data.totalPages || Math.ceil(total / 12) || 1;
+        
+        setAllDevices(devices);
+        setTotalPages(totalPages);
+        setTotalDevices(total);
+        setCurrentPage(page);
+        console.log('Fetched devices:', devices);
+      } else {
+        console.error('Failed to fetch all devices:', response.status);
+        setAllDevices([]);
+        setTotalPages(1);
+        setTotalDevices(0);
+        toast({
+          title: "Error",
+          description: `Failed to load devices (${response.status})`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching all devices:', error);
+      setAllDevices([]);
+      setTotalPages(1);
+      setTotalDevices(0);
+      toast({
+        title: "Error",
+        description: "Failed to load devices",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDevicesLoading(false);
+    }
+  };
+
 
 
   // Function to refresh all data
   const refreshAllData = async () => {
-    await fetchDashboardData();
+    try {
+      setIsRefreshLoading(true);
+      await fetchDashboardData();
+      setHasInitialData(true); // Mark as loaded
+    } finally {
+      setIsRefreshLoading(false);
+    }
+  };
+
+  // Function to refresh users tab
+  const refreshUsersTab = () => {
+    // Force re-render of UserManagement component
+    setSelectedTab("users");
+  };
+
+  // Function to refresh requests tab
+  const refreshRequestsTab = () => {
+    // Force re-render of AdminDashboard component
+    setSelectedTab("dashboard");
+  };
+
+  // Function to refresh team tab
+  const refreshTeamTab = () => {
+    // Force re-render of TeamMemberManagement component
+    setSelectedTab("team");
   };
 
   const handleTabChange = (value: string) => {
     console.log('Tab changed to:', value);
     setSelectedTab(value);
+    
+    // Debug logging for devices tab
+    if (value === "devices") {
+      console.log('Devices tab selected, user:', user);
+      console.log('User role:', user?.userRole);
+    }
   };
 
   const handleLogout = () => {
@@ -381,7 +527,6 @@ const AdminPage = () => {
           'Device Title': request.deviceInfo?.title || 'Unknown Device',
           'Device Type': request.deviceInfo?.deviceType || 'Unknown',
           'Device Condition': request.deviceInfo?.condition || 'Unknown',
-          'Device Owner': request.deviceInfo?.ownerInfo?.name || 'Unknown',
           'Request Message': request.message || '',
           'Status': request.status || 'Pending',
           'Request Date': request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '',
@@ -447,6 +592,332 @@ const AdminPage = () => {
     setIsDeviceDetailsOpen(true);
   };
 
+  const handleEditDevice = (device) => {
+    console.log('Editing device:', device);
+    setEditingDevice(device);
+    const formData = {
+      title: device.title || '',
+      deviceType: device.deviceType || '',
+      condition: device.condition || '',
+      status: device.status || '',
+      description: device.description || '',
+      location: {
+        city: device.location?.city || '',
+        state: device.location?.state || ''
+      },
+      brand: device.brand || '',
+      model: device.model || '',
+      year: device.year || '',
+      specifications: device.specifications || ''
+    };
+    console.log('Setting form data:', formData);
+    setEditFormData(formData);
+    setIsEditDeviceOpen(true);
+  };
+
+  const handleSaveDevice = async () => {
+    if (!editingDevice) return;
+    
+    console.log('Saving device with data:', editFormData);
+    console.log('Original device:', editingDevice);
+    
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      // First update the device status if it changed
+      if (editFormData.status !== editingDevice.status) {
+        const statusResponse = await fetch(`${config.apiUrl}/api/devices/${editingDevice._id}/status`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            status: editFormData.status,
+            adminNotes: `Device updated by admin. New status: ${editFormData.status}`
+          }),
+        });
+
+        if (!statusResponse.ok) {
+          const errorData = await statusResponse.json();
+          throw new Error(errorData.error || 'Failed to update device status');
+        }
+      }
+      
+      // Now update device details using the admin-specific endpoint
+      const updateData = {
+        title: editFormData.title,
+        deviceType: editFormData.deviceType,
+        condition: editFormData.condition,
+        description: editFormData.description,
+        location: editFormData.location,
+        brand: editFormData.brand,
+        model: editFormData.model,
+        year: editFormData.year,
+        specifications: editFormData.specifications
+      };
+      
+      const updateResponse = await fetch(`${config.apiUrl}/api/devices/admin/${editingDevice._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (updateResponse.ok) {
+        toast({
+          title: "Success",
+          description: "Device details updated successfully",
+          variant: "default",
+        });
+      } else {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || 'Failed to update device details');
+      }
+      
+      console.log('Saving device:', editingDevice._id, editFormData);
+      
+      setIsEditDeviceOpen(false);
+      setEditingDevice(null);
+      setEditFormData({
+        title: '',
+        deviceType: '',
+        condition: '',
+        status: '',
+        description: '',
+        location: {
+          city: '',
+          state: ''
+        },
+        brand: '',
+        model: '',
+        year: '',
+        specifications: ''
+      });
+      
+      // Refresh devices data
+      if (selectedTab === "devices") {
+        fetchAllDevices();
+      }
+    } catch (error) {
+      console.error('Error saving device:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save device",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    const newFilters = { ...deviceFilters, [filterType]: value };
+    setDeviceFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+    fetchAllDevices(1, newFilters);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    fetchAllDevices(page, deviceFilters);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = { status: 'all', deviceType: 'all', condition: 'all' };
+    setDeviceFilters(clearedFilters);
+    setCurrentPage(1);
+    fetchAllDevices(1, clearedFilters);
+  };
+
+  const handleApproveDevice = async (device) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/devices/${device._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'approved',
+          adminNotes: 'Device approved by admin'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Approved",
+          description: `Device "${device.title}" has been approved successfully`,
+          variant: "default",
+        });
+        // Refresh devices data
+        if (selectedTab === "devices") {
+          fetchAllDevices();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to approve device');
+      }
+    } catch (error) {
+      console.error('Error approving device:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve device",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRejectDevice = async (device) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/devices/${device._id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: 'rejected',
+          adminNotes: 'Device rejected by admin'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Rejected",
+          description: `Device "${device.title}" has been rejected`,
+          variant: "default",
+        });
+        // Refresh devices data
+        if (selectedTab === "devices") {
+          fetchAllDevices();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reject device');
+      }
+    } catch (error) {
+      console.error('Error rejecting device:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject device",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteDevice = (device) => {
+    setDeviceToDelete(device);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteDevice = async () => {
+    if (!deviceToDelete) return;
+    
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/devices/admin/${deviceToDelete._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Device Deleted",
+          description: `Device "${deviceToDelete.title}" has been deleted successfully`,
+          variant: "default",
+        });
+        
+        // Close dialog and reset state
+        setIsDeleteConfirmOpen(false);
+        setDeviceToDelete(null);
+        
+        // Refresh devices data
+        if (selectedTab === "devices") {
+          fetchAllDevices();
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete device');
+      }
+          } catch (error) {
+        console.error('Error deleting device:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete device",
+          variant: "destructive",
+        });
+      } finally {
+        setIsActionLoading(false);
+      }
+  };
+
+  const getDeviceIcon = (deviceType) => {
+    switch (deviceType?.toLowerCase()) {
+      case 'laptop':
+        return <Laptop className="w-5 h-5 text-white" />;
+      case 'mobile':
+      case 'smartphone':
+        return <Smartphone className="w-5 h-5 text-white" />;
+      case 'tablet':
+        return <Tablet className="w-5 h-5 text-white" />;
+      default:
+        return <Gift className="w-5 h-5 text-white" />;
+    }
+  };
+
+  const getStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getConditionBadgeColor = (condition) => {
+    switch (condition?.toLowerCase()) {
+      case 'excellent':
+        return 'bg-green-100 text-green-800';
+      case 'good':
+        return 'bg-blue-100 text-blue-800';
+      case 'fair':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'poor':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (!user || user.userRole !== 'admin') {
     return null;
   }
@@ -489,7 +960,7 @@ const AdminPage = () => {
             <TabsList className="grid w-full grid-cols-5 h-16 bg-transparent border-0">
               <TabsTrigger 
                 value="overview" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-blue-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-400 data-[state=active]:to-emerald-400 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-green-50"
               >
                 <BarChart3 className="w-4 h-4" />
                 Overview
@@ -534,13 +1005,77 @@ const AdminPage = () => {
           <div className="mb-6 flex justify-end">
             <Button 
               onClick={refreshAllData} 
-              disabled={isLoading}
+              disabled={isRefreshLoading}
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
+              className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshLoading ? 'animate-spin' : ''}`} />
               Refresh Data
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Devices */}
+        {selectedTab === "devices" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={() => {
+                setHasInitialDevices(false); // Reset flag to allow fresh load
+                fetchAllDevices(currentPage, deviceFilters);
+              }} 
+              disabled={isDevicesLoading}
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isDevicesLoading ? 'animate-spin' : ''}`} />
+              Refresh Devices
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Users */}
+        {selectedTab === "users" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={refreshUsersTab} 
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Users
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Requests */}
+        {selectedTab === "dashboard" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={refreshRequestsTab} 
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-purple-200 hover:border-purple-300 transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Requests
+            </Button>
+          </div>
+        )}
+
+        {/* Refresh Button - Only for Team */}
+        {selectedTab === "team" && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              onClick={refreshTeamTab} 
+              variant="outline"
+              size="sm"
+              className="bg-white/80 backdrop-blur-sm border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Team
             </Button>
           </div>
         )}
@@ -552,45 +1087,45 @@ const AdminPage = () => {
             <div className="space-y-6">
               {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-green-200 to-emerald-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-blue-100">Total Users</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Users className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Total Users</CardTitle>
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <Users className="h-4 w-4 text-green-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.totalUsers}</div>
-                    <p className="text-xs text-blue-100">Registered users</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
-                      onClick={exportUsersToExcel}
-                      disabled={isLoading}
-                    >
-                      <Download className="w-3 h-3 mr-1" />
-                      Export Users
-                    </Button>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalUsers}</div>
+                    <p className="text-xs text-gray-600">Registered users</p>
+                                                                                     <Button 
+                         variant="outline" 
+                         size="sm" 
+                         className="mt-3 bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
+                         onClick={exportUsersToExcel}
+                         disabled={isRefreshLoading}
+                       >
+                         <Download className="w-3 h-3 mr-1" />
+                         Export Users
+                       </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-green-100">Total Devices</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Gift className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Total Devices</CardTitle>
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-blue-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.totalDevices}</div>
-                    <p className="text-xs text-green-100">Donated items</p>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalDevices}</div>
+                    <p className="text-xs text-gray-600">Donated items</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      className="mt-3 bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
                       onClick={exportDevicesToExcel}
-                      disabled={isLoading}
+                      disabled={isRefreshLoading}
                     >
                       <Download className="w-3 h-3 mr-1" />
                       Export Devices
@@ -598,43 +1133,43 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-purple-200 to-purple-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-100">Total Requests</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Total Requests</CardTitle>
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-purple-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.totalRequests}</div>
-                    <p className="text-xs text-purple-100">Device requests</p>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalRequests}</div>
+                    <p className="text-xs text-gray-600">Device requests</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      className="mt-3 bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200"
                       onClick={exportRequestsToExcel}
-                      disabled={isLoading}
+                      disabled={isRefreshLoading}
                     >
-                      <Download className="w-3 h-3 mr-1" />
+                      <Download className="w-3 h-3 mr-1" /> 
                       Export Requests
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-gradient-to-br from-orange-200 to-orange-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-orange-100">Pending Approvals</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Pending Approvals</CardTitle>
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-orange-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{dashboardStats.pendingDevices}</div>
-                    <p className="text-xs text-orange-100">Awaiting review</p>
+                    <div className="text-3xl font-bold text-gray-800">{dashboardStats.pendingDevices}</div>
+                    <p className="text-xs text-gray-600">Awaiting review</p>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-white/20 border-white/30 text-white hover:bg-white/30"
+                      className="mt-3 bg-orange-100 border-orange-300 text-orange-700 hover:bg-orange-200"
                       onClick={() => setSelectedTab("devices")}
                     >
                       <Eye className="w-3 h-3 mr-1" />
@@ -797,18 +1332,213 @@ const AdminPage = () => {
 
           {/* Devices Tab */}
           {selectedTab === "devices" && (
+            <div className="space-y-6">
+              {/* Device Details Grid */}
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Smartphone className="w-5 h-5" />
-                  Device Management
+                    <Gift className="w-5 h-5" />
+                    Device Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <p className="text-muted-foreground mb-6">Manage all device donations and approvals</p>
-                <DeviceManagement />
+                  {/* Filter Controls */}
+                  <div className="mb-6 space-y-4">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Status:</Label>
+                        <Select value={deviceFilters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Type:</Label>
+                        <Select value={deviceFilters.deviceType} onValueChange={(value) => handleFilterChange('deviceType', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="laptop">Laptop</SelectItem>
+                            <SelectItem value="mobile">Mobile</SelectItem>
+                            <SelectItem value="tablet">Tablet</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">Condition:</Label>
+                        <Select value={deviceFilters.condition} onValueChange={(value) => handleFilterChange('condition', value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="excellent">Excellent</SelectItem>
+                            <SelectItem value="good">Good</SelectItem>
+                            <SelectItem value="fair">Fair</SelectItem>
+                            <SelectItem value="poor">Poor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button onClick={clearFilters} variant="outline" size="sm">
+                        Clear Filters
+                      </Button>
+                    </div>
+                    
+                    {/* Results Summary */}
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                      <span>
+                        Showing {((currentPage - 1) * 12) + 1}-{Math.min(currentPage * 12, totalDevices)} of {totalDevices} devices
+                      </span>
+                      <span>Page {currentPage} of {totalPages}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allDevices.length > 0 ? (
+                      allDevices.map((device: any) => (
+                        <Card key={device._id} className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:border-green-300 transition-all duration-200 hover:shadow-md">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                                {getDeviceIcon(device.deviceType)}
+                              </div>
+                              <Badge variant="secondary" className={getStatusBadgeColor(device.status)}>
+                                {device.status || 'Approved'}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-gray-900 text-sm">{device.title || 'Untitled Device'}</h4>
+                              <p className="text-xs text-gray-600">{device.deviceType || 'Unknown Type'}</p>
+                              <p className="text-xs text-gray-600">Condition: {device.condition || 'Unknown'}</p>
+                              {device.ownerInfo && (
+                                <p className="text-xs text-gray-600">Owner: {device.ownerInfo.name || 'Anonymous'}</p>
+                              )}
+                            </div>
+                            <div className="mt-3 flex justify-between items-center">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => showDeviceDetails(device)}
+                                className="h-8 px-2 text-xs"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                              <div className="flex gap-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditDevice(device)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100 disabled:opacity-50"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleApproveDevice(device)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100 disabled:opacity-50"
+                                >
+                                  <CheckCircle className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleRejectDevice(device)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                >
+                                  <XCircle className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteDevice(device)}
+                                  disabled={isActionLoading}
+                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
               </CardContent>
             </Card>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center text-gray-500 py-8">
+                        <Gift className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>{isDevicesLoading ? 'Loading devices...' : allDevices.length === 0 ? 'No devices found' : 'No devices match current filters'}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex justify-center items-center gap-2">
+                      <Button 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || isDevicesLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Previous
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              disabled={isDevicesLoading}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button 
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || isDevicesLoading}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Users Tab */}
@@ -863,154 +1593,594 @@ const AdminPage = () => {
 
       {/* Device Details Dialog */}
       <Dialog open={isDeviceDetailsOpen} onOpenChange={setIsDeviceDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5" />
-              Device Details
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Smartphone className="w-6 h-6" />
+              Device Details - {selectedDevice?.title || 'Unknown Device'}
             </DialogTitle>
           </DialogHeader>
           {selectedDevice && (
             <div className="space-y-6">
-              {/* Device Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Title</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium text-lg">{selectedDevice.title}</span>
+              {/* Device Basic Information */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  Device Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Device Title</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <span className="font-medium text-lg text-gray-800">{selectedDevice.title || 'Untitled'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Device Type</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        {getDeviceIcon(selectedDevice.deviceType)}
+                        <span className="font-medium text-gray-800 capitalize">{selectedDevice.deviceType || 'Unknown'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Condition</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <Badge variant="secondary" className={getConditionBadgeColor(selectedDevice.condition)}>
+                        {selectedDevice.condition || 'Unknown'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Status</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <Badge variant="secondary" className={getStatusBadgeColor(selectedDevice.status)}>
+                        {selectedDevice.status || 'Unknown'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Type</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{selectedDevice.deviceType}</span>
+                {/* Additional Device Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Device ID</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <span className="font-mono text-sm text-gray-600">{selectedDevice._id || 'N/A'}</span>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Condition</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{selectedDevice.condition}</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {selectedDevice.status}
-                    </Badge>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Category</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <span className="font-medium text-gray-800 capitalize">{selectedDevice.category || 'General'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Device Description */}
               {selectedDevice.description && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Description</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm leading-relaxed">{selectedDevice.description}</p>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Device Description
+                  </h3>
+                  <div className="p-4 bg-white rounded-lg border border-green-100">
+                    <p className="text-sm leading-relaxed text-gray-700">{selectedDevice.description}</p>
                   </div>
                 </div>
               )}
 
-              {/* Device Owner Information */}
-              {selectedDevice.ownerInfo && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Owner</Label>
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{selectedDevice.ownerInfo.name || 'N/A'}</span>
+              {/* Additional Device Specifications */}
+              {(selectedDevice.specifications || selectedDevice.brand || selectedDevice.model || selectedDevice.year) && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
+                  <h3 className="text-lg font-semibold text-amber-800 mb-4 flex items-center gap-2">
+                    <Tag className="w-5 h-5" />
+                    Additional Specifications
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {selectedDevice.brand && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-amber-700">Brand</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.brand}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{selectedDevice.ownerInfo.email || 'N/A'}</span>
+                    )}
+                    
+                    {selectedDevice.model && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-amber-700">Model</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.model}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
+                    )}
+                    
+                    {selectedDevice.year && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-amber-700">Year</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.year}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    
+                    {selectedDevice.specifications && (
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <Label className="text-sm font-medium text-amber-700">Technical Specifications</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <p className="text-sm text-gray-700">{selectedDevice.specifications}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+
+              {/* Comprehensive Owner Information */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Owner Information
+                </h3>
+                {selectedDevice.ownerInfo ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">Full Name</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.name || selectedDevice.ownerInfo.firstName + ' ' + selectedDevice.ownerInfo.lastName || 'Anonymous'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">Email Address</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.email || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">Phone Number</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedDevice.ownerInfo.firstName && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">First Name</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.firstName}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.lastName && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Last Name</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.lastName}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.profession && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Profession</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.profession}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.isOrganization && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Organization</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-purple-600" />
+                            <span className="font-medium text-gray-800">Yes</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.location && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Owner Location</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-purple-600" />
+                            <span className="font-medium text-gray-800">
+                              {selectedDevice.ownerInfo.location.city && selectedDevice.ownerInfo.location.state 
+                                ? `${selectedDevice.ownerInfo.location.city}, ${selectedDevice.ownerInfo.location.state}`
+                                : 'N/A'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-white rounded-lg border border-purple-100">
+                    <p className="text-gray-500 text-center">No owner information available</p>
+                  </div>
+                )}
+              </div>
 
               {/* Device Location */}
               {selectedDevice.location && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Location</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">
-                      {selectedDevice.location.city}, {selectedDevice.location.state}
-                    </span>
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border border-orange-200">
+                  <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Location Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-orange-700">City</Label>
+                      <div className="p-3 bg-white rounded-lg border border-orange-100">
+                        <span className="font-medium text-gray-800">{selectedDevice.location.city || 'N/A'}</span>
+                  </div>
+                </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-orange-700">State</Label>
+                      <div className="p-3 bg-white rounded-lg border border-orange-100">
+                        <span className="font-medium text-gray-800">{selectedDevice.location.state || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    {selectedDevice.location.country && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-orange-700">Country</Label>
+                        <div className="p-3 bg-white rounded-lg border border-orange-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.location.country}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Device Images */}
-              {selectedDevice.images && selectedDevice.images.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Images</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {selectedDevice.images.map((image: any, index: number) => (
-                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                        <img 
-                          src={image} 
-                          alt={`Device ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                <h3 className="text-lg font-semibold text-indigo-800 mb-4 flex items-center gap-2">
+                  <Image className="w-5 h-5" />
+                  Device Images ({selectedDevice.images && selectedDevice.images.length > 0 ? selectedDevice.images.length : 0})
+                </h3>
+                {selectedDevice.images && selectedDevice.images.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {selectedDevice.images.map((image: any, index: number) => (
+                        <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-indigo-100 hover:border-indigo-300 transition-colors group">
+                          <img 
+                            src={image} 
+                            alt={`Device ${index + 1}`}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
+                            <div className="text-center">
+                              <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                              <p>Image {index + 1}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center text-sm text-indigo-600">
+                      <p>Click on images to view larger versions</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-8">
+                    <Image className="w-16 h-16 mx-auto mb-4 text-indigo-300" />
+                    <p className="text-gray-500">No images available for this device</p>
+                    <p className="text-sm text-gray-400 mt-2">Images will appear here when uploaded by the owner</p>
+                  </div>
+                )}
+              </div>
 
               {/* Device Metadata */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Created Date</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">
-                      {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString() : 'N/A'}
-                    </span>
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Device Metadata
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Created Date</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Last Updated</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">
-                      {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString() : 'N/A'}
-                    </span>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsDeviceDetailsOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Close
                 </Button>
                 <Button 
                   onClick={() => {
                     setIsDeviceDetailsOpen(false);
+                    handleEditDevice(selectedDevice);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Device
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsDeviceDetailsOpen(false);
                     setSelectedTab("devices");
                   }}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
+                  <Eye className="w-4 h-4 mr-2" />
                   View in Devices Tab
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Device Dialog */}
+      <Dialog open={isEditDeviceOpen} onOpenChange={setIsEditDeviceOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" />
+              Edit Device (Admin)
+            </DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              You can edit all device details including title, type, condition, status, description, and location.
+            </p>
+          </DialogHeader>
+          {editingDevice && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Device Title</Label>
+                  <Input 
+                    id="edit-title"
+                    value={editFormData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="Enter device title"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-type">Device Type</Label>
+                  <Select value={editFormData.deviceType} onValueChange={(value) => handleInputChange('deviceType', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select device type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="laptop">Laptop</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                      <SelectItem value="tablet">Tablet</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-condition">Condition</Label>
+                  <Select value={editFormData.condition} onValueChange={(value) => handleInputChange('condition', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="excellent">Excellent</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Poor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select value={editFormData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea 
+                  id="edit-description"
+                  value={editFormData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Enter device description"
+                  rows={4}
+                />
+              </div>
+
+              {/* Additional Device Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-brand">Brand</Label>
+                  <Input 
+                    id="edit-brand"
+                    value={editFormData.brand}
+                    onChange={(e) => handleInputChange('brand', e.target.value)}
+                    placeholder="Enter device brand"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-model">Model</Label>
+                  <Input 
+                    id="edit-model"
+                    value={editFormData.model}
+                    onChange={(e) => handleInputChange('model', e.target.value)}
+                    placeholder="Enter device model"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-year">Year</Label>
+                  <Input 
+                    id="edit-year"
+                    type="number"
+                    value={editFormData.year}
+                    onChange={(e) => handleInputChange('year', e.target.value)}
+                    placeholder="Enter manufacturing year"
+                    min="1990"
+                    max={new Date().getFullYear()}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-specifications">Technical Specifications</Label>
+                  <Textarea 
+                    id="edit-specifications"
+                    value={editFormData.specifications}
+                    onChange={(e) => handleInputChange('specifications', e.target.value)}
+                    placeholder="Enter technical specifications"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Location Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-city">City</Label>
+                  <Input 
+                    id="edit-city"
+                    value={editFormData.location.city}
+                    onChange={(e) => handleInputChange('location', { ...editFormData.location, city: e.target.value })}
+                    placeholder="Enter city"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-state">State</Label>
+                  <Input 
+                    id="edit-state"
+                    value={editFormData.location.state}
+                    onChange={(e) => handleInputChange('location', { ...editFormData.location, state: e.target.value })}
+                    placeholder="Enter state"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditDeviceOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveDevice}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Confirm Deletion
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete the device{" "}
+              <span className="font-semibold text-gray-900">
+                "{deviceToDelete?.title || 'Unknown Device'}"?
+              </span>
+            </p>
+            <p className="text-sm text-gray-500">
+              This action cannot be undone. The device will be permanently removed from the system.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmDeleteDevice}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Device
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
