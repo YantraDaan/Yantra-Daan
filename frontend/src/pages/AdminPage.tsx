@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,8 @@ import DeviceManagement from "@/components/DeviceManagement";
 import UserManagement from "@/components/UserManagement";
 import AdminDashboard from "@/components/AdminDashboard";
 import TeamMemberManagement from "@/components/TeamMemberManagement";
+import DeviceBrowse from "@/components/DeviceBrowse";
+
 import NoDataFound from "@/components/NoDataFound";
 import { 
   Users, 
@@ -819,6 +821,12 @@ const AdminPage = () => {
     // Show team member details in popup
     setSelectedTeamMember(teamMember);
     setIsTeamMemberDetailsOpen(true);
+  };
+
+  const showRequesterDetails = (requester) => {
+    // Show requester details in popup
+    setSelectedRequester(requester);
+    setIsRequesterDetailsOpen(true);
   };
 
 
@@ -2708,350 +2716,378 @@ const AdminPage = () => {
       <Dialog open={isDeviceDetailsOpen} onOpenChange={setIsDeviceDetailsOpen}>
         <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Smartphone className="w-6 h-6" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <Smartphone className="w-6 h-6 text-gray-600" />
               Device Details - {selectedDevice?.title || 'Unknown Device'}
             </DialogTitle>
           </DialogHeader>
           {selectedDevice && (
             <div className="space-y-6">
               {/* Device Basic Information */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  Device Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Device Title</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <span className="font-medium text-lg text-gray-800">{selectedDevice.title || 'Untitled'}</span>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-gray-600" />
+                    Device Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Device Title</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-medium text-lg text-gray-900">{selectedDevice.title || 'Untitled'}</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Device Type</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <div className="flex items-center gap-2">
-                        {getDeviceIcon(selectedDevice.deviceType)}
-                        <span className="font-medium text-gray-800 capitalize">{selectedDevice.deviceType || 'Unknown'}</span>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Device Type</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          {getDeviceIcon(selectedDevice.deviceType)}
+                          <span className="font-medium text-gray-900 capitalize">{selectedDevice.deviceType || 'Unknown'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Condition</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className={getConditionBadgeColor(selectedDevice.condition)}>
+                          {selectedDevice.condition || 'Unknown'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className={getStatusBadgeColor(selectedDevice.status)}>
+                          {selectedDevice.status || 'Unknown'}
+                        </Badge>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Condition</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <Badge variant="secondary" className={getConditionBadgeColor(selectedDevice.condition)}>
-                        {selectedDevice.condition || 'Unknown'}
-                      </Badge>
+                  {/* Additional Device Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Device ID</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-mono text-sm text-gray-600">{selectedDevice._id || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Category</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-medium text-gray-900 capitalize">{selectedDevice.category || 'General'}</span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Status</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <Badge variant="secondary" className={getStatusBadgeColor(selectedDevice.status)}>
-                        {selectedDevice.status || 'Unknown'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Additional Device Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Device ID</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <span className="font-mono text-sm text-gray-600">{selectedDevice._id || 'N/A'}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Category</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <span className="font-medium text-gray-800 capitalize">{selectedDevice.category || 'General'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Device Description */}
               {selectedDevice.description && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Device Description
-                  </h3>
-                  <div className="p-4 bg-white rounded-lg border border-green-100">
-                    <p className="text-sm leading-relaxed text-gray-700">{selectedDevice.description}</p>
-                  </div>
-                </div>
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-gray-600" />
+                      Device Description
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="p-4 bg-white rounded-md border border-gray-200">
+                      <p className="text-sm leading-relaxed text-gray-700">{selectedDevice.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Additional Device Specifications */}
               {(selectedDevice.specifications || selectedDevice.brand || selectedDevice.model || selectedDevice.year) && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
-                  <h3 className="text-lg font-semibold text-amber-800 mb-4 flex items-center gap-2">
-                    <Tag className="w-5 h-5" />
-                    Additional Specifications
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {selectedDevice.brand && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-amber-700">Brand</Label>
-                        <div className="p-3 bg-white rounded-lg border border-amber-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.brand}</span>
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <Tag className="w-5 h-5 text-gray-600" />
+                      Additional Specifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {selectedDevice.brand && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Brand</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.brand}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    {selectedDevice.model && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-amber-700">Model</Label>
-                        <div className="p-3 bg-white rounded-lg border border-amber-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.model}</span>
+                      )}
+                      
+                      {selectedDevice.model && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Model</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.model}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    {selectedDevice.year && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-amber-700">Year</Label>
-                        <div className="p-3 bg-white rounded-lg border border-amber-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.year}</span>
+                      )}
+                      
+                      {selectedDevice.year && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Year</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.year}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    {selectedDevice.specifications && (
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                        <Label className="text-sm font-medium text-amber-700">Technical Specifications</Label>
-                        <div className="p-3 bg-white rounded-lg border border-amber-100">
-                          <p className="text-sm text-gray-700">{selectedDevice.specifications}</p>
+                      )}
+                      
+                      {selectedDevice.specifications && (
+                        <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                          <Label className="text-sm font-medium text-gray-700">Technical Specifications</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <p className="text-sm text-gray-700">{selectedDevice.specifications}</p>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Comprehensive Owner Information */}
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Owner Information
-                </h3>
-                {selectedDevice.ownerInfo ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-purple-700">Full Name</Label>
-                      <div className="p-3 bg-white rounded-lg border border-purple-100">
-                        <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.name || selectedDevice.ownerInfo.firstName + ' ' + selectedDevice.ownerInfo.lastName || 'Anonymous'}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-purple-700">Email Address</Label>
-                      <div className="p-3 bg-white rounded-lg border border-purple-100">
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-purple-600" />
-                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.email || 'N/A'}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-purple-700">Phone Number</Label>
-                      <div className="p-3 bg-white rounded-lg border border-purple-100">
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-purple-600" />
-                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {selectedDevice.ownerInfo.firstName && (
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <User className="w-5 h-5 text-gray-600" />
+                    Owner Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {selectedDevice.ownerInfo ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">First Name</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.firstName}</span>
+                        <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedDevice.ownerInfo.name || selectedDevice.ownerInfo.firstName + ' ' + selectedDevice.ownerInfo.lastName || 'Anonymous'}</span>
                         </div>
                       </div>
-                    )}
-                    
-                    {selectedDevice.ownerInfo.lastName && (
+                      
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">Last Name</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.lastName}</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {selectedDevice.ownerInfo.profession && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">Profession</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.profession}</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {selectedDevice.ownerInfo.isOrganization && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">Organization</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
                           <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-purple-600" />
-                            <span className="font-medium text-gray-800">Yes</span>
+                            <Mail className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium text-gray-900">{selectedDevice.ownerInfo.email || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
-                    )}
-                    
-                    {selectedDevice.ownerInfo.location && (
+                      
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">Owner Location</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
                           <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-purple-600" />
-                            <span className="font-medium text-gray-800">
-                              {selectedDevice.ownerInfo.location.city && selectedDevice.ownerInfo.location.state 
-                                ? `${selectedDevice.ownerInfo.location.city}, ${selectedDevice.ownerInfo.location.state}`
-                                : 'N/A'
-                              }
-                            </span>
+                            <Phone className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium text-gray-900">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-white rounded-lg border border-purple-100">
-                    <p className="text-gray-500 text-center">No owner information available</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Device Location */}
-              {selectedDevice.location && (
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border border-orange-200">
-                  <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Location Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-orange-700">City</Label>
-                      <div className="p-3 bg-white rounded-lg border border-orange-100">
-                        <span className="font-medium text-gray-800">{selectedDevice.location.city || 'N/A'}</span>
-                  </div>
-                </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-orange-700">State</Label>
-                      <div className="p-3 bg-white rounded-lg border border-orange-100">
-                        <span className="font-medium text-gray-800">{selectedDevice.location.state || 'N/A'}</span>
-                      </div>
-                    </div>
-                    
-                    {selectedDevice.location.country && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-orange-700">Country</Label>
-                        <div className="p-3 bg-white rounded-lg border border-orange-100">
-                          <span className="font-medium text-gray-800">{selectedDevice.location.country}</span>
+                      
+                      {selectedDevice.ownerInfo.firstName && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">First Name</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.ownerInfo.firstName}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Device Images */}
-              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
-                <h3 className="text-lg font-semibold text-indigo-800 mb-4 flex items-center gap-2">
-                  <Image className="w-5 h-5" />
-                  Device Images ({selectedDevice.images && selectedDevice.images.length > 0 ? selectedDevice.images.length : 0})
-                </h3>
-                {selectedDevice.images && selectedDevice.images.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {selectedDevice.images.map((image: any, index: number) => (
-                        <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-indigo-100 hover:border-indigo-300 transition-colors group">
-                          <img 
-                            src={image} 
-                            alt={`Device ${index + 1}`}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                          <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
-                            <div className="text-center">
-                              <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                              <p>Image {index + 1}</p>
+                      )}
+                      
+                      {selectedDevice.ownerInfo.lastName && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Last Name</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.ownerInfo.lastName}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedDevice.ownerInfo.profession && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Profession</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.ownerInfo.profession}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedDevice.ownerInfo.isOrganization && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Organization</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-gray-500" />
+                              <span className="font-medium text-gray-900">Yes</span>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )}
+                      
+                      {selectedDevice.ownerInfo.location && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Owner Location</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-gray-500" />
+                              <span className="font-medium text-gray-900">
+                                {selectedDevice.ownerInfo.location.city && selectedDevice.ownerInfo.location.state 
+                                  ? `${selectedDevice.ownerInfo.location.city}, ${selectedDevice.ownerInfo.location.state}`
+                                  : 'N/A'
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-center text-sm text-indigo-600">
-                      <p>Click on images to view larger versions</p>
+                  ) : (
+                    <div className="p-4 bg-white rounded-md border border-gray-200">
+                      <p className="text-gray-500 text-center">No owner information available</p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Image className="w-16 h-16 mx-auto mb-4 text-indigo-300" />
-                    <p className="text-gray-500">No images available for this device</p>
-                    <p className="text-sm text-gray-400 mt-2">Images will appear here when uploaded by the owner</p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </CardContent>
+              </Card>
+
+                            {/* Device Location */}
+              {selectedDevice.location && (
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-gray-600" />
+                      Location Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">City</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedDevice.location.city || 'N/A'}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">State</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedDevice.location.state || 'N/A'}</span>
+                        </div>
+                      </div>
+                      
+                      {selectedDevice.location.country && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Country</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <span className="font-medium text-gray-900">{selectedDevice.location.country}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Device Images */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Image className="w-5 h-5 text-gray-600" />
+                    Device Images ({selectedDevice.images && selectedDevice.images.length > 0 ? selectedDevice.images.length : 0})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {selectedDevice.images && selectedDevice.images.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {selectedDevice.images.map((image: any, index: number) => (
+                          <div key={index} className="aspect-square bg-gray-100 rounded-md overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors group">
+                            <img 
+                              src={image} 
+                              alt={`Device ${index + 1}`}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
+                              <div className="text-center">
+                                <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                <p>Image {index + 1}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-center text-sm text-gray-600">
+                        <p>Click on images to view larger versions</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Image className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-500">No images available for this device</p>
+                      <p className="text-sm text-gray-400 mt-2">Images will appear here when uploaded by the owner</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Device Metadata */}
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Device Metadata
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Created Date</Label>
-                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-800">
-                        {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-gray-600" />
+                    Device Metadata
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Created Date</Label>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-gray-200">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-900">
+                          {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-gray-200">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-900">
+                          {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
-                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-800">
-                        {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
@@ -3067,7 +3103,7 @@ const AdminPage = () => {
                     setIsDeviceDetailsOpen(false);
                     handleEditDevice(selectedDevice);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
                   <Pencil className="w-4 h-4 mr-2" />
                   Edit Device
@@ -3077,7 +3113,7 @@ const AdminPage = () => {
                     setIsDeviceDetailsOpen(false);
                     setSelectedTab("devices");
                   }}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-gray-700 hover:bg-gray-600 text-white"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   View in Devices Tab
@@ -3092,219 +3128,239 @@ const AdminPage = () => {
       <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>
         <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <User className="w-6 h-6" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <User className="w-6 h-6 text-gray-600" />
               User Details - {selectedUser?.name || selectedUser?.firstName + ' ' + selectedUser?.lastName || 'Unknown User'}
             </DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-6">
               {/* User Basic Information */}
-              <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border border-orange-200">
-                <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  User Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-orange-700">Full Name</Label>
-                    <div className="p-3 bg-white rounded-lg border border-orange-100">
-                      <span className="font-medium text-lg text-gray-800">
-                        {selectedUser.name || selectedUser.firstName + ' ' + selectedUser.lastName || 'Anonymous User'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-orange-700">User Role</Label>
-                    <div className="p-3 bg-white rounded-lg border border-orange-100">
-                      <Badge variant="secondary" className={getUserRoleBadgeColor(selectedUser.userRole)}>
-                        {selectedUser.userRole || 'User'}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-orange-700">Status</Label>
-                    <div className="p-3 bg-white rounded-lg border border-orange-100">
-                      <Badge variant="secondary" className={getUserStatusBadgeColor(selectedUser.isActive ? 'active' : 'inactive')}>
-                        {selectedUser.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-orange-700">User ID</Label>
-                    <div className="p-3 bg-white rounded-lg border border-orange-100">
-                      <span className="font-mono text-sm text-gray-600">{selectedUser._id || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
-                  <Mail className="w-5 h-5" />
-                  Contact Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Email Address</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-gray-800">{selectedUser.email || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Phone Number</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-gray-800">{selectedUser.contact || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {selectedUser.firstName && (
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <User className="w-5 h-5 text-gray-600" />
+                    User Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-blue-700">First Name</Label>
-                      <div className="p-3 bg-white rounded-lg border border-blue-100">
-                        <span className="font-medium text-gray-800">{selectedUser.firstName}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {selectedUser.lastName && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-blue-700">Last Name</Label>
-                      <div className="p-3 bg-white rounded-lg border border-blue-100">
-                        <span className="font-medium text-gray-800">{selectedUser.lastName}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {selectedUser.profession && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-blue-700">Profession</Label>
-                      <div className="p-3 bg-white rounded-lg border border-blue-100">
-                        <span className="font-medium text-gray-800">{selectedUser.profession}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Account Details */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Account Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-green-700">Organization Account</Label>
-                    <div className="p-3 bg-white rounded-lg border border-green-100">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-green-600" />
-                        <span className="font-medium text-gray-800">
-                          {selectedUser.isOrganization ? 'Yes' : 'No'}
+                      <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-medium text-lg text-gray-900">
+                          {selectedUser.name || selectedUser.firstName + ' ' + selectedUser.lastName || 'Anonymous User'}
                         </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-green-700">Email Updates</Label>
-                    <div className="p-3 bg-white rounded-lg border border-green-100">
-                      <span className="font-medium text-gray-800">
-                        {selectedUser.emailUpdates ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-green-700">Account Status</Label>
-                    <div className="p-3 bg-white rounded-lg border border-green-100">
-                      <Badge variant="secondary" className={getUserStatusBadgeColor(selectedUser.isActive ? 'active' : 'inactive')}>
-                        {selectedUser.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Location Information */}
-              {selectedUser.location && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                  <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Location Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-purple-700">City</Label>
-                      <div className="p-3 bg-white rounded-lg border border-purple-100">
-                        <span className="font-medium text-gray-800">{selectedUser.location.city || 'N/A'}</span>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-purple-700">State</Label>
-                      <div className="p-3 bg-white rounded-lg border border-purple-100">
-                        <span className="font-medium text-gray-800">{selectedUser.location.state || 'N/A'}</span>
+                      <Label className="text-sm font-medium text-gray-700">User Role</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className={getUserRoleBadgeColor(selectedUser.userRole)}>
+                          {selectedUser.userRole || 'User'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className={getUserStatusBadgeColor(selectedUser.isActive ? 'active' : 'inactive')}>
+                          {selectedUser.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">User ID</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-mono text-sm text-gray-600">{selectedUser._id || 'N/A'}</span>
                       </div>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Information */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-gray-600" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">{selectedUser.email || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">{selectedUser.contact || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedUser.firstName && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">First Name</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedUser.firstName}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedUser.lastName && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">Last Name</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedUser.lastName}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedUser.profession && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">Profession</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedUser.profession}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Account Details */}
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-gray-600" />
+                    Account Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Organization Account</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">
+                            {selectedUser.isOrganization ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Email Updates</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-medium text-gray-900">
+                          {selectedUser.emailUpdates ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Account Status</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className={getUserStatusBadgeColor(selectedUser.isActive ? 'active' : 'inactive')}>
+                          {selectedUser.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Location Information */}
+              {selectedUser.location && (
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-gray-600" />
+                      Location Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">City</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedUser.location.city || 'N/A'}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">State</Label>
+                        <div className="p-3 bg-white rounded-md border border-gray-200">
+                          <span className="font-medium text-gray-900">{selectedUser.location.state || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Account Metadata */}
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Account Metadata
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
-                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-800">
-                        {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-gray-600" />
+                    Account Metadata
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-gray-200">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-900">
+                          {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Last Login</Label>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-gray-200">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-900">
+                          {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Last Login</Label>
-                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-800">
-                        {selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsUserDetailsOpen(false)}
@@ -3317,7 +3373,7 @@ const AdminPage = () => {
                     setIsUserDetailsOpen(false);
                     setSelectedTab("users");
                   }}
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   View in Users Tab
@@ -3332,11 +3388,11 @@ const AdminPage = () => {
       <Dialog open={isEditDeviceOpen} onOpenChange={setIsEditDeviceOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <Pencil className="w-5 h-5 text-gray-600" />
               Edit Device (Admin)
             </DialogTitle>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-2">
               You can edit all device details including title, type, condition, status, description, and location.
             </p>
           </DialogHeader>
@@ -3481,16 +3537,17 @@ const AdminPage = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsEditDeviceOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleSaveDevice}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
                   Save Changes
                 </Button>
@@ -3504,8 +3561,8 @@ const AdminPage = () => {
       <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <Trash2 className="w-5 h-5 text-gray-600" />
               Confirm Deletion
             </DialogTitle>
           </DialogHeader>
@@ -3519,16 +3576,17 @@ const AdminPage = () => {
             <p className="text-sm text-gray-500">
               This action cannot be undone. The device will be permanently removed from the system.
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
               <Button 
                 variant="outline" 
                 onClick={() => setIsDeleteConfirmOpen(false)}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button 
                 onClick={confirmDeleteDevice}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Delete Device
               </Button>
@@ -3541,11 +3599,11 @@ const AdminPage = () => {
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <Pencil className="w-5 h-5 text-gray-600" />
               Edit User (Admin)
             </DialogTitle>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-2">
               You can edit all user details including name, contact information, role, and account settings.
             </p>
           </DialogHeader>
@@ -3699,16 +3757,17 @@ const AdminPage = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsEditUserOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleSaveUser}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
                   Save Changes
                 </Button>
@@ -3722,8 +3781,8 @@ const AdminPage = () => {
       <Dialog open={isDeleteUserConfirmOpen} onOpenChange={setIsDeleteUserConfirmOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <Trash2 className="w-5 h-5 text-gray-600" />
               Confirm User Deletion
             </DialogTitle>
           </DialogHeader>
@@ -3737,16 +3796,17 @@ const AdminPage = () => {
             <p className="text-sm text-gray-500">
               This action cannot be undone. The user account will be permanently removed from the system.
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
               <Button 
                 variant="outline" 
                 onClick={() => setIsDeleteUserConfirmOpen(false)}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 Cancel
-              </Button>
+                </Button>
               <Button 
                 onClick={confirmDeleteUser}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Delete User
               </Button>
@@ -3759,223 +3819,247 @@ const AdminPage = () => {
       <Dialog open={isTeamMemberDetailsOpen} onOpenChange={setIsTeamMemberDetailsOpen}>
         <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <UserPlus className="w-6 h-6" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
+              <UserPlus className="w-6 h-6 text-gray-600" />
               Team Member Details - {selectedTeamMember?.name || 'Unknown Member'}
             </DialogTitle>
           </DialogHeader>
           {selectedTeamMember && (
             <div className="space-y-6">
               {/* Team Member Basic Information */}
-              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
-                <h3 className="text-lg font-semibold text-indigo-800 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Team Member Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-indigo-700">Full Name</Label>
-                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
-                      <span className="font-medium text-lg text-gray-800">{selectedTeamMember.name || 'N/A'}</span>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <User className="w-5 h-5 text-gray-600" />
+                    Team Member Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-medium text-lg text-gray-900">{selectedTeamMember.name || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Role</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-800 border-gray-200">
+                          {selectedTeamMember.role || 'N/A'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <Badge variant="secondary" className={selectedTeamMember.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {selectedTeamMember.status === 'active' ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Member ID</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <span className="font-mono text-sm text-gray-600">{selectedTeamMember._id || 'N/A'}</span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-indigo-700">Role</Label>
-                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
-                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 border-indigo-200">
-                        {selectedTeamMember.role || 'N/A'}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-indigo-700">Status</Label>
-                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
-                      <Badge variant="secondary" className={selectedTeamMember.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                        {selectedTeamMember.status === 'active' ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-indigo-700">Member ID</Label>
-                    <div className="p-3 bg-white rounded-lg border border-indigo-100">
-                      <span className="font-mono text-sm text-gray-600">{selectedTeamMember._id || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Contact Information */}
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-lg border border-blue-200">
-                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
-                  <Mail className="w-5 h-5" />
-                  Contact Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Email Address</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-gray-800">{selectedTeamMember.email || 'N/A'}</span>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-gray-600" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">{selectedTeamMember.email || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                      <div className="p-3 bg-white rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">{selectedTeamMember.contact || 'N/A'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700">Phone Number</Label>
-                    <div className="p-3 bg-white rounded-lg border border-blue-100">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-gray-800">{selectedTeamMember.contact || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Bio and Description */}
               {selectedTeamMember.bio && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Biography & Description
-                  </h3>
-                  <div className="p-4 bg-white rounded-lg border border-green-100">
-                    <p className="text-sm leading-relaxed text-gray-700">{selectedTeamMember.bio}</p>
-                  </div>
-                </div>
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-gray-600" />
+                      Biography & Description
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="p-4 bg-white rounded-md border border-gray-200">
+                      <p className="text-sm leading-relaxed text-gray-700">{selectedTeamMember.bio}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Social Links */}
               {selectedTeamMember.socialLinks && Object.values(selectedTeamMember.socialLinks).some(link => link) && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                  <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Social Media & Links
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {selectedTeamMember.socialLinks.linkedin && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">LinkedIn</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
-                          <a 
-                            href={selectedTeamMember.socialLinks.linkedin} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
-                          >
-                            View LinkedIn Profile
-                          </a>
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-gray-600" />
+                      Social Media & Links
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {selectedTeamMember.socialLinks.linkedin && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">LinkedIn</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <a 
+                              href={selectedTeamMember.socialLinks.linkedin} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
+                            >
+                              View LinkedIn Profile
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    {selectedTeamMember.socialLinks.instagram && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">Instagram</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
-                          <a 
-                            href={selectedTeamMember.socialLinks.instagram} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-pink-600 hover:text-pink-800 transition-colors font-medium"
-                          >
-                            View Instagram Profile
-                          </a>
+                      )}
+                      
+                      {selectedTeamMember.socialLinks.instagram && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Instagram</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <a 
+                              href={selectedTeamMember.socialLinks.instagram} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-pink-600 hover:text-pink-800 transition-colors font-medium"
+                            >
+                              View Instagram Profile
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    {selectedTeamMember.socialLinks.website && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-purple-700">Website</Label>
-                        <div className="p-3 bg-white rounded-lg border border-purple-100">
-                          <a 
-                            href={selectedTeamMember.socialLinks.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-green-600 hover:text-green-800 transition-colors font-medium"
-                          >
-                            Visit Website
-                          </a>
+                      )}
+                      
+                      {selectedTeamMember.socialLinks.website && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Website</Label>
+                          <div className="p-3 bg-white rounded-md border border-gray-200">
+                            <a 
+                              href={selectedTeamMember.socialLinks.website} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:text-green-800 transition-colors font-medium"
+                            >
+                              Visit Website
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Avatar/Profile Image */}
               {selectedTeamMember.avatar && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
-                  <h3 className="text-lg font-semibold text-amber-800 mb-4 flex items-center gap-2">
-                    <Image className="w-5 h-5" />
-                    Profile Image
-                  </h3>
-                  <div className="flex justify-center">
-                    <div className="w-32 h-32 bg-white rounded-lg border border-amber-100 overflow-hidden shadow-lg">
-                      <img 
-                        src={selectedTeamMember.avatar} 
-                        alt={selectedTeamMember.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden w-full h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center">
-                        <User className="w-16 h-16 text-white" />
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <Image className="w-5 h-5 text-gray-600" />
+                      Profile Image
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="flex justify-center">
+                      <div className="w-32 h-32 bg-white rounded-lg border border-gray-200 overflow-hidden shadow-lg">
+                        <img 
+                          src={selectedTeamMember.avatar} 
+                          alt={selectedTeamMember.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="hidden w-full h-full bg-gradient-to-r from-gray-500 to-gray-600 rounded-lg flex items-center justify-center">
+                          <User className="w-16 h-16 text-white" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Account Metadata */}
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Account Metadata
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Created Date</Label>
-                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-800">
-                        {selectedTeamMember.createdAt ? new Date(selectedTeamMember.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-gray-600" />
+                    Account Metadata
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Created Date</Label>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-gray-200">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-900">
+                          {selectedTeamMember.createdAt ? new Date(selectedTeamMember.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-gray-200">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="font-medium text-gray-900">
+                          {selectedTeamMember.updatedAt ? new Date(selectedTeamMember.updatedAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'N/A'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
-                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium text-gray-800">
-                        {selectedTeamMember.updatedAt ? new Date(selectedTeamMember.updatedAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
@@ -3991,10 +4075,218 @@ const AdminPage = () => {
                     setIsTeamMemberDetailsOpen(false);
                     setSelectedTab("team");
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   View in Team Tab
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Requester Details Dialog */}
+      <Dialog open={isRequesterDetailsOpen} onOpenChange={setIsRequesterDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+              <User className="w-5 h-5" />
+              Requester Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedRequester && (
+            <div className="space-y-6">
+              {/* Requester Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Requester Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Full Name</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">
+                          {selectedRequester.requesterInfo?.name || 
+                           `${selectedRequester.requesterInfo?.firstName || ''} ${selectedRequester.requesterInfo?.lastName || ''}`.trim() || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Email Address</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.requesterInfo?.email || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Contact Number</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.requesterInfo?.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-lg font-medium text-gray-500">Profession</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.requesterInfo?.profession || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Device Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Device Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Device Title</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Smartphone className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.deviceInfo?.title || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Device Type</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Tag className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.deviceInfo?.deviceType || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Condition</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <CheckCircle className="w-4 h-4 text-gray-400" />
+                        <Badge className={getConditionBadgeColor(selectedRequester.deviceInfo?.condition)}>
+                          {selectedRequester.deviceInfo?.condition || 'N/A'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Device Status</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Shield className="w-4 h-4 text-gray-400" />
+                        <Badge className={getStatusBadgeColor(selectedRequester.deviceInfo?.status)}>
+                          {selectedRequester.deviceInfo?.status || 'N/A'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Device Owner Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Device Owner Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Owner Name</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">
+                          {selectedRequester.deviceInfo?.ownerId?.name || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Owner Email</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.deviceInfo?.ownerId?.email || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Owner Contact</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{selectedRequester.deviceInfo?.ownerId?.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Request Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Request Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-500">Request Message</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-gray-700">{selectedRequester.message || 'No message provided'}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-500">Request Status</Label>
+                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                          <Badge className={getRequesterStatusBadgeColor(selectedRequester.status)}>
+                            {selectedRequester.status || 'N/A'}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-500">Request Date</Label>
+                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium">
+                            {selectedRequester.createdAt ? new Date(selectedRequester.createdAt).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedRequester.adminNotes && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-500">Admin Notes</Label>
+                        <div className="p-3 bg-gray-50 rounded-lg">
+                          <p className="text-gray-700">{selectedRequester.adminNotes}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsRequesterDetailsOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsRequesterDetailsOpen(false);
+                    setSelectedTab("dashboard");
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View in Requests Tab
                 </Button>
               </div>
             </div>

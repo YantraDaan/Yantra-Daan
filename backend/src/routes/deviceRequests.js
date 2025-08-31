@@ -19,7 +19,7 @@ router.post('/', auth, async (req, res) => {
     }
 
     // Check if device exists and is approved
-    const device = await DeviceModel.findById(deviceId);
+    const device = await DeviceModel.findById(deviceId).populate('ownerId', 'name email contact');
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
@@ -67,12 +67,20 @@ router.post('/', auth, async (req, res) => {
     // Populate device and requester info for notifications
     await request.populate('deviceInfo', 'title deviceType condition ownerId');
     await request.populate('requesterInfo', 'name email contact');
-    await request.populate('deviceInfo.ownerInfo', 'name email contact');
+    await request.populate({
+      path: 'deviceInfo',
+      select: 'title deviceType condition ownerId',
+      populate: {
+        path: 'ownerId',
+        select: 'name email contact',
+        model: 'User'
+      }
+    });
 
     // Send notification to device owner
-    if (device.ownerInfo && device.ownerInfo.email) {
+    if (request.deviceInfo.ownerId && request.deviceInfo.ownerId.email) {
       await emailService.sendEmail({
-        to: device.ownerInfo.email,
+        to: request.deviceInfo.ownerId.email,
         subject: '📱 New Device Request - Yantra Daan',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -123,7 +131,7 @@ router.post('/', auth, async (req, res) => {
               <p><strong>Title:</strong> ${device.title}</p>
               <p><strong>Type:</strong> ${device.deviceType}</p>
               <p><strong>Condition:</strong> ${device.condition}</p>
-              <p><strong>Donor:</strong> ${device.ownerInfo?.name || 'Unknown'}</p>
+              <p><strong>Donor:</strong> ${device.ownerId?.name || 'Unknown'}</p>
             </div>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
@@ -161,8 +169,15 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
 
     const requests = await DeviceRequestModel.find(filter)
       .populate('requesterInfo', 'name email contact profession address')
-      .populate('deviceInfo', 'title deviceType condition ownerId')
-      .populate('deviceInfo.ownerInfo', 'name email contact profession address')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact profession address',
+          model: 'User'
+        }
+      })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -190,8 +205,15 @@ router.get('/admin/:id', auth, requireRole(['admin']), async (req, res) => {
   try {
     const request = await DeviceRequestModel.findById(req.params.id)
       .populate('requesterInfo', 'name email contact')
-      .populate('deviceInfo', 'title description deviceType condition ownerId')
-      .populate('deviceInfo.ownerInfo', 'name email contact');
+      .populate({
+        path: 'deviceInfo',
+        select: 'title description deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact',
+          model: 'User'
+        }
+      });
 
     if (!request) {
       return res.status(404).json({ error: 'Device request not found' });
@@ -221,8 +243,15 @@ router.put('/admin/:id/status', auth, async (req, res) => {
 
     const request = await DeviceRequestModel.findById(req.params.id)
       .populate('requesterInfo', 'name email contact')
-      .populate('deviceInfo', 'title deviceType condition ownerId')
-      .populate('deviceInfo.ownerInfo', 'name email');
+      .populate({
+        path: 'deviceInfo',
+        select: 'title deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email',
+          model: 'User'
+        }
+      });
 
     if (!request) {
       return res.status(404).json({ error: 'Device request not found' });
@@ -265,7 +294,7 @@ router.put('/admin/:id/status', auth, async (req, res) => {
 
       // Notify device owner
       await emailService.sendEmail({
-        to: request.deviceInfo.ownerInfo.email,
+        to: request.deviceInfo.ownerId.email,
         subject: '📱 Device Request Approved - Contact Requester - Yantra Daan',
         html: emailService.emailTemplates.requestApprovedToOwner(request.toObject())
       });
@@ -372,8 +401,15 @@ router.get('/can-request/:deviceId', auth, async (req, res) => {
 router.get('/my', auth, async (req, res) => {
   try {
     const requests = await DeviceRequestModel.find({ requesterId: req.user._id })
-      .populate('deviceInfo', 'title deviceType condition status')
-      .populate('deviceInfo.ownerInfo', 'name email contact profession address')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title deviceType condition status',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact profession address',
+          model: 'User'
+        }
+      })
       .sort({ createdAt: -1 });
 
     res.json({ requests });
@@ -562,8 +598,15 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
 
     const requests = await DeviceRequestModel.find(query)
       .populate('requesterInfo', 'name email contact')
-      .populate('deviceInfo', 'title deviceType condition ownerInfo')
-      .populate('deviceInfo.ownerInfo', 'name email contact')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact',
+          model: 'User'
+        }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
