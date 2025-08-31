@@ -1665,41 +1665,41 @@ const AdminPage = () => {
       </header>
 
       {/* Fixed Tabs Navigation */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-16 z-40 shadow-sm">
+      <div className="bg-white border-b border-gray-200 sticky top-16 z-40 shadow-sm">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <Tabs value={selectedTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5 h-16 bg-transparent border-0">
               <TabsTrigger 
                 value="overview" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-400 data-[state=active]:to-emerald-400 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-green-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-gray-50"
               >
                 <BarChart3 className="w-4 h-4" />
                 Overview
               </TabsTrigger>
               <TabsTrigger 
                 value="devices" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-green-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-gray-50"
               >
                 <Smartphone className="w-4 h-4" />
                 Devices
               </TabsTrigger>
               <TabsTrigger 
                 value="users" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-orange-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-gray-50"
               >
                 <Users className="w-4 h-4" />
                 Users
               </TabsTrigger>
               <TabsTrigger 
                 value="dashboard" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-purple-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-gray-50"
               >
                 <BarChart3 className="w-4 h-4" />
                 Requests
               </TabsTrigger>
               <TabsTrigger 
                 value="team" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-indigo-50"
+                className="flex items-center gap-2 text-sm data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-gray-50"
               >
                 <UserPlus className="w-4 h-4" />
                 Team
@@ -1719,7 +1719,7 @@ const AdminPage = () => {
               disabled={isRefreshLoading}
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+              className="border-gray-300 hover:bg-gray-50 transition-all duration-200"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshLoading ? 'animate-spin' : ''}`} />
               Refresh Data
@@ -1738,7 +1738,7 @@ const AdminPage = () => {
               disabled={isDevicesLoading}
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+              className="border-gray-300 hover:bg-gray-50 transition-all duration-200"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isDevicesLoading ? 'animate-spin' : ''}`} />
               Refresh Devices
@@ -1753,7 +1753,7 @@ const AdminPage = () => {
               onClick={refreshUsersTab} 
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200"
+              className="border-gray-300 hover:bg-gray-50 transition-all duration-200"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Users
@@ -1768,7 +1768,7 @@ const AdminPage = () => {
               onClick={refreshRequestsTab} 
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-purple-200 hover:border-purple-300 transition-all duration-200"
+              className="border-gray-300 hover:bg-gray-50 transition-all duration-200"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Requests
@@ -1783,7 +1783,7 @@ const AdminPage = () => {
               onClick={refreshTeamTab} 
               variant="outline"
               size="sm"
-              className="bg-white/80 backdrop-blur-sm border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+              className="border-gray-300 hover:bg-gray-50 transition-all duration-200"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Team
@@ -1798,34 +1798,34 @@ const AdminPage = () => {
             <div className="space-y-6">
               {/* Quick Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-gradient-to-br from-green-200 to-emerald-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-gray-700">Total Users</CardTitle>
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <Users className="h-4 w-4 text-green-600" />
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Users className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-gray-800">{dashboardStats.totalUsers}</div>
                     <p className="text-xs text-gray-600">Registered users</p>
-                                                                                     <Button 
-                         variant="outline" 
-                         size="sm" 
-                         className="mt-3 bg-green-100 border-green-300 text-green-700 hover:bg-green-200"
-                         onClick={exportUsersToExcel}
-                         disabled={isRefreshLoading}
-                       >
-                         <Download className="w-3 h-3 mr-1" />
-                         Export Users
-                       </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-50"
+                      onClick={exportUsersToExcel}
+                      disabled={isRefreshLoading}
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Export Users
+                    </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-gray-700">Total Devices</CardTitle>
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Gift className="h-4 w-4 text-blue-600" />
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1834,7 +1834,7 @@ const AdminPage = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
+                      className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={exportDevicesToExcel}
                       disabled={isRefreshLoading}
                     >
@@ -1844,11 +1844,11 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-purple-200 to-purple-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-gray-700">Total Requests</CardTitle>
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-purple-600" />
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1857,7 +1857,7 @@ const AdminPage = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200"
+                      className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={exportRequestsToExcel}
                       disabled={isRefreshLoading}
                     >
@@ -1867,11 +1867,11 @@ const AdminPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-orange-200 to-orange-300 text-gray-800 border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-gray-700">Pending Approvals</CardTitle>
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-orange-600" />
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1880,7 +1880,7 @@ const AdminPage = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="mt-3 bg-orange-100 border-orange-300 text-orange-700 hover:bg-orange-200"
+                      className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={() => setSelectedTab("devices")}
                     >
                       <Eye className="w-3 h-3 mr-1" />
@@ -1892,46 +1892,46 @@ const AdminPage = () => {
 
               {/* Additional Stats Row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-emerald-100">Approved Devices</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <CheckCircle className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Approved Devices</CardTitle>
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.approvedDevices}</div>
-                    <p className="text-xs text-emerald-100">Successfully approved</p>
+                    <div className="text-2xl font-bold text-gray-800">{dashboardStats.approvedDevices}</div>
+                    <p className="text-xs text-gray-600">Successfully approved</p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-red-100">Rejected Devices</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <XCircle className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Rejected Devices</CardTitle>
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <XCircle className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.rejectedDevices}</div>
-                    <p className="text-xs text-red-100">Not approved</p>
+                    <div className="text-2xl font-bold text-gray-800">{dashboardStats.rejectedDevices}</div>
+                    <p className="text-xs text-gray-600">Not approved</p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card className="bg-white border border-gray-200 text-gray-800 shadow-sm hover:shadow-md transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-indigo-100">Success Rate</CardTitle>
-                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                      <BarChart3 className="h-4 w-4 text-white" />
+                    <CardTitle className="text-sm font-medium text-gray-700">Success Rate</CardTitle>
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <BarChart3 className="h-4 w-4 text-gray-600" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold text-gray-800">
                       {dashboardStats.totalDevices > 0 
                         ? Math.round((dashboardStats.approvedDevices / dashboardStats.totalDevices) * 100)
                         : 0}%
                     </div>
-                    <p className="text-xs text-indigo-100">Approval rate</p>
+                    <p className="text-xs text-gray-600">Approval rate</p>
                   </CardContent>
                 </Card>
               </div>
@@ -1939,10 +1939,10 @@ const AdminPage = () => {
                             {/* Direct Data Display */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Device Donations Card */}
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Gift className="w-5 h-5" />
+                <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-gray-900 flex items-center gap-2">
+                      <Gift className="w-5 h-5 text-gray-600" />
                       Recent Device Donations
                     </CardTitle>
                   </CardHeader>
@@ -1958,9 +1958,9 @@ const AdminPage = () => {
                         />
                       ) : (
                         recentDonations.slice(0, 5).map((donation: any) => (
-                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:border-green-200 transition-colors">
+                          <div key={donation._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
                                 <Gift className="w-5 h-5 text-white" />
                               </div>
                               <div>
@@ -1969,7 +1969,7 @@ const AdminPage = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                                 {donation.condition || 'Unknown'}
                               </Badge>
                               <Button 
@@ -1989,10 +1989,10 @@ const AdminPage = () => {
                 </Card>
 
                 {/* Pending Device Approvals Card */}
-                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
+                <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                  <CardHeader className="bg-gray-50 border-b border-gray-200">
+                    <CardTitle className="text-gray-900 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-gray-600" />
                       Pending Device Approvals
                     </CardTitle>
                   </CardHeader>
@@ -2008,9 +2008,9 @@ const AdminPage = () => {
                         />
                       ) : (
                         pendingDevices.slice(0, 5).map((device: any) => (
-                          <div key={device._id} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors">
+                          <div key={device._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
                                 <Smartphone className="w-5 h-5 text-white" />
                               </div>
                               <div>
@@ -2019,7 +2019,7 @@ const AdminPage = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                                 {device.condition || 'Unknown'}
                               </Badge>
                               <Button 
@@ -2045,10 +2045,10 @@ const AdminPage = () => {
           {selectedTab === "devices" && (
             <div className="space-y-6">
               {/* Device Details Grid */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-                <CardTitle className="text-white flex items-center gap-2">
-                    <Gift className="w-5 h-5" />
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900 flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-gray-600" />
                     Device Details
                 </CardTitle>
               </CardHeader>
@@ -2120,10 +2120,10 @@ const AdminPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {allDevices.length > 0 ? (
                       allDevices.map((device: any) => (
-                        <Card key={device._id} className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:border-green-300 transition-all duration-200 hover:shadow-md">
+                        <Card key={device._id} className="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
                                 {getDeviceIcon(device.deviceType)}
                               </div>
                               <Badge variant="secondary" className={getStatusBadgeColor(device.status)}>
@@ -2153,7 +2153,7 @@ const AdminPage = () => {
                                   size="sm"
                                   onClick={() => handleEditDevice(device)}
                                   disabled={isActionLoading}
-                                  className="h-8 px-2 text-xs bg-blue-50 border-blue-200 hover:bg-blue-100 disabled:opacity-50"
+                                  className="h-8 px-2 text-xs border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                                 >
                                   <Pencil className="w-3 h-3" />
                                 </Button>
@@ -2162,7 +2162,7 @@ const AdminPage = () => {
                                   size="sm"
                                   onClick={() => handleApproveDevice(device)}
                                   disabled={isActionLoading}
-                                  className="h-8 px-2 text-xs bg-green-50 border-green-200 hover:bg-green-100 disabled:opacity-50"
+                                  className="h-8 px-2 text-xs border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                                 >
                                   <CheckCircle className="w-3 h-3" />
                                 </Button>
@@ -2171,7 +2171,7 @@ const AdminPage = () => {
                                   size="sm"
                                   onClick={() => handleRejectDevice(device)}
                                   disabled={isActionLoading}
-                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                  className="h-8 px-2 text-xs border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                                 >
                                   <XCircle className="w-3 h-3" />
                                 </Button>
@@ -2180,14 +2180,14 @@ const AdminPage = () => {
                                   size="sm"
                                   onClick={() => handleDeleteDevice(device)}
                                   disabled={isActionLoading}
-                                  className="h-8 px-2 text-xs bg-red-50 border-red-200 hover:bg-red-100 disabled:opacity-50"
+                                  className="h-8 px-2 text-xs border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </Button>
                               </div>
                             </div>
-              </CardContent>
-            </Card>
+                          </CardContent>
+                        </Card>
                       ))
                     ) : (
                       <div className="col-span-full text-center text-gray-500 py-8">
@@ -2256,10 +2256,10 @@ const AdminPage = () => {
           {selectedTab === "users" && (
             <div className="space-y-6">
               {/* User Details Grid */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Users className="w-5 h-5" />
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-gray-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-gray-600" />
                     User Details
                   </CardTitle>
                 </CardHeader>
@@ -2328,10 +2328,10 @@ const AdminPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {allUsers.length > 0 ? (
                       allUsers.map((user: any) => (
-                        <Card key={user._id} className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 hover:border-orange-300 transition-all duration-200 hover:shadow-md">
+                        <Card key={user._id} className="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
                                 <User className="w-5 h-5 text-white" />
                               </div>
                               <div className="flex gap-1">
@@ -2469,10 +2469,10 @@ const AdminPage = () => {
           {selectedTab === "dashboard" && (
             <div className="space-y-6">
               {/* Requester Details Grid */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-gray-900 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-gray-600" />
                     Request Management
                   </CardTitle>
                 </CardHeader>
@@ -2544,10 +2544,10 @@ const AdminPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {allRequesters.length > 0 ? (
                       allRequesters.map((requester: any) => (
-                        <Card key={requester._id} className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:border-purple-300 transition-all duration-200 hover:shadow-md">
+                        <Card key={requester._id} className="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
                                 <User className="w-5 h-5 text-white" />
                               </div>
                               <div className="flex gap-1">
