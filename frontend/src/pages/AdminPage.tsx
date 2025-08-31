@@ -42,7 +42,10 @@ import {
   Pencil,
   Trash2,
   Laptop,
-  Tablet
+  Tablet,
+  FileText,
+  Image,
+  Tag
 } from "lucide-react";
 import { config } from "@/config/env";
 
@@ -892,6 +895,21 @@ const AdminPage = () => {
     }
   };
 
+  const getConditionBadgeColor = (condition) => {
+    switch (condition?.toLowerCase()) {
+      case 'excellent':
+        return 'bg-green-100 text-green-800';
+      case 'good':
+        return 'bg-blue-100 text-blue-800';
+      case 'fair':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'poor':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (!user || user.userRole !== 'admin') {
     return null;
   }
@@ -1567,149 +1585,380 @@ const AdminPage = () => {
 
       {/* Device Details Dialog */}
       <Dialog open={isDeviceDetailsOpen} onOpenChange={setIsDeviceDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5" />
-              Device Details
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Smartphone className="w-6 h-6" />
+              Device Details - {selectedDevice?.title || 'Unknown Device'}
             </DialogTitle>
           </DialogHeader>
           {selectedDevice && (
             <div className="space-y-6">
-              {/* Device Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Title</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium text-lg">{selectedDevice.title}</span>
+              {/* Device Basic Information */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  Device Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Device Title</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <span className="font-medium text-lg text-gray-800">{selectedDevice.title || 'Untitled'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Device Type</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2">
+                        {getDeviceIcon(selectedDevice.deviceType)}
+                        <span className="font-medium text-gray-800 capitalize">{selectedDevice.deviceType || 'Unknown'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Condition</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <Badge variant="secondary" className={getConditionBadgeColor(selectedDevice.condition)}>
+                        {selectedDevice.condition || 'Unknown'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Status</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <Badge variant="secondary" className={getStatusBadgeColor(selectedDevice.status)}>
+                        {selectedDevice.status || 'Unknown'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Type</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{selectedDevice.deviceType}</span>
+                {/* Additional Device Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Device ID</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <span className="font-mono text-sm text-gray-600">{selectedDevice._id || 'N/A'}</span>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Condition</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{selectedDevice.condition}</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {selectedDevice.status}
-                    </Badge>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700">Category</Label>
+                    <div className="p-3 bg-white rounded-lg border border-blue-100">
+                      <span className="font-medium text-gray-800 capitalize">{selectedDevice.category || 'General'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Device Description */}
               {selectedDevice.description && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Description</Label>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm leading-relaxed">{selectedDevice.description}</p>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Device Description
+                  </h3>
+                  <div className="p-4 bg-white rounded-lg border border-green-100">
+                    <p className="text-sm leading-relaxed text-gray-700">{selectedDevice.description}</p>
                   </div>
                 </div>
               )}
 
-              {/* Device Owner Information */}
-              {selectedDevice.ownerInfo && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Owner</Label>
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{selectedDevice.ownerInfo.name || 'N/A'}</span>
+              {/* Additional Device Specifications */}
+              {(selectedDevice.specifications || selectedDevice.brand || selectedDevice.model || selectedDevice.year) && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
+                  <h3 className="text-lg font-semibold text-amber-800 mb-4 flex items-center gap-2">
+                    <Tag className="w-5 h-5" />
+                    Additional Specifications
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {selectedDevice.brand && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-amber-700">Brand</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.brand}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{selectedDevice.ownerInfo.email || 'N/A'}</span>
+                    )}
+                    
+                    {selectedDevice.model && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-amber-700">Model</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.model}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
+                    )}
+                    
+                    {selectedDevice.year && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-amber-700">Year</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.year}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    
+                    {selectedDevice.specifications && (
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <Label className="text-sm font-medium text-amber-700">Technical Specifications</Label>
+                        <div className="p-3 bg-white rounded-lg border border-amber-100">
+                          <p className="text-sm text-gray-700">{selectedDevice.specifications}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+
+              {/* Comprehensive Owner Information */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Owner Information
+                </h3>
+                {selectedDevice.ownerInfo ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">Full Name</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.name || selectedDevice.ownerInfo.firstName + ' ' + selectedDevice.ownerInfo.lastName || 'Anonymous'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">Email Address</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.email || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-purple-700">Phone Number</Label>
+                      <div className="p-3 bg-white rounded-lg border border-purple-100">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.contact || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedDevice.ownerInfo.firstName && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">First Name</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.firstName}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.lastName && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Last Name</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.lastName}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.profession && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Profession</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.ownerInfo.profession}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.isOrganization && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Organization</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-purple-600" />
+                            <span className="font-medium text-gray-800">Yes</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDevice.ownerInfo.location && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-purple-700">Owner Location</Label>
+                        <div className="p-3 bg-white rounded-lg border border-purple-100">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-purple-600" />
+                            <span className="font-medium text-gray-800">
+                              {selectedDevice.ownerInfo.location.city && selectedDevice.ownerInfo.location.state 
+                                ? `${selectedDevice.ownerInfo.location.city}, ${selectedDevice.ownerInfo.location.state}`
+                                : 'N/A'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-white rounded-lg border border-purple-100">
+                    <p className="text-gray-500 text-center">No owner information available</p>
+                  </div>
+                )}
+              </div>
 
               {/* Device Location */}
               {selectedDevice.location && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Location</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">
-                      {selectedDevice.location.city}, {selectedDevice.location.state}
-                    </span>
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border border-orange-200">
+                  <h3 className="text-lg font-semibold text-orange-800 mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Location Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-orange-700">City</Label>
+                      <div className="p-3 bg-white rounded-lg border border-orange-100">
+                        <span className="font-medium text-gray-800">{selectedDevice.location.city || 'N/A'}</span>
+                  </div>
+                </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-orange-700">State</Label>
+                      <div className="p-3 bg-white rounded-lg border border-orange-100">
+                        <span className="font-medium text-gray-800">{selectedDevice.location.state || 'N/A'}</span>
+                      </div>
+                    </div>
+                    
+                    {selectedDevice.location.country && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-orange-700">Country</Label>
+                        <div className="p-3 bg-white rounded-lg border border-orange-100">
+                          <span className="font-medium text-gray-800">{selectedDevice.location.country}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Device Images */}
-              {selectedDevice.images && selectedDevice.images.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Device Images</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {selectedDevice.images.map((image: any, index: number) => (
-                      <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                        <img 
-                          src={image} 
-                          alt={`Device ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
+                <h3 className="text-lg font-semibold text-indigo-800 mb-4 flex items-center gap-2">
+                  <Image className="w-5 h-5" />
+                  Device Images ({selectedDevice.images && selectedDevice.images.length > 0 ? selectedDevice.images.length : 0})
+                </h3>
+                {selectedDevice.images && selectedDevice.images.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {selectedDevice.images.map((image: any, index: number) => (
+                        <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-indigo-100 hover:border-indigo-300 transition-colors group">
+                          <img 
+                            src={image} 
+                            alt={`Device ${index + 1}`}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden w-full h-full items-center justify-center bg-gray-200 text-gray-500 text-sm">
+                            <div className="text-center">
+                              <Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                              <p>Image {index + 1}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center text-sm text-indigo-600">
+                      <p>Click on images to view larger versions</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-8">
+                    <Image className="w-16 h-16 mx-auto mb-4 text-indigo-300" />
+                    <p className="text-gray-500">No images available for this device</p>
+                    <p className="text-sm text-gray-400 mt-2">Images will appear here when uploaded by the owner</p>
+                  </div>
+                )}
+              </div>
 
               {/* Device Metadata */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Created Date</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">
-                      {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString() : 'N/A'}
-                    </span>
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Device Metadata
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Created Date</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedDevice.createdAt ? new Date(selectedDevice.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-500">Last Updated</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">
-                      {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString() : 'N/A'}
-                    </span>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
+                    <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-100">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-gray-800">
+                        {selectedDevice.updatedAt ? new Date(selectedDevice.updatedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 'N/A'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <Button 
                   variant="outline" 
                   onClick={() => setIsDeviceDetailsOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Close
                 </Button>
                 <Button 
                   onClick={() => {
                     setIsDeviceDetailsOpen(false);
+                    handleEditDevice(selectedDevice);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Device
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsDeviceDetailsOpen(false);
                     setSelectedTab("devices");
                   }}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
+                  <Eye className="w-4 h-4 mr-2" />
                   View in Devices Tab
                 </Button>
               </div>
