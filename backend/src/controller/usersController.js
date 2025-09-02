@@ -467,6 +467,175 @@ const uploadProfilePhoto = async (req, res) => {
   }
 };
 
+// Upload verification document
+const uploadVerificationDocument = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    console.log("Uploading verification document for user ID:", userId);
+    console.log("Request file:", req.file);
+    console.log("Document type:", req.body.type);
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Verification document file is required" });
+    }
+
+    if (!req.body.type) {
+      return res.status(400).json({ error: "Document type is required" });
+    }
+
+    const allowedTypes = ['id_proof', 'address_proof', 'income_proof', 'education_proof', 'other'];
+    if (!allowedTypes.includes(req.body.type)) {
+      return res.status(400).json({ error: "Invalid document type" });
+    }
+
+    const documentInfo = {
+      type: req.body.type,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      uploadDate: new Date()
+    };
+
+    // Add document to user's verification documents array
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if user already has a document of this type
+    const existingDocIndex = user.verificationDocuments.findIndex(doc => doc.type === req.body.type);
+    
+    if (existingDocIndex >= 0) {
+      // Replace existing document
+      user.verificationDocuments[existingDocIndex] = documentInfo;
+    } else {
+      // Add new document
+      user.verificationDocuments.push(documentInfo);
+    }
+
+    await user.save();
+
+    console.log("Verification document uploaded successfully:", documentInfo);
+
+    res.json({
+      message: "Verification document uploaded successfully",
+      document: documentInfo
+    });
+
+  } catch (err) {
+    console.error("Upload verification document error:", err);
+    res.status(500).json({ error: "Failed to upload verification document" });
+  }
+};
+
+// Submit verification request
+const submitVerification = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { documents, notes } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    console.log("Submitting verification request for user ID:", userId);
+    console.log("Documents:", documents);
+    console.log("Notes:", notes);
+
+    if (!documents || documents.length === 0) {
+      return res.status(400).json({ error: "At least one verification document is required" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Update user verification status to pending
+    user.verificationStatus = 'pending';
+    user.verificationNotes = notes || '';
+    user.verificationDocuments = documents;
+
+    await user.save();
+
+    console.log("Verification request submitted successfully for user:", userId);
+
+    res.json({
+      message: "Verification request submitted successfully. We'll review it within 2-3 business days.",
+      verificationStatus: user.verificationStatus
+    });
+
+  } catch (err) {
+    console.error("Submit verification error:", err);
+    res.status(500).json({ error: "Failed to submit verification request" });
+  }
+};
+
+// Admin: Update verification status
+const updateVerificationStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status, notes } = req.body;
+    const adminId = req.user?.id;
+
+    if (!adminId) {
+      return res.status(401).json({ error: "Admin authentication required" });
+    }
+
+    const allowedStatuses = ['unverified', 'pending', 'verified', 'rejected'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid verification status" });
+    }
+
+    console.log("Updating verification status for user:", userId, "to:", status);
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Update verification status
+    user.verificationStatus = status;
+    user.verificationNotes = notes || '';
+    user.isVerified = (status === 'verified');
+    
+    if (status === 'verified') {
+      user.verifiedAt = new Date();
+      user.verifiedBy = adminId;
+    } else {
+      user.verifiedAt = null;
+      user.verifiedBy = null;
+    }
+
+    await user.save();
+
+    console.log("Verification status updated successfully for user:", userId);
+
+    res.json({
+      message: `User verification status updated to ${status}`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        verificationStatus: user.verificationStatus,
+        isVerified: user.isVerified,
+        verificationNotes: user.verificationNotes,
+        verifiedAt: user.verifiedAt
+      }
+    });
+
+  } catch (err) {
+    console.error("Update verification status error:", err);
+    res.status(500).json({ error: "Failed to update verification status" });
+  }
+};
+
 module.exports = { 
   getAllUsers, 
   getUserById,
@@ -477,5 +646,8 @@ module.exports = {
   updateUserByAdmin,
   deleteUserByAdmin,
   getUserStats,
-  uploadProfilePhoto 
+  uploadProfilePhoto,
+  uploadVerificationDocument,
+  submitVerification,
+  updateVerificationStatus
 };

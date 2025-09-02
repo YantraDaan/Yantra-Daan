@@ -120,6 +120,60 @@ const UserSchema = new mongoose.Schema(
         type: Date,
         default: Date.now
       }
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['unverified', 'pending', 'verified', 'rejected'],
+      default: 'unverified',
+      index: true
+    },
+    verificationDocuments: {
+      type: [{
+        type: {
+          type: String,
+          enum: ['id_proof', 'address_proof', 'income_proof', 'education_proof', 'other'],
+          required: true
+        },
+        filename: {
+          type: String,
+          required: true
+        },
+        originalName: {
+          type: String,
+          required: true
+        },
+        mimetype: {
+          type: String,
+          required: true
+        },
+        size: {
+          type: Number,
+          required: true
+        },
+        uploadDate: {
+          type: Date,
+          default: Date.now
+        }
+      }],
+      default: []
+    },
+    verificationNotes: {
+      type: String,
+      default: ''
+    },
+    verifiedAt: {
+      type: Date,
+      default: null
+    },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
     }
   },
   {

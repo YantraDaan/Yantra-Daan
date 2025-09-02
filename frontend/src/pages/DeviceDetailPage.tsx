@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import NoDataFound from "@/components/NoDataFound";
+import VerificationForm from "@/components/VerificationForm";
 
 interface DeviceOwner {
   _id: string;
@@ -101,6 +102,7 @@ const DeviceDetailPage = () => {
   const [activeRequestCount, setActiveRequestCount] = useState(0);
   const [existingRequest, setExistingRequest] = useState<any>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -461,6 +463,39 @@ const DeviceDetailPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Verification Check */}
+                  {!user.isVerified && user.verificationStatus !== 'pending' && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle className="w-5 h-5 text-blue-600" />
+                        <h3 className="font-medium text-blue-800">Verification Required</h3>
+                      </div>
+                      <p className="text-sm text-blue-700 mb-3">
+                        To request devices, you need to verify your account. This helps us ensure the safety and authenticity of our community.
+                      </p>
+                      <Button 
+                        onClick={() => setShowVerificationForm(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Verify Account
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Verification Pending */}
+                  {user.verificationStatus === 'pending' && (
+                    <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle className="w-5 h-5 text-yellow-600" />
+                        <h3 className="font-medium text-yellow-800">Verification Pending</h3>
+                      </div>
+                      <p className="text-sm text-yellow-700">
+                        Your verification request is being reviewed. You'll be able to request devices once approved.
+                      </p>
+                    </div>
+                  )}
+
                   {!canRequest ? (
                     <div className="text-center space-y-3">
                       <div className="text-amber-600 bg-amber-50 p-3 rounded-lg">
@@ -481,6 +516,7 @@ const DeviceDetailPage = () => {
                       <Button 
                         onClick={() => setShowRequestForm(true)}
                         className="w-full btn-hero"
+                        disabled={!user.isVerified}
                       >
                         <Heart className="w-4 h-4 mr-2" />
                         Request Device
@@ -749,6 +785,20 @@ const DeviceDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Verification Form Modal */}
+      <VerificationForm
+        isOpen={showVerificationForm}
+        onClose={() => setShowVerificationForm(false)}
+        onSuccess={() => {
+          // Refresh user data or show success message
+          toast({
+            title: "Verification Submitted",
+            description: "Your verification request has been submitted successfully.",
+          });
+        }}
+        user={user}
+      />
     </div>
   );
 };

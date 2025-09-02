@@ -48,11 +48,30 @@ const createUpload = (uploadType) => {
   });
 };
 
+// Create multer instance for verification documents (allows images and PDFs)
+const createVerificationUpload = (uploadType) => {
+  return multer({
+    storage: createStorage(uploadType),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit for verification docs
+    },
+    fileFilter: function (req, file, cb) {
+      // Allow images and PDFs for verification documents
+      if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+        cb(null, true);
+      } else {
+        cb(new Error(`Only image files and PDFs are allowed for verification documents. Received: ${file.mimetype}`));
+      }
+    }
+  });
+};
+
 // Export specific upload instances
 const teamMemberUpload = createUpload('team-members');
 const deviceUpload = createUpload('devices');
 const profileUpload = createUpload('profiles');
 const generalUpload = createUpload('general');
+const verificationUpload = createVerificationUpload('verification');
 
 // Export the createUpload function for custom upload types
 const createCustomUpload = createUpload;
@@ -62,5 +81,6 @@ module.exports = {
   deviceUpload,
   profileUpload,
   generalUpload,
+  verificationUpload,
   createCustomUpload
 };

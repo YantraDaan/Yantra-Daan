@@ -2,7 +2,7 @@ const { Router } = require('express');
 const UserModel = require('../models/UserModels');
 const PasswordResetTokenModel = require('../models/PasswordResetToken');
 const { auth, requireRole } = require('../middleware/auth');
-const { profileUpload } = require('../middleware/imageUpload');
+const { profileUpload, verificationUpload } = require('../middleware/imageUpload');
 const { 
   getAllUsers, 
   getUserById,
@@ -13,7 +13,10 @@ const {
   updateUserByAdmin,
   deleteUserByAdmin,
   getUserStats,
-  uploadProfilePhoto 
+  uploadProfilePhoto,
+  uploadVerificationDocument,
+  submitVerification,
+  updateVerificationStatus
 } = require("../controller/usersController");
 
 const router = Router();
@@ -226,6 +229,13 @@ router.get('/admin/stats', auth, requireRole(['admin']), async (req, res) => {
     });
   }
 });
+
+// Verification routes
+router.post("/upload-verification-document", auth, verificationUpload.single('document'), uploadVerificationDocument);
+router.post("/submit-verification", auth, submitVerification);
+
+// Admin verification routes
+router.put("/:userId/verification-status", auth, requireRole(['admin']), updateVerificationStatus);
 
 module.exports = router;
 

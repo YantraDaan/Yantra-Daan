@@ -31,6 +31,19 @@ export interface User {
     size: number;
     uploadDate: string;
   };
+  isVerified?: boolean;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  verificationDocuments?: Array<{
+    type: 'id_proof' | 'address_proof' | 'income_proof' | 'education_proof' | 'other';
+    filename: string;
+    originalName: string;
+    mimetype: string;
+    size: number;
+    uploadDate: string;
+  }>;
+  verificationNotes?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
 }
 
 interface AuthContextType {
@@ -164,7 +177,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         address: apiUser.address,
         emailUpdates: apiUser.emailUpdates,
         document: apiUser.document,
-        profilePhoto: apiUser.profilePhoto
+        profilePhoto: apiUser.profilePhoto,
+        isVerified: apiUser.isVerified,
+        verificationStatus: apiUser.verificationStatus,
+        verificationDocuments: apiUser.verificationDocuments,
+        verificationNotes: apiUser.verificationNotes,
+        verifiedAt: apiUser.verifiedAt,
+        verifiedBy: apiUser.verifiedBy
       };
       
       console.log('AuthContext: Mapped user:', mappedUser);
