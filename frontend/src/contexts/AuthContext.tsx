@@ -44,6 +44,11 @@ export interface User {
   verificationNotes?: string;
   verifiedAt?: string;
   verifiedBy?: string;
+  verificationFormData?: {
+    howDeviceHelps: string;
+    whyNeedDevice: string;
+    submittedAt: string;
+  };
 }
 
 interface AuthContextType {
@@ -183,7 +188,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         verificationDocuments: apiUser.verificationDocuments,
         verificationNotes: apiUser.verificationNotes,
         verifiedAt: apiUser.verifiedAt,
-        verifiedBy: apiUser.verifiedBy
+        verifiedBy: apiUser.verifiedBy,
+        verificationFormData: apiUser.verificationFormData
       };
       
       console.log('AuthContext: Mapped user:', mappedUser);

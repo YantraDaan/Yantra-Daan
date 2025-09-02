@@ -16,7 +16,8 @@ const {
   uploadProfilePhoto,
   uploadVerificationDocument,
   submitVerification,
-  updateVerificationStatus
+  updateVerificationStatus,
+  getUnverifiedUsers
 } = require("../controller/usersController");
 
 const router = Router();
@@ -236,6 +237,7 @@ router.post("/submit-verification", auth, submitVerification);
 
 // Admin verification routes
 router.put("/:userId/verification-status", auth, requireRole(['admin']), updateVerificationStatus);
+router.get("/unverified", auth, requireRole(['admin']), getUnverifiedUsers);
 
 module.exports = router;
 

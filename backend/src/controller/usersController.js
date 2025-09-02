@@ -316,7 +316,8 @@ const loginUser = async (req, res) => {
         verificationDocuments: user.verificationDocuments,
         verificationNotes: user.verificationNotes,
         verifiedAt: user.verifiedAt,
-        verifiedBy: user.verifiedBy
+        verifiedBy: user.verifiedBy,
+        verificationFormData: user.verificationFormData
       },
       token
     });
@@ -563,14 +564,35 @@ const submitVerification = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Update user verification status to pending
+    // Parse the notes to extract the answers
+    let howDeviceHelps = '';
+    let whyNeedDevice = '';
+    
+    if (notes) {
+      const lines = notes.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('How can this device help me:')) {
+          howDeviceHelps = line.replace('How can this device help me:', '').trim();
+        } else if (line.startsWith('Why do I need a device:')) {
+          whyNeedDevice = line.replace('Why do I need a device:', '').trim();
+        }
+      }
+    }
+
+    // Update user verification status to pending and save form data
     user.verificationStatus = 'pending';
     user.verificationNotes = notes || '';
     user.verificationDocuments = documents;
+    user.verificationFormData = {
+      howDeviceHelps,
+      whyNeedDevice,
+      submittedAt: new Date()
+    };
 
     await user.save();
 
     console.log("Verification request submitted successfully for user:", userId);
+    console.log("Form data saved:", user.verificationFormData);
 
     res.json({
       message: "Verification request submitted successfully. We'll review it within 2-3 business days.",
@@ -642,6 +664,37 @@ const updateVerificationStatus = async (req, res) => {
   }
 };
 
+// Get unverified users for admin
+const getUnverifiedUsers = async (req, res) => {
+  try {
+    const adminId = req.user?.id;
+
+    if (!adminId) {
+      return res.status(401).json({ error: "Admin authentication required" });
+    }
+
+    console.log("Fetching unverified users for admin:", adminId);
+
+    // Find users with pending verification status
+    const unverifiedUsers = await UserModel.find({
+      verificationStatus: 'pending'
+    })
+    .select('-password')
+    .sort({ 'verificationFormData.submittedAt': -1 });
+
+    console.log("Found unverified users:", unverifiedUsers.length);
+
+    res.json({
+      users: unverifiedUsers,
+      total: unverifiedUsers.length
+    });
+
+  } catch (err) {
+    console.error("Get unverified users error:", err);
+    res.status(500).json({ error: "Failed to get unverified users" });
+  }
+};
+
 module.exports = { 
   getAllUsers, 
   getUserById,
@@ -655,5 +708,6 @@ module.exports = {
   uploadProfilePhoto,
   uploadVerificationDocument,
   submitVerification,
-  updateVerificationStatus
+  updateVerificationStatus,
+  getUnverifiedUsers
 };

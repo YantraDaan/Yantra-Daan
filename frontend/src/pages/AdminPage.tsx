@@ -119,6 +119,8 @@ const AdminPage = () => {
   const [allRequesters, setAllRequesters] = useState([]);
   const [isRequestersLoading, setIsRequestersLoading] = useState(false);
   const [hasInitialRequesters, setHasInitialRequesters] = useState(false);
+  const [unverifiedUsers, setUnverifiedUsers] = useState([]);
+  const [isUnverifiedLoading, setIsUnverifiedLoading] = useState(false);
   const [currentRequesterPage, setCurrentRequesterPage] = useState(1);
   const [totalRequesterPages, setTotalRequesterPages] = useState(1);
   const [totalRequesters, setTotalRequesters] = useState(0);
@@ -243,6 +245,7 @@ const AdminPage = () => {
     if (selectedTab === "dashboard" && user && user.userRole === 'admin' && !hasInitialRequesters) {
       // Only load if requests tab is selected and hasn't been loaded yet
       fetchAllRequesters();
+      fetchUnverifiedUsers();
       setHasInitialRequesters(true);
     }
   }, [selectedTab, user, hasInitialRequesters]);
@@ -527,6 +530,44 @@ const AdminPage = () => {
     }
   };
 
+  const fetchUnverifiedUsers = async () => {
+    try {
+      setIsUnverifiedLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/users/unverified`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnverifiedUsers(data.users || []);
+        console.log('Fetched unverified users:', data.users);
+      } else {
+        console.error('Failed to fetch unverified users:', response.status);
+        setUnverifiedUsers([]);
+        toast({
+          title: "Error",
+          description: `Failed to load unverified users (${response.status})`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching unverified users:', error);
+      setUnverifiedUsers([]);
+      toast({
+        title: "Error",
+        description: "Failed to load unverified users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUnverifiedLoading(false);
+    }
+  };
+
   // Function to refresh all data
   const refreshAllData = async () => {
     try {
@@ -550,6 +591,7 @@ const AdminPage = () => {
     // Reset flag and refresh requesters data
     setHasInitialRequesters(false);
     fetchAllRequesters(currentRequesterPage, requesterFilters);
+    fetchUnverifiedUsers();
   };
 
   // Function to refresh team tab
@@ -1538,6 +1580,47 @@ const AdminPage = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to approve request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleVerifyUser = async (user, status) => {
+    try {
+      setIsActionLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/users/${user._id}/verification-status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status,
+          notes: status === 'verified' ? 'User verified by admin' : 'Verification rejected by admin'
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `User ${status === 'verified' ? 'verified' : 'rejected'} successfully`,
+        });
+        
+        // Refresh the unverified users list
+        fetchUnverifiedUsers();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${status} user`);
+      }
+    } catch (error) {
+      console.error(`Error ${status} user:`, error);
+      toast({
+        title: "Error",
+        description: error.message || `Failed to ${status} user`,
         variant: "destructive",
       });
     } finally {
@@ -2598,6 +2681,91 @@ const AdminPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
+                  {/* Unverified Users Section */}
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-orange-500" />
+                        Unverified Users ({unverifiedUsers.length})
+                      </h3>
+                    </div>
+                    
+                    {isUnverifiedLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      </div>
+                    ) : unverifiedUsers.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        {unverifiedUsers.map((user: any) => (
+                          <Card key={user._id} className="bg-orange-50 border border-orange-200 hover:border-orange-300 transition-all duration-200 hover:shadow-md">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                                  <User className="w-5 h-5 text-white" />
+                                </div>
+                                <Badge className="bg-orange-100 text-orange-800">
+                                  Pending Verification
+                                </Badge>
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-gray-900 text-sm">
+                                  {user.name || 'Anonymous User'}
+                                </h4>
+                                <p className="text-xs text-gray-600">{user.email || 'No email'}</p>
+                                {user.contact && (
+                                  <p className="text-xs text-gray-600">Phone: {user.contact}</p>
+                                )}
+                                {user.verificationFormData && (
+                                  <>
+                                    <div className="mt-3 p-2 bg-white rounded border">
+                                      <p className="text-xs font-medium text-gray-700 mb-1">How can this device help me?</p>
+                                      <p className="text-xs text-gray-600 line-clamp-2">{user.verificationFormData.howDeviceHelps}</p>
+                                    </div>
+                                    <div className="p-2 bg-white rounded border">
+                                      <p className="text-xs font-medium text-gray-700 mb-1">Why do I need a device?</p>
+                                      <p className="text-xs text-gray-600 line-clamp-2">{user.verificationFormData.whyNeedDevice}</p>
+                                    </div>
+                                  </>
+                                )}
+                                {user.verificationFormData?.submittedAt && (
+                                  <p className="text-xs text-gray-500">
+                                    Submitted: {new Date(user.verificationFormData.submittedAt).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleVerifyUser(user, 'verified')}
+                                  disabled={isActionLoading}
+                                  className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Verify
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleVerifyUser(user, 'rejected')}
+                                  disabled={isActionLoading}
+                                  className="text-red-600 border-red-300 hover:bg-red-50 text-xs"
+                                >
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>No unverified users found</p>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Filter Controls */}
                   <div className="mb-6 space-y-4">
                     <div className="flex flex-wrap gap-4 items-center">

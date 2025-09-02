@@ -174,6 +174,20 @@ const UserSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    verificationFormData: {
+      howDeviceHelps: {
+        type: String,
+        default: ''
+      },
+      whyNeedDevice: {
+        type: String,
+        default: ''
+      },
+      submittedAt: {
+        type: Date,
+        default: null
+      }
     }
   },
   {
