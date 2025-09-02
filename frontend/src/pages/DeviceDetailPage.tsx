@@ -21,7 +21,8 @@ import {
   Building2,
   GraduationCap,
   Gift,
-  Users
+  Users,
+  AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -464,7 +465,7 @@ const DeviceDetailPage = () => {
                 </CardHeader>
                 <CardContent>
                   {/* Verification Check */}
-                  {!user.isVerified && user.verificationStatus !== 'pending' && (
+                  {!user?.isVerified && user?.verificationStatus !== 'pending' && (
                     <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertCircle className="w-5 h-5 text-blue-600" />
@@ -484,7 +485,7 @@ const DeviceDetailPage = () => {
                   )}
 
                   {/* Verification Pending */}
-                  {user.verificationStatus === 'pending' && (
+                  {user?.verificationStatus === 'pending' && (
                     <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertCircle className="w-5 h-5 text-yellow-600" />
@@ -516,7 +517,7 @@ const DeviceDetailPage = () => {
                       <Button 
                         onClick={() => setShowRequestForm(true)}
                         className="w-full btn-hero"
-                        disabled={!user.isVerified}
+                        disabled={!user?.isVerified}
                       >
                         <Heart className="w-4 h-4 mr-2" />
                         Request Device

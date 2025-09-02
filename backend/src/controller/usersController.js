@@ -310,7 +310,13 @@ const loginUser = async (req, res) => {
         instagram: user.facebook,
         emailUpdates: user.emailUpdates,
         document: user.document,
-        profilePhoto: user.profilePhoto
+        profilePhoto: user.profilePhoto,
+        isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus,
+        verificationDocuments: user.verificationDocuments,
+        verificationNotes: user.verificationNotes,
+        verifiedAt: user.verifiedAt,
+        verifiedBy: user.verifiedBy
       },
       token
     });
