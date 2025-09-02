@@ -35,6 +35,7 @@ import {
   Camera
 } from "lucide-react";
 import { config } from "@/config/env";
+import VerificationForm from "@/components/VerificationForm";
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
@@ -42,6 +43,7 @@ const ProfilePage = () => {
   const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
   
   // Read URL parameters
   const urlId = searchParams.get('id');
@@ -94,7 +96,12 @@ const ProfilePage = () => {
   console.log("Profile data to send:", profileData);
   
   // State for real data from backend
-  const [donorStats, setDonorStats] = useState({
+  const [donorStats, setDonorStats] = useState<{
+    totalDonations: number;
+    activeItems: number;
+    completedRequests: number;
+    totalStudentsHelped: number;
+  }>({
     totalDonations: 0,
     activeItems: 0,
     completedRequests: 0,
@@ -167,10 +174,9 @@ const ProfilePage = () => {
           const pending = donationsData.devices?.filter((d: any) => d.status === 'pending')?.length || 0;
           
           // Calculate total requests across all devices
-          const totalRequests = Object.values(requestsData).reduce((sum: number, requests: any[]) => sum + requests.length, 0);
-          const completedRequests = Object.values(requestsData).reduce((sum: number, requests: any[]) => 
-            sum + requests.filter((r: any) => r.status === 'completed').length, 0
-          );
+          const allRequests = Object.values(requestsData).flat() as any[];
+          const totalRequests = allRequests.length;
+          const completedRequests = allRequests.filter((r: any) => r.status === 'completed').length;
           
           setDonorStats({
             totalDonations: total,
@@ -803,6 +809,73 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
+        {/* Verification Status Section - Only for requesters */}
+        {user.userRole === 'requester' && (
+          <Card className="donation-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                Account Verification Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user.isVerified ? (
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div>
+                    <h3 className="font-semibold text-green-800">Account Verified</h3>
+                    <p className="text-sm text-green-600">You can request up to 3 devices. Your verification was completed on {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'recently'}.</p>
+                  </div>
+                </div>
+              ) : user.verificationStatus === 'pending' ? (
+                <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                  <div>
+                    <h3 className="font-semibold text-yellow-800">Verification Pending</h3>
+                    <p className="text-sm text-yellow-600">Your verification request is being reviewed. You'll be able to request devices once approved.</p>
+                    {user.verificationFormData?.submittedAt && (
+                      <p className="text-xs text-yellow-500 mt-1">
+                        Submitted on: {new Date(user.verificationFormData.submittedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : user.verificationStatus === 'rejected' ? (
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                  <div>
+                    <h3 className="font-semibold text-red-800">Verification Rejected</h3>
+                    <p className="text-sm text-red-600">Your verification was rejected. Please submit a new verification request.</p>
+                    <Button 
+                      onClick={() => setShowVerificationForm(true)}
+                      className="mt-2 bg-blue-600 hover:bg-blue-700"
+                      size="sm"
+                    >
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      Submit New Verification
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <AlertCircle className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <h3 className="font-semibold text-blue-800">Verification Required</h3>
+                    <p className="text-sm text-blue-600">You need to verify your account to request devices. Complete the verification process to get started.</p>
+                    <Button 
+                      onClick={() => setShowVerificationForm(true)}
+                      className="mt-2 bg-blue-600 hover:bg-blue-700"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Verify Account
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Activity Content Based on User Type */}
         {user.userRole === 'donor' ? (
           <Tabs defaultValue="overview" className="space-y-6">
@@ -1277,6 +1350,24 @@ const ProfilePage = () => {
               </Card>
             </TabsContent>
           </Tabs>
+        )}
+
+        {/* Verification Form Modal */}
+        {showVerificationForm && (
+          <VerificationForm
+            isOpen={showVerificationForm}
+            onClose={() => setShowVerificationForm(false)}
+            onSuccess={() => {
+              setShowVerificationForm(false);
+              // Refresh user data to get updated verification status
+              fetchUserData();
+              toast({
+                title: "Verification Submitted",
+                description: "Your verification request has been submitted successfully. We'll review it within 2-3 business days.",
+              });
+            }}
+            user={user}
+          />
         )}
       </div>
     </div>
