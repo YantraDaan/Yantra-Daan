@@ -879,7 +879,7 @@ const ProfilePage = () => {
         {/* Activity Content Based on User Type */}
         {user.userRole === 'donor' ? (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="items" className="relative">
                 My Items
@@ -902,6 +902,10 @@ const ProfilePage = () => {
                     </Badge>
                   ) : null;
                 })()}
+              </TabsTrigger>
+              <TabsTrigger value="learning">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Learning
               </TabsTrigger>
             </TabsList>
 
@@ -1170,13 +1174,44 @@ const ProfilePage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="learning">
+              <Card className="donation-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Learning Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Enhance Your Digital Skills</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Access our comprehensive learning platform to improve your digital literacy and technical skills.
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/learning'}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Go to Learning Center
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Dashboard</TabsTrigger>
               <TabsTrigger value="requests">My Requests</TabsTrigger>
               <TabsTrigger value="history">Request History</TabsTrigger>
+              <TabsTrigger value="learning">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Learning
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -1345,6 +1380,33 @@ const ProfilePage = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="learning">
+              <Card className="donation-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Learning Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Enhance Your Digital Skills</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Access our comprehensive learning platform to improve your digital literacy and technical skills.
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/learning'}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Go to Learning Center
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

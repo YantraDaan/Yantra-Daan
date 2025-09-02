@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogoSVG } from "@/components/ui/logoSVG";
-import { Heart, Menu, X, User, Gift, Users, LogOut } from "lucide-react";
+import { Heart, Menu, X, User, Gift, Users, LogOut, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
@@ -23,6 +23,7 @@ const Header = () => {
   const navigation = [
     { name: "Home", path: "/", icon: Heart },
     { name: "Donations", path: "/donations", icon: Gift },
+    { name: "Learning", path: "/learning", icon: BookOpen },
     { name: "About", path: "/about", icon: Users },
     { name: "Team", path: "/team", icon: Users },
     { name: "Contact", path: "/contact", icon: Users },

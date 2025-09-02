@@ -22,6 +22,7 @@ import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import TeamPage from "./pages/TeamPage";
 import ProfilePage from "./pages/ProfilePage";
+import MyLearningPage from "./pages/MyLearningPage";
 import NotFound from "./pages/NotFound";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -68,6 +69,7 @@ const AppContent = () => {
             {/* Protected Routes */}
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/learning" element={<MyLearningPage />} />
             <Route path="/devices" element={<DeviceBrowse />} />
             <Route path="/devices/post" element={<DevicePost />} />
             <Route path="/devices/:deviceId" element={<DeviceDetailPage />} />
