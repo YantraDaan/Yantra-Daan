@@ -497,33 +497,35 @@ const DeviceDetailPage = () => {
                     </div>
                   )}
 
-                  {!canRequest ? (
-                    <div className="text-center space-y-3">
-                      <div className="text-amber-600 bg-amber-50 p-3 rounded-lg">
-                        <p className="font-medium">{requestReason}</p>
-                        {activeRequestCount > 0 && (
-                          <p className="text-sm text-amber-700 mt-1">
-                            You currently have {activeRequestCount} active request(s)
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : !showRequestForm ? (
-                    <div className="space-y-3">
-                      <div className="text-center text-sm text-gray-600">
-                        <p>You can request up to 3 devices at a time</p>
-                        <p className="text-primary font-medium">Current: {activeRequestCount}/3</p>
-                      </div>
-                      <Button 
-                        onClick={() => setShowRequestForm(true)}
-                        className="w-full btn-hero"
-                        disabled={!user?.isVerified}
-                      >
-                        <Heart className="w-4 h-4 mr-2" />
-                        Request Device
-                      </Button>
-                    </div>
-                  ) : (
+                  {/* Only show request form if user is verified */}
+                  {user?.isVerified && (
+                    <>
+                      {!canRequest ? (
+                        <div className="text-center space-y-3">
+                          <div className="text-amber-600 bg-amber-50 p-3 rounded-lg">
+                            <p className="font-medium">{requestReason}</p>
+                            {activeRequestCount > 0 && (
+                              <p className="text-sm text-amber-700 mt-1">
+                                You currently have {activeRequestCount} active request(s)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : !showRequestForm ? (
+                        <div className="space-y-3">
+                          <div className="text-center text-sm text-gray-600">
+                            <p>You can request up to 3 devices at a time</p>
+                            <p className="text-primary font-medium">Current: {activeRequestCount}/3</p>
+                          </div>
+                          <Button 
+                            onClick={() => setShowRequestForm(true)}
+                            className="w-full btn-hero"
+                          >
+                            <Heart className="w-4 h-4 mr-2" />
+                            Request Device
+                          </Button>
+                        </div>
+                      ) : (
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-gray-500">
@@ -556,6 +558,8 @@ const DeviceDetailPage = () => {
                         </Button>
                       </div>
                     </div>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>

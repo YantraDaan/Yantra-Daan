@@ -44,14 +44,11 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documents, setDocuments] = useState<VerificationDocument[]>([]);
-  const [notes, setNotes] = useState('');
+  const [howDeviceHelps, setHowDeviceHelps] = useState('');
+  const [whyNeedDevice, setWhyNeedDevice] = useState('');
 
   const documentTypes = [
-    { value: 'id_proof', label: 'ID Proof (Aadhaar, Passport, etc.)' },
-    { value: 'address_proof', label: 'Address Proof (Utility bill, Bank statement)' },
-    { value: 'income_proof', label: 'Income Proof (Salary slip, Bank statement)' },
-    { value: 'education_proof', label: 'Education Proof (Degree, Certificate)' },
-    { value: 'other', label: 'Other Supporting Documents' }
+    { value: 'education_proof', label: 'Highest Education Document (Degree, Certificate, etc.)' }
   ];
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: string) => {
@@ -135,7 +132,16 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
     if (documents.length === 0) {
       toast({
         title: "No Documents",
-        description: "Please upload at least one verification document",
+        description: "Please upload your highest education document",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!howDeviceHelps.trim() || !whyNeedDevice.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please answer both questions",
         variant: "destructive"
       });
       return;
@@ -153,7 +159,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
         },
         body: JSON.stringify({
           documents,
-          notes: notes.trim() || undefined
+          notes: `How can this device help me: ${howDeviceHelps.trim()}\nWhy do I need a device: ${whyNeedDevice.trim()}`
         })
       });
 
@@ -231,42 +237,81 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
             </CardContent>
           </Card>
 
-          {/* Document Upload */}
+          {/* Questions */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Upload Documents</CardTitle>
+              <CardTitle className="text-lg">Tell Us About Yourself</CardTitle>
               <CardDescription>
-                Upload clear, readable copies of your documents. All documents are encrypted and secure.
+                Please answer these questions to help us understand your needs
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {documentTypes.map((docType) => (
-                <div key={docType.value} className="space-y-2">
-                  <Label>{docType.label}</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      onChange={(e) => handleFileUpload(e, docType.value)}
-                      className="hidden"
-                      id={`upload-${docType.value}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById(`upload-${docType.value}`)?.click()}
-                      disabled={isSubmitting}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Choose File
-                    </Button>
-                    <span className="text-sm text-gray-500">
-                      JPG, PNG, PDF (Max 5MB)
-                    </span>
-                  </div>
+              <div>
+                <Label htmlFor="howDeviceHelps">How can this device help me?</Label>
+                <Textarea
+                  id="howDeviceHelps"
+                  value={howDeviceHelps}
+                  onChange={(e) => setHowDeviceHelps(e.target.value)}
+                  placeholder="Explain how this device will help you in your studies, work, or personal development..."
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  {howDeviceHelps.length}/500 characters
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="whyNeedDevice">Why do I need a device?</Label>
+                <Textarea
+                  id="whyNeedDevice"
+                  value={whyNeedDevice}
+                  onChange={(e) => setWhyNeedDevice(e.target.value)}
+                  placeholder="Tell us why you need a device and what you plan to use it for..."
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  {whyNeedDevice.length}/500 characters
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Document Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Upload Education Document</CardTitle>
+              <CardDescription>
+                Upload your highest education certificate or degree. All documents are encrypted and secure.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Highest Education Document</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleFileUpload(e, 'education_proof')}
+                    className="hidden"
+                    id="upload-education"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('upload-education')?.click()}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Choose File
+                  </Button>
+                  <span className="text-sm text-gray-500">
+                    JPG, PNG, PDF (Max 5MB)
+                  </span>
                 </div>
-              ))}
+              </div>
             </CardContent>
           </Card>
 
@@ -306,27 +351,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
             </Card>
           )}
 
-          {/* Additional Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Additional Information</CardTitle>
-              <CardDescription>
-                Provide any additional context or information that might help with verification
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional information you'd like to share..."
-                rows={4}
-                maxLength={500}
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                {notes.length}/500 characters
-              </p>
-            </CardContent>
-          </Card>
+
 
           {/* Submit Button */}
           <div className="flex justify-end gap-2">
@@ -335,7 +360,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={isSubmitting || documents.length === 0}
+              disabled={isSubmitting || documents.length === 0 || !howDeviceHelps.trim() || !whyNeedDevice.trim()}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
