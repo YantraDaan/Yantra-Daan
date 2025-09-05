@@ -46,6 +46,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   const [documents, setDocuments] = useState<VerificationDocument[]>([]);
   const [howDeviceHelps, setHowDeviceHelps] = useState('');
   const [whyNeedDevice, setWhyNeedDevice] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const documentTypes = [
     { value: 'education_proof', label: 'Highest Education Document (Degree, Certificate, etc.)' }
@@ -58,6 +59,8 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
     const file = files[0];
     const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+
+    console.log('File upload started:', { fileName: file.name, fileSize: file.size, fileType: file.type });
 
     if (file.size > maxSize) {
       toast({
@@ -84,6 +87,9 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       formData.append('type', type);
 
       const token = localStorage.getItem('authToken');
+      console.log('Uploading to:', `${config.apiUrl}/api/users/upload-verification-document`);
+      console.log('Token exists:', !!token);
+
       const response = await fetch(`${config.apiUrl}/api/users/upload-verification-document`, {
         method: 'POST',
         headers: {
@@ -92,8 +98,12 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
         body: formData
       });
 
+      console.log('Upload response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Upload response data:', data);
+        
         const newDocument: VerificationDocument = {
           type: type as any,
           filename: data.filename,
@@ -108,8 +118,14 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
           title: "Document Uploaded",
           description: `${file.name} uploaded successfully`,
         });
+        
+        // Clear the file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       } else {
         const errorData = await response.json();
+        console.error('Upload error response:', errorData);
         throw new Error(errorData.error || 'Upload failed');
       }
     } catch (error) {
@@ -128,7 +144,28 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
     setDocuments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const resetForm = () => {
+    setDocuments([]);
+    setHowDeviceHelps('');
+    setWhyNeedDevice('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Reset form when modal opens/closes
+  React.useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
   const handleSubmit = async () => {
+    console.log('Submit verification started');
+    console.log('Documents:', documents);
+    console.log('How device helps:', howDeviceHelps);
+    console.log('Why need device:', whyNeedDevice);
+
     if (documents.length === 0) {
       toast({
         title: "No Documents",
@@ -151,28 +188,39 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       setIsSubmitting(true);
       const token = localStorage.getItem('authToken');
       
+      const submitData = {
+        documents,
+        notes: `How can this device help me: ${howDeviceHelps.trim()}\nWhy do I need a device: ${whyNeedDevice.trim()}`
+      };
+
+      console.log('Submitting to:', `${config.apiUrl}/api/users/submit-verification`);
+      console.log('Submit data:', submitData);
+      console.log('Token exists:', !!token);
+      
       const response = await fetch(`${config.apiUrl}/api/users/submit-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          documents,
-          notes: `How can this device help me: ${howDeviceHelps.trim()}\nWhy do I need a device: ${whyNeedDevice.trim()}`
-        })
+        body: JSON.stringify(submitData)
       });
+
+      console.log('Submit response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Submit response data:', data);
         toast({
           title: "Verification Submitted",
           description: "Your verification request has been submitted successfully. We'll review it within 2-3 business days.",
         });
+        resetForm();
         onSuccess();
         onClose();
       } else {
         const errorData = await response.json();
+        console.error('Submit error response:', errorData);
         throw new Error(errorData.error || 'Submission failed');
       }
     } catch (error) {
@@ -291,6 +339,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
                 <Label>Highest Education Document</Label>
                 <div className="flex items-center gap-2">
                   <input
+                    ref={fileInputRef}
                     type="file"
                     accept=".jpg,.jpeg,.png,.pdf"
                     onChange={(e) => handleFileUpload(e, 'education_proof')}

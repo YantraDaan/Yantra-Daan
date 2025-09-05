@@ -23,7 +23,7 @@ const Header = () => {
   const navigation = [
     { name: "Home", path: "/", icon: Heart },
     { name: "Donations", path: "/donations", icon: Gift },
-    { name: "Learning", path: "/learning", icon: BookOpen },
+    // { name: "Learning", path: "/learning", icon: BookOpen },s
     { name: "About", path: "/about", icon: Users },
     { name: "Team", path: "/team", icon: Users },
     { name: "Contact", path: "/contact", icon: Users },

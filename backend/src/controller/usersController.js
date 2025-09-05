@@ -532,7 +532,11 @@ const uploadVerificationDocument = async (req, res) => {
 
     res.json({
       message: "Verification document uploaded successfully",
-      document: documentInfo
+      filename: documentInfo.filename,
+      originalName: documentInfo.originalName,
+      mimetype: documentInfo.mimetype,
+      size: documentInfo.size,
+      uploadDate: documentInfo.uploadDate
     });
 
   } catch (err) {
@@ -547,22 +551,29 @@ const submitVerification = async (req, res) => {
     const userId = req.user?.id;
     const { documents, notes } = req.body;
 
-    if (!userId) {
-      return res.status(401).json({ error: "User not authenticated" });
-    }
-
-    console.log("Submitting verification request for user ID:", userId);
+    console.log("=== SUBMIT VERIFICATION REQUEST ===");
+    console.log("User ID:", userId);
+    console.log("Request body:", req.body);
     console.log("Documents:", documents);
     console.log("Notes:", notes);
 
+    if (!userId) {
+      console.log("Error: User not authenticated");
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
     if (!documents || documents.length === 0) {
+      console.log("Error: No documents provided");
       return res.status(400).json({ error: "At least one verification document is required" });
     }
 
     const user = await UserModel.findById(userId);
     if (!user) {
+      console.log("Error: User not found");
       return res.status(404).json({ error: "User not found" });
     }
+
+    console.log("User found:", user.email);
 
     // Parse the notes to extract the answers
     let howDeviceHelps = '';
@@ -578,6 +589,8 @@ const submitVerification = async (req, res) => {
         }
       }
     }
+
+    console.log("Parsed answers:", { howDeviceHelps, whyNeedDevice });
 
     // Update user verification status to pending and save form data
     user.verificationStatus = 'pending';
