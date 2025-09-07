@@ -2,6 +2,7 @@ const { Router } = require('express');
 const UserModel = require('../models/UserModels');
 const PasswordResetTokenModel = require('../models/PasswordResetToken');
 const { auth, requireRole } = require('../middleware/auth');
+const { profileUpload, verificationUpload } = require('../middleware/imageUpload');
 const { 
   getAllUsers, 
   getUserById,
@@ -12,7 +13,11 @@ const {
   updateUserByAdmin,
   deleteUserByAdmin,
   getUserStats,
-  uploadProfilePhoto 
+  uploadProfilePhoto,
+  uploadVerificationDocument,
+  submitVerification,
+  updateVerificationStatus,
+  getUnverifiedUsers
 } = require("../controller/usersController");
 
 const router = Router();
@@ -24,7 +29,7 @@ router.post("/login", loginUser);
 // Protected routes (require authentication)
 router.get("/me", auth, getUserProfile);
 router.put("/me", auth, updateUserProfile);
-router.post("/upload-photo", auth, uploadProfilePhoto);
+router.post("/upload-photo", auth, profileUpload.single('profilePhoto'), uploadProfilePhoto);
 
 // Admin routes (require admin role)
 router.get('/', auth, requireRole(['admin']), async (req, res) => {
@@ -225,6 +230,14 @@ router.get('/admin/stats', auth, requireRole(['admin']), async (req, res) => {
     });
   }
 });
+
+// Verification routes
+router.post("/upload-verification-document", auth, verificationUpload.single('document'), uploadVerificationDocument);
+router.post("/submit-verification", auth, submitVerification);
+
+// Admin verification routes
+router.put("/:userId/verification-status", auth, requireRole(['admin']), updateVerificationStatus);
+router.get("/unverified", auth, requireRole(['admin']), getUnverifiedUsers);
 
 module.exports = router;
 

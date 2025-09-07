@@ -127,29 +127,34 @@ const validateDevicePost = [
   
   body('location.city')
     .optional()
+    .if(body('location.city').exists())
     .trim()
     .isLength({ max: 100 })
     .withMessage('City name cannot exceed 100 characters'),
   
   body('location.state')
     .optional()
+    .if(body('location.state').exists())
     .trim()
     .isLength({ max: 100 })
     .withMessage('State name cannot exceed 100 characters'),
   
   body('location.country')
     .optional()
+    .if(body('location.country').exists())
     .trim()
     .isLength({ max: 100 })
     .withMessage('Country name cannot exceed 100 characters'),
   
   body('contactInfo.phone')
     .optional()
+    .if(body('contactInfo.phone').exists())
     .matches(/^[\+]?[1-9][\d]{0,15}$/)
     .withMessage('Please provide a valid phone number'),
   
   body('contactInfo.email')
     .optional()
+    .if(body('contactInfo.email').exists())
     .isEmail()
     .withMessage('Please provide a valid email address')
     .normalizeEmail()
@@ -162,11 +167,25 @@ const validateDevicePost = [
   
   body('images.*.url')
     .optional()
-    .isURL()
-    .withMessage('Image URL must be a valid URL'),
+    .if(body('images.*.url').exists())
+    .custom((value) => {
+      // Accept both full URLs and relative paths
+      if (typeof value === 'string' && value.trim() !== '') {
+        // Check if it's a valid URL or a relative path
+        const isUrl = /^https?:\/\/.+/.test(value);
+        const isRelativePath = /^[^\/]+\/[^\/]+/.test(value);
+        
+        if (!isUrl && !isRelativePath) {
+          throw new Error('Image URL must be a valid URL or relative path');
+        }
+      }
+      return true;
+    })
+    .withMessage('Image URL must be a valid URL or relative path'),
   
   body('images.*.caption')
     .optional()
+    .if(body('images.*.caption').exists())
     .isLength({ max: 200 })
     .withMessage('Image caption cannot exceed 200 characters'),
   
@@ -178,11 +197,25 @@ const validateDevicePost = [
   
   body('devicePhotos.*.url')
     .optional()
-    .isURL()
-    .withMessage('Device photo URL must be a valid URL'),
+    .if(body('devicePhotos.*.url').exists())
+    .custom((value) => {
+      // Accept both full URLs and relative paths
+      if (typeof value === 'string' && value.trim() !== '') {
+        // Check if it's a valid URL or a relative path
+        const isUrl = /^https?:\/\/.+/.test(value);
+        const isRelativePath = /^[^\/]+\/[^\/]+/.test(value);
+        
+        if (!isUrl && !isRelativePath) {
+          throw new Error('Device photo URL must be a valid URL or relative path');
+        }
+      }
+      return true;
+    })
+    .withMessage('Device photo URL must be a valid URL or relative path'),
   
   body('devicePhotos.*.caption')
     .optional()
+    .if(body('devicePhotos.*.caption').exists())
     .isLength({ max: 200 })
     .withMessage('Device photo caption cannot exceed 200 characters'),
   

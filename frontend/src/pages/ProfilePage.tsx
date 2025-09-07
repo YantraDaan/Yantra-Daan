@@ -35,6 +35,7 @@ import {
   Camera
 } from "lucide-react";
 import { config } from "@/config/env";
+import VerificationForm from "@/components/VerificationForm";
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
@@ -42,6 +43,7 @@ const ProfilePage = () => {
   const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
   
   // Read URL parameters
   const urlId = searchParams.get('id');
@@ -94,7 +96,12 @@ const ProfilePage = () => {
   console.log("Profile data to send:", profileData);
   
   // State for real data from backend
-  const [donorStats, setDonorStats] = useState({
+  const [donorStats, setDonorStats] = useState<{
+    totalDonations: number;
+    activeItems: number;
+    completedRequests: number;
+    totalStudentsHelped: number;
+  }>({
     totalDonations: 0,
     activeItems: 0,
     completedRequests: 0,
@@ -167,10 +174,9 @@ const ProfilePage = () => {
           const pending = donationsData.devices?.filter((d: any) => d.status === 'pending')?.length || 0;
           
           // Calculate total requests across all devices
-          const totalRequests = Object.values(requestsData).reduce((sum: number, requests: any[]) => sum + requests.length, 0);
-          const completedRequests = Object.values(requestsData).reduce((sum: number, requests: any[]) => 
-            sum + requests.filter((r: any) => r.status === 'completed').length, 0
-          );
+          const allRequests = Object.values(requestsData).flat() as any[];
+          const totalRequests = allRequests.length;
+          const completedRequests = allRequests.filter((r: any) => r.status === 'completed').length;
           
           setDonorStats({
             totalDonations: total,
@@ -322,54 +328,63 @@ const ProfilePage = () => {
   };
 
   const handleProfilePhotoUpload = async (file: File) => {
-    // if (!file) {
-    //   toast({
-    //     title: "No Photo Selected",
-    //     description: "Please select a photo to upload.",
-    //     variant: "destructive"
-    //   });
-    //   return;
-    // }
+    if (!file) {
+      toast({
+        title: "No Photo Selected",
+        description: "Please select a photo to upload.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // try {
-    //   const formData = new FormData();
-    //   formData.append('profilePhoto', file);
+    try {
+      const formData = new FormData();
+      formData.append('profilePhoto', file);
 
-    //   const response = await fetch(`http://localhost:5000/api/users/profile/photo`, {
-    //     method: 'POST',
-    //     headers: {
-    //       'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-    //     },
-    //     body: formData
-    //   });
+      console.log('Uploading profile photo:', file.name);
+      console.log('Using endpoint:', `${config.apiUrl}/api/users/upload-photo`);
 
-    //   if (response.ok) {
-    //     const result = await response.json();
-    //     toast({
-    //       title: "Photo Updated",
-    //       description: "Your profile photo has been successfully updated.",
-    //     });
+      const response = await fetch(`${config.apiUrl}/api/users/upload-photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: formData
+      });
+
+      console.log('Upload response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Upload response data:', result);
         
-    //     // Refresh user data to show new photo
-    //     if (result.user) {
-    //       // Update local storage with new user data
-    //       localStorage.setItem('authUser', JSON.stringify(result.user));
-    //       // Force page reload to show new photo
-    //       window.location.reload();
-    //     }
+        toast({
+          title: "Photo Updated",
+          description: "Your profile photo has been successfully updated.",
+        });
         
-    //     setProfilePhoto(null);
-    //   } else {
-    //     throw new Error('Failed to upload photo');
-    //   }
-    // } catch (error) {
-    //   toast({
-    //     title: "Upload Failed",
-    //     description: "Failed to upload profile photo. Please try again.",
-    //     variant: "destructive"
-    //   });
-    //   console.error("Photo upload error:", error);
-    // }
+        // Refresh user data to show new photo
+        if (result.user) {
+          // Update local storage with new user data
+          localStorage.setItem('authUser', JSON.stringify(result.user));
+          // Update user context
+          updateUser(result.user);
+        }
+        
+        setProfilePhoto(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Upload failed:', errorData);
+        throw new Error(errorData.error || 'Failed to upload photo');
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload profile photo. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Photo upload error:", error);
+    }
   };
 
   const handleCancelRequest = async (requestId: string) => {
@@ -571,13 +586,17 @@ const ProfilePage = () => {
                   {user.profilePhoto?.filename ? (
                     <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary">
                       <img 
-                        src=""
+                        src={`${config.apiUrl}/uploads/${user.profilePhoto.filename}`}
                         alt="Profile" 
                         className="w-full h-full object-cover"
                         onError={(e) => {
+                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
                           // Fallback to icon if image fails to load
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                        onLoad={() => {
+                          console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
                         }}
                       />
                       <div className={`w-full h-full bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center ${user.profilePhoto?.filename ? 'hidden' : ''}`}>
@@ -790,10 +809,77 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
+        {/* Verification Status Section - Only for requesters */}
+        {user.userRole === 'requester' && (
+          <Card className="donation-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                Account Verification Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user.isVerified ? (
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div>
+                    <h3 className="font-semibold text-green-800">Account Verified</h3>
+                    <p className="text-sm text-green-600">You can request up to 3 devices. Your verification was completed on {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'recently'}.</p>
+                  </div>
+                </div>
+              ) : user.verificationStatus === 'pending' ? (
+                <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                  <div>
+                    <h3 className="font-semibold text-yellow-800">Verification Pending</h3>
+                    <p className="text-sm text-yellow-600">Your verification request is being reviewed. You'll be able to request devices once approved.</p>
+                    {user.verificationFormData?.submittedAt && (
+                      <p className="text-xs text-yellow-500 mt-1">
+                        Submitted on: {new Date(user.verificationFormData.submittedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : user.verificationStatus === 'rejected' ? (
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                  <div>
+                    <h3 className="font-semibold text-red-800">Verification Rejected</h3>
+                    <p className="text-sm text-red-600">Your verification was rejected. Please submit a new verification request.</p>
+                    <Button 
+                      onClick={() => setShowVerificationForm(true)}
+                      className="mt-2 bg-blue-600 hover:bg-blue-700"
+                      size="sm"
+                    >
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      Submit New Verification
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <AlertCircle className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <h3 className="font-semibold text-blue-800">Verification Required</h3>
+                    <p className="text-sm text-blue-600">You need to verify your account to request devices. Complete the verification process to get started.</p>
+                    <Button 
+                      onClick={() => setShowVerificationForm(true)}
+                      className="mt-2 bg-blue-600 hover:bg-blue-700"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Verify Account
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Activity Content Based on User Type */}
         {user.userRole === 'donor' ? (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="items" className="relative">
                 My Items
@@ -816,6 +902,10 @@ const ProfilePage = () => {
                     </Badge>
                   ) : null;
                 })()}
+              </TabsTrigger>
+              <TabsTrigger value="learning">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Learning
               </TabsTrigger>
             </TabsList>
 
@@ -1084,13 +1174,44 @@ const ProfilePage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="learning">
+              <Card className="donation-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Learning Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Enhance Your Digital Skills</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Access our comprehensive learning platform to improve your digital literacy and technical skills.
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/learning'}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Go to Learning Center
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         ) : (
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Dashboard</TabsTrigger>
               <TabsTrigger value="requests">My Requests</TabsTrigger>
               <TabsTrigger value="history">Request History</TabsTrigger>
+              <TabsTrigger value="learning">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Learning
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -1263,7 +1384,52 @@ const ProfilePage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="learning">
+              <Card className="donation-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Learning Resources
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Enhance Your Digital Skills</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Access our comprehensive learning platform to improve your digital literacy and technical skills.
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/learning'}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Go to Learning Center
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
+        )}
+
+        {/* Verification Form Modal */}
+        {showVerificationForm && (
+          <VerificationForm
+            isOpen={showVerificationForm}
+            onClose={() => setShowVerificationForm(false)}
+            onSuccess={() => {
+              setShowVerificationForm(false);
+              // Refresh user data to get updated verification status
+              fetchUserData();
+              toast({
+                title: "Verification Submitted",
+                description: "Your verification request has been submitted successfully. We'll review it within 2-3 business days.",
+              });
+            }}
+            user={user}
+          />
         )}
       </div>
     </div>

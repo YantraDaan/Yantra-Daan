@@ -24,7 +24,7 @@ router.get('/approved', getApprovedDeviceDonations);
 router.get('/stats', getDeviceDonationStats);
 
 // Protected routes (require authentication)
-router.post('/', auth, createDeviceDonation);
+router.post('/', auth, validateDevicePost, createDeviceDonation);
 router.get('/my', auth, getUserDeviceDonations);
 router.get('/my/:id', auth, getDeviceDonationById);
 router.put('/my/:id', auth, updateUserDeviceDonation);
@@ -37,13 +37,20 @@ router.put('/admin/:id/status', auth, requireRole(['admin']), updateDeviceDonati
 // Image upload for device donations (authenticated users)
 router.post('/upload-image', auth, deviceUpload.single('image'), async (req, res) => {
   try {
+    console.log('Device image upload request received');
+    console.log('Request file:', req.file);
+    console.log('Request body:', req.body);
+    
     if (!req.file) {
+      console.log('No file provided in request');
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Generate the full URL for the uploaded image
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const imageUrl = `${baseUrl}/uploads/devices/${req.file.filename}`;
+    // Generate the relative path for the uploaded image (frontend will construct full URL)
+    const imageUrl = `devices/${req.file.filename}`;
+    
+    console.log('Generated image URL:', imageUrl);
+    console.log('File saved as:', req.file.filename);
     
     res.json({
       message: 'Device image uploaded successfully',

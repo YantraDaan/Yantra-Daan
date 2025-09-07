@@ -158,7 +158,7 @@ const DevicePost: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<DeviceFormData> = {};
+    const newErrors: any = {};
 
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
@@ -181,11 +181,14 @@ const DevicePost: React.FC = () => {
     if (!formData.location.country.trim()) {
       newErrors.location = { ...newErrors.location, country: 'Country is required' };
     }
-    if (!formData.contactInfo.phone.trim()) {
-      newErrors.contactInfo = { ...newErrors.contactInfo, phone: 'Phone number is required' };
+    // Phone and email are optional - only validate if provided
+    if (formData.contactInfo.phone && formData.contactInfo.phone.trim() && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.contactInfo.phone.trim())) {
+      if (!newErrors.contactInfo) newErrors.contactInfo = {};
+      newErrors.contactInfo.phone = 'Please provide a valid phone number';
     }
-    if (!formData.contactInfo.email.trim()) {
-      newErrors.contactInfo = { ...newErrors.contactInfo, email: 'Email is required' };
+    if (formData.contactInfo.email && formData.contactInfo.email.trim() && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.contactInfo.email.trim())) {
+      if (!newErrors.contactInfo) newErrors.contactInfo = {};
+      newErrors.contactInfo.email = 'Please provide a valid email address';
     }
 
     setErrors(newErrors);
@@ -208,10 +211,16 @@ const DevicePost: React.FC = () => {
 
     try {
       const token = localStorage.getItem('authToken'); // Fixed: Changed from 'token' to 'authToken'
+      // Clean up empty fields before submission
       const submissionData = {
         ...formData,
         // Ensure both images and devicePhotos are sent for compatibility
-        devicePhotos: formData.images
+        devicePhotos: formData.images,
+        // Clean up empty contact fields
+        contactInfo: {
+          phone: formData.contactInfo.phone.trim() || undefined,
+          email: formData.contactInfo.email.trim() || undefined
+        }
       };
       
       console.log('Submitting device with data:', submissionData);
