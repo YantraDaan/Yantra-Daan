@@ -583,20 +583,20 @@ const ProfilePage = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="relative group cursor-pointer" onClick={() => document.getElementById('profilePhotoInput')?.click()} title="Click to upload profile photo">
-                  {user.profilePhoto?.filename ? (
+                  {user?.profilePhoto?.filename ? (
                     <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary">
                       <img 
-                        src={`${config.apiUrl}/uploads/${user.profilePhoto.filename}`}
+                        src={`${config.apiUrl}/uploads/profiles/${user.profilePhoto.filename}`}
                         alt="Profile" 
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
+                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/profiles/${user.profilePhoto.filename}`);
                           // Fallback to icon if image fails to load
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.nextElementSibling?.classList.remove('hidden');
                         }}
                         onLoad={() => {
-                          console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
+                          console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/profiles/${user.profilePhoto.filename}`);
                         }}
                       />
                       <div className={`w-full h-full bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center ${user.profilePhoto?.filename ? 'hidden' : ''}`}>

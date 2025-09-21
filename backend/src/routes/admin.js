@@ -9,85 +9,6 @@ const { teamMemberUpload, deviceUpload } = require('../middleware/imageUpload');
 
 const router = Router();
 
-// Test email functionality (no auth required for testing)
-// router.post('/test-email-public', async (req, res) => {
-//   try {
-//     const { to, subject = 'Test Email from YantraDaan' } = req.body;
-    
-//     if (!to) {
-//       return res.status(400).json({ error: 'Recipient email is required' });
-//     }
-
-//     console.log('Attempting to send test email to:', to);
-//     console.log('Using SMTP credentials:', {
-//       host: process.env.SMTP_HOST || 'smtp.gmail.com',
-//       port: process.env.SMTP_PORT || 587,
-//       user: process.env.SMTP_USER || 'yantradaan@gmail.com'
-//     });
-
-//     const testEmailHtml = emailService.emailTemplates.testEmail();
-    
-//     const result = await emailService.sendEmail({
-//       to: to,
-//       subject: subject,
-//       html: testEmailHtml
-//     });
-
-//     if (result.success) {
-//       res.json({ 
-//         success: true, 
-//         message: 'Test email sent successfully',
-//         messageId: result.messageId 
-//       });
-//     } else {
-//       res.status(500).json({ 
-//         success: false, 
-//         error: 'Failed to send test email',
-//         details: result.error 
-//       });
-//     }
-//   } catch (error) {
-//     console.error('Error sending test email:', error);
-//     res.status(500).json({ error: 'Failed to send test email', details: error.message });
-//   }
-// });
-
-// // Test email functionality
-// router.post('/test-email', auth, requireRole(['admin']), async (req, res) => {
-//   try {
-//     const { to, subject = 'Test Email from YantraDaan' } = req.body;
-    
-//     if (!to) {
-//       return res.status(400).json({ error: 'Recipient email is required' });
-//     }
-
-//     const testEmailHtml = emailService.emailTemplates.testEmail();
-    
-//     const result = await emailService.sendEmail({
-//       to: to,
-//       subject: subject,
-//       html: testEmailHtml
-//     });
-
-//     if (result.success) {
-//       res.json({ 
-//         success: true, 
-//         message: 'Test email sent successfully',
-//         messageId: result.messageId 
-//       });
-//     } else {
-//       res.status(500).json({ 
-//         success: false, 
-//         error: 'Failed to send test email',
-//         details: result.error 
-//       });
-//     }
-//   } catch (error) {
-//     console.error('Error sending test email:', error);
-//     res.status(500).json({ error: 'Failed to send test email' });
-//   }
-// });
-
 // Get dashboard statistics
 router.get('/stats', auth, requireRole(['admin']), async (req, res) => {
   try {
@@ -109,6 +30,29 @@ router.get('/stats', auth, requireRole(['admin']), async (req, res) => {
   } catch (error) {
     console.error('Error fetching admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// Get public statistics for hero page (no auth required)
+router.get('/public-stats', async (req, res) => {
+  try {
+    // Count all approved devices (items donated)
+    const itemsDonated = await DeviceModel.countDocuments({ status: 'approved' });
+    
+    // Count all completed requests (lives impacted)
+    const livesImpacted = await DeviceRequestModel.countDocuments({ status: 'completed' });
+    
+    // Count all users with donor role (active donors)
+    const activeDonors = await UserModel.countDocuments({ userRole: 'donor' });
+
+    res.json({
+      itemsDonated,
+      livesImpacted,
+      activeDonors
+    });
+  } catch (error) {
+    console.error('Error fetching public stats:', error);
+    res.status(500).json({ error: 'Failed to fetch public statistics' });
   }
 });
 
@@ -378,7 +322,7 @@ router.get('/devices', auth, requireRole(['admin']), async (req, res) => {
     }
 
     const devices = await DeviceModel.find(query)
-      .populate('ownerInfo', 'name email contact')
+      .populate('ownerInfo', 'name email contact phone address city state userRole categoryType isOrganization about profession organization isVerified profilePhoto')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -398,24 +342,59 @@ router.get('/devices', auth, requireRole(['admin']), async (req, res) => {
   }
 });
 
-// Update device status
-router.put('/devices/:id/status', auth, requireRole(['admin']), async (req, res) => {
+// Get device owner details
+router.get('/devices/:id/owner', auth, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, adminNotes } = req.body;
+    
+    const device = await DeviceModel.findById(id)
+      .populate('ownerInfo', 'name email phone contact address city state userRole categoryType isOrganization about profession organization linkedIn instagram facebook profilePhoto isVerified createdAt')
+      .select('ownerId devicePhotos images title description deviceType condition location');
 
-    if (!['pending', 'approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
     }
+
+    if (!device.ownerInfo) {
+      return res.status(404).json({ error: 'Owner information not found' });
+    }
+
+    res.json(device.ownerInfo);
+  } catch (error) {
+    console.error('Error fetching device owner:', error);
+    res.status(500).json({ error: 'Failed to fetch device owner details' });
+  }
+});
+
+// Update device status
+router.patch('/devices/:id/status', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes, rejectionReason, suspensionReason, resetReason } = req.body;
+
+    if (!['pending', 'approved', 'rejected', 'suspended'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be pending, approved, rejected, or suspended' });
+    }
+
+    // Prepare update data
+    const updateData = {
+      status,
+      reviewedAt: new Date(),
+      reviewedBy: req.user._id
+    };
+
+    // Add specific reason fields based on status
+    if (adminNotes) updateData.adminNotes = adminNotes;
+    if (rejectionReason) updateData.rejectionReason = rejectionReason;
+    if (suspensionReason) {
+      updateData.suspensionReason = suspensionReason;
+      updateData.suspendedAt = new Date();
+    }
+    if (resetReason) updateData.resetReason = resetReason;
 
     const device = await DeviceModel.findByIdAndUpdate(
       id,
-      { 
-        status, 
-        adminNotes,
-        reviewedAt: new Date(),
-        reviewedBy: req.user._id
-      },
+      updateData,
       { new: true }
     ).populate('ownerInfo', 'name email contact');
 
@@ -423,23 +402,49 @@ router.put('/devices/:id/status', auth, requireRole(['admin']), async (req, res)
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // EMAIL NOTIFICATION DISABLED - Device status notification commented out
-    /*
     // Send email notification to device owner
     if (device.ownerInfo && device.ownerInfo.email) {
-      const emailTemplate = status === 'approved' 
-        ? emailService.emailTemplates.devicePostApproved(device)
-        : emailService.emailTemplates.devicePostRejected(device, adminNotes || 'No specific reason provided');
+      try {
+        let emailTemplate, subject;
+        
+        switch (status) {
+          case 'approved':
+            emailTemplate = emailService.emailTemplates.devicePostApproved(device);
+            subject = '✅ Device Post Approved - Yantra Daan';
+            break;
+          case 'rejected':
+            emailTemplate = emailService.emailTemplates.devicePostRejected(
+              device, 
+              rejectionReason || adminNotes || 'No specific reason provided'
+            );
+            subject = '❌ Device Post Rejected - Yantra Daan';
+            break;
+          case 'suspended':
+            emailTemplate = emailService.emailTemplates.devicePostSuspended(
+              device, 
+              suspensionReason || adminNotes || 'No specific reason provided'
+            );
+            subject = '⚠️ Device Post Suspended - Yantra Daan';
+            break;
+          case 'pending':
+            // For reset to pending, don't send email notification
+            break;
+        }
 
-      await emailService.sendEmail({
-        to: device.ownerInfo.email,
-        subject: status === 'approved' 
-          ? '✅ Device Post Approved - Yantra Daan'
-          : '❌ Device Post Rejected - Yantra Daan',
-        html: emailTemplate
-      });
+        if (emailTemplate) {
+          await emailService.sendEmail({
+            to: device.ownerInfo.email,
+            subject: subject,
+            html: emailTemplate
+          });
+          
+          console.log(`Email notification sent to ${device.ownerInfo.email} for device ${status}`);
+        }
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        // Don't fail the main operation if email fails
+      }
     }
-    */
 
     res.json({ message: 'Device status updated successfully', device });
   } catch (error) {

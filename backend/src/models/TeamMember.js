@@ -83,7 +83,7 @@ teamMemberSchema.pre('save', function(next) {
 });
 
 // Create indexes for better query performance
-teamMemberSchema.index({ email: 1 });
+// teamMemberSchema.index({ email: 1 });
 teamMemberSchema.index({ role: 1 });
 teamMemberSchema.index({ status: 1 });
 teamMemberSchema.index({ createdAt: -1 });

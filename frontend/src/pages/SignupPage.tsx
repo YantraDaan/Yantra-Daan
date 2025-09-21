@@ -1,4 +1,13 @@
-import { useState, useEffect } from "react";
+/// <reference types="@types/google.maps" />
+
+// Extend Window interface to include initAutocomplete
+declare global {
+  interface Window {
+    initAutocomplete: () => void;
+  }
+}
+
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +17,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Heart, ArrowLeft, ArrowRight, User, Building2, Upload, Eye, EyeOff } from "lucide-react";
+import { Heart, ArrowLeft, ArrowRight, User, Building2, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Loader2, MapPin, Search, X, FileText, FileImage, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
-// API functions removed - using direct fetch
 
 interface PersonalInfo {
   name: string;
   email: string;
-  password: string;
   contact: string;
   userRole: "donor" | "requester" | "";
   categoryType: "individual" | "organization" | "";
@@ -35,10 +42,6 @@ const SignupPage = () => {
   const [step, setStep] = useState(0); // Start with email check step
   const [userRole, setUserRole] = useState<"donor" | "requester" | "">("");
   const [categoryType, setCategoryType] = useState<"individual" | "organization" | "">("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isOrganization, setIsOrganization] = useState(false);
   
@@ -50,12 +53,17 @@ const SignupPage = () => {
     redirectTo: string;
   } | null>(null);
   
+  // Add loading state for form submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Add state for document preview
+  const [documentPreviewUrl, setDocumentPreviewUrl] = useState<string | null>(null);
+  
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     name: "",
     email: "",
     contact: "",
     userRole: "",
-    password: "",
     categoryType: "",
     isOrganization: false,
     about: "",
@@ -67,7 +75,6 @@ const SignupPage = () => {
     emailUpdates: true
   });
   
-  console.log("personalInfo 47",personalInfo);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -188,6 +195,17 @@ const SignupPage = () => {
     const file = e.target.files?.[0];
     if (file) {
       setPersonalInfo(prev => ({ ...prev, document: file }));
+      
+      // Generate preview for image files
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setDocumentPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setDocumentPreviewUrl(null);
+      }
     }
   };
 
@@ -196,7 +214,7 @@ const SignupPage = () => {
       case 0:
         return emailCheckResult && !emailCheckResult.exists; 
       case 1:
-        return personalInfo.name && personalInfo.email && password && confirmPassword && password === confirmPassword;
+        return personalInfo.name && personalInfo.email;
       case 2:
         return personalInfo.userRole !== "";
       case 3:
@@ -226,7 +244,9 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("personalInfo", personalInfo);
+    
+    // Set submitting state to true
+    setIsSubmitting(true);
 
     try {
       // Prepare document information
@@ -241,7 +261,6 @@ const SignupPage = () => {
 
       const userData = {
         ...personalInfo,
-        password,
         document: documentInfo
       };
 
@@ -260,16 +279,151 @@ const SignupPage = () => {
       const data = await response.json();
 
       if (data) {
-        toast({
-          title: "Registration Successful!",
-          description: `Welcome to Yantra Daan ${personalInfo.name}!`,
-        });
+        if (data.passwordSetupRequired) {
+          toast({
+            title: "Registration Successful!",
+            description: "Your account has been created. Please check your email for password setup instructions after admin verification.",
+          });
+        } else {
+          toast({
+            title: "Registration Successful!",
+            description: `Welcome to Yantra Daan ${personalInfo.name}!`,
+          });
+        }
         navigate("/login");
       } else {
         alert(`Error: Registration failed`);
       }
     } catch (error) {
       console.error("Error:", error);
+      toast({
+        title: "Registration Failed",
+        description: "There was an error processing your registration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      // Reset submitting state
+      setIsSubmitting(false);
+    }
+  };
+
+  // Add state for address suggestions
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Function to generate address suggestions (mock data for demonstration)
+  const generateAddressSuggestions = (input: string) => {
+    if (!input || input.length < 3) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    setIsAddressLoading(true);
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      // Mock address suggestions based on input
+      const mockSuggestions = [
+        `${input}, New Delhi, India`,
+        `${input}, Delhi, India`,
+        `${input}, NCR, India`,
+        `${input} Street, New Delhi, India`,
+        `${input} Road, Delhi, India`,
+        `${input} Colony, New Delhi, India`,
+        `${input} Area, Delhi, India`,
+        `${input} Nagar, New Delhi, India`,
+      ];
+      
+      setAddressSuggestions(mockSuggestions);
+      setShowSuggestions(true);
+      setIsAddressLoading(false);
+    }, 300);
+  };
+
+  // Handle address input change
+  const handleAddressChange = (value: string) => {
+    handlePersonalInfoChange("address", value);
+    generateAddressSuggestions(value);
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion: string) => {
+    handlePersonalInfoChange("address", suggestion);
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+          addressInputRef.current && !addressInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Add state for Google Places autocomplete
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+
+  // Initialize Google Maps Places Autocomplete
+  useEffect(() => {
+    // Check if Google Maps is already loaded
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+      setGoogleMapsLoaded(true);
+      initAutocomplete();
+      return;
+    }
+
+    // Load Google Maps script if not already loaded
+    if (!document.querySelector('#google-maps-script')) {
+      const script = document.createElement('script');
+      script.id = 'google-maps-script';
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&libraries=places&callback=initAutocomplete`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        console.error('Error loading Google Maps script');
+      };
+      window.initAutocomplete = initAutocomplete;
+      document.head.appendChild(script);
+    } else {
+      // Script exists, try to initialize
+      setTimeout(initAutocomplete, 500);
+    }
+
+    return () => {
+      if (window.initAutocomplete) {
+        delete window.initAutocomplete;
+      }
+    };
+  }, []);
+
+  // Initialize autocomplete functionality
+  const initAutocomplete = () => {
+    if (typeof google !== 'undefined' && google.maps && google.maps.places && addressInputRef.current) {
+      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: 'in' } // Restrict to India
+      });
+      
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.formatted_address) {
+          handlePersonalInfoChange("address", place.formatted_address);
+        }
+      });
+      
+      setGoogleMapsLoaded(true);
     }
   };
 
@@ -304,25 +458,25 @@ const SignupPage = () => {
             <span className="text-sm text-muted-foreground">Step {step === 0 ? 'Email Check ' : step} of 5</span>
             <span className="text-sm text-muted-foreground">{step === 0 ? '0%' : `${Math.round(((step) / 4) * 100)}%`} Complete</span>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2.5">
             <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-primary to-accent h-2.5 rounded-full transition-all duration-500 ease-out"
               style={{ width: step === 0 ? '0%' : `${((step) / 4) * 100}%` }}
             />
           </div>
         </div>
 
         {/* Registration Form */}
-        <Card className="glass-card">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
+        <Card className="glass-card border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
+          <CardHeader className="text-center pb-6">
+            <CardTitle className="text-2xl md:text-3xl font-bold">
               {step === 0 && "Enter Your Email"}
               {step === 1 && "Create Your Account"}
               {step === 2 && "Choose Your Role"}
               {step === 3 && "Select Category"}
               {step === 4 && "Personal Information"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               {step === 0 && "First, let's check if your email is available"}
               {step === 1 && "Start your journey with Yantra Daan"}
               {step === 2 && "How would you like to participate?"}
@@ -337,66 +491,48 @@ const SignupPage = () => {
               {step === 0 && (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={personalInfo.email}
-                      onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
-                      required
-                    />
+                    <Label htmlFor="email" className="text-base font-medium">Email Address *</Label>
+                    <div className="relative">
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={personalInfo.email}
+                        onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
+                        required
+                        className="py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                      {isCheckingEmail && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Email Check Result */}
                   {emailCheckResult && (
-                    <div className={`p-4 rounded-lg border ${
+                    <div className={`p-5 rounded-xl border-2 transition-all duration-300 ${
                       emailCheckResult.exists 
-                        ? 'bg-destructive/10 border-destructive/20' 
+                        ? 'bg-destructive/10 border-destructive/30' 
                         : 'bg-green-50 border-green-200'
                     }`}>
                       <div className="flex items-start gap-3">
                         {emailCheckResult.exists ? (
-                          <div className="w-5 h-5 rounded-full bg-destructive flex items-center justify-center mt-0.5">
-                            <span className="text-white text-xs">!</span>
+                          <div className="w-6 h-6 rounded-full bg-destructive flex items-center justify-center mt-0.5 flex-shrink-0">
+                            <AlertCircle className="w-4 h-4 text-white" />
                           </div>
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center mt-0.5">
-                            <span className="text-white text-xs">✓</span>
+                          <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center mt-0.5 flex-shrink-0">
+                            <CheckCircle className="w-4 h-4 text-white" />
                           </div>
                         )}
                         <div className="flex-1">
-                          <p className={`font-medium ${
+                          <p className={`font-medium text-base ${
                             emailCheckResult.exists ? 'text-destructive' : 'text-green-700'
                           }`}>
                             {emailCheckResult.message}
                           </p>
-                          
-                          {/* {emailCheckResult.exists && (
-                            <div className="mt-3">
-                              <Button
-                                type="button"
-                                onClick={handleGoToLogin}
-                                variant="destructive"
-                                className="w-full"
-                              >
-                                Go to Login
-                              </Button>
-                            </div>
-                          )} */}
-                          
-                          {/* {!emailCheckResult.exists && (
-                            <div className="mt-3">
-                              <Button
-                                type="button"
-                                onClick={handleProceedWithSignup}
-                                className="w-full btn-hero"
-                              >
-                                Continue with Signup
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>S
-                            </div>
-                          )} */}
                         </div>
                       </div>
                     </div>
@@ -413,71 +549,42 @@ const SignupPage = () => {
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
+                    <Label htmlFor="name" className="text-base font-medium">Full Name *</Label>
                     <Input
                       id="name"
                       placeholder="Enter your full name"
                       value={personalInfo.name}
                       onChange={(e) => handlePersonalInfoChange("name", e.target.value)}
                       required
+                      className="py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
+                    <Label htmlFor="email" className="text-base font-medium">Email Address *</Label>
                     <Input
                       id="email"
                       type="email"
                       placeholder="your@email.com"
                       value={personalInfo.email}
                       onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
-                      required
+                      className="py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      readOnly
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
+                  <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <span className="text-white text-xs font-bold">i</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-primary">Password Setup</p>
+                        <p className="text-sm text-primary/80 mt-1">
+                          You'll receive an email with a password setup link after your account is verified by our admin team.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                    <div className="relative">
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    {password && confirmPassword && password !== confirmPassword && (
-                      <p className="text-sm text-destructive">Passwords do not match</p>
-                    )}
                   </div>
                 </div>
               )}
@@ -491,32 +598,52 @@ const SignupPage = () => {
                       ...prev,
                       userRole: value,
                     }))}
-                    className="space-y-6"
+                    className="space-y-4"
                   >
-                    <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="donor" id="donor" className="mt-1" />
+                    <div className={`flex items-start space-x-4 p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                      personalInfo.userRole === "donor" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-muted hover:border-primary/30"
+                    }`}>
+                      <RadioGroupItem 
+                        value="donor" 
+                        id="donor" 
+                        className="mt-1.5 w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white" 
+                      />
                       <div className="flex-1">
                         <Label htmlFor="donor" className="cursor-pointer">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Heart className="w-5 h-5 text-primary" />
-                            <span className="font-semibold">Device Donor - I have a device to donate!</span>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <div className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
+                              <Heart className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-lg font-semibold">Device Donor</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground">
                             Share your unused technology with those who need it most. Help bridge the digital divide.
                           </p>
                         </Label>
                       </div>
                     </div>
 
-                    <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="requester" id="requester" className="mt-1" />
+                    <div className={`flex items-start space-x-4 p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                      personalInfo.userRole === "requester" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-muted hover:border-primary/30"
+                    }`}>
+                      <RadioGroupItem 
+                        value="requester" 
+                        id="requester" 
+                        className="mt-1.5 w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white" 
+                      />
                       <div className="flex-1">
                         <Label htmlFor="requester" className="cursor-pointer">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <User className="w-5 h-5 text-primary" />
-                            <span className="font-semibold">Device Requester - I would like to request a device</span>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <div className="w-10 h-10 bg-gradient-to-r from-accent to-blue-500 rounded-lg flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-lg font-semibold">Device Requester</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground">
                             Request technology that can help with your education, work, or personal development.
                           </p>
                         </Label>
@@ -536,32 +663,52 @@ const SignupPage = () => {
                       categoryType: value,
                       isOrganization: value === "organization",
                     }))}
-                    className="space-y-6"
+                    className="space-y-4"
                   >
-                    <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="individual" id="individual" className="mt-1" />
+                    <div className={`flex items-start space-x-4 p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                      personalInfo.categoryType === "individual" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-muted hover:border-primary/30"
+                    }`}>
+                      <RadioGroupItem 
+                        value="individual" 
+                        id="individual" 
+                        className="mt-1.5 w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white" 
+                      />
                       <div className="flex-1">
                         <Label htmlFor="individual" className="cursor-pointer">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <User className="w-5 h-5 text-primary" />
-                            <span className="font-semibold">Individual</span>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary-glow rounded-lg flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-lg font-semibold">Individual</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground">
                             Personal account for individual {personalInfo.userRole === "donor" ? "donations" : "requests"}
                           </p>
                         </Label>
                       </div>
                     </div>
 
-                    <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer">
-                      <RadioGroupItem value="organization" id="organization" className="mt-1" />
+                    <div className={`flex items-start space-x-4 p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                      personalInfo.categoryType === "organization" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-muted hover:border-primary/30"
+                    }`}>
+                      <RadioGroupItem 
+                        value="organization" 
+                        id="organization" 
+                        className="mt-1.5 w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white" 
+                      />
                       <div className="flex-1">
                         <Label htmlFor="organization" className="cursor-pointer">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Building2 className="w-5 h-5 text-primary" />
-                            <span className="font-semibold">Organisation/Company</span>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <div className="w-10 h-10 bg-gradient-to-r from-accent to-blue-500 rounded-lg flex items-center justify-center">
+                              <Building2 className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-lg font-semibold">Organisation/Company</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground">
                             Corporate or organizational account for bulk {personalInfo.userRole === "donor" ? "donations" : "requests"}
                           </p>
                         </Label>
@@ -574,22 +721,23 @@ const SignupPage = () => {
               {/* Step 4: Personal Information */}
               {step === 4 && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-2">
-                      <Label htmlFor="contact">Contact Number *</Label>
+                      <Label htmlFor="contact" className="text-base font-medium">Contact Number *</Label>
                       <Input
                         id="contact"
                         placeholder="+1 (555) 123-4567"
                         value={personalInfo.contact}
                         onChange={(e) => handlePersonalInfoChange("contact", e.target.value)}
                         required
+                        className="py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="profession">Profession</Label>
+                      <Label htmlFor="profession" className="text-base font-medium">Profession</Label>
                       <Select value={personalInfo.profession} onValueChange={(value) => handlePersonalInfoChange("profession", value)}>
-                        <SelectTrigger>
+                        <SelectTrigger className="py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
                           <SelectValue placeholder="Select profession" />
                         </SelectTrigger>
                         <SelectContent>
@@ -604,102 +752,291 @@ const SignupPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="about">About {isOrganization ? "Organisation" : "You"} *</Label>
-                    <Textarea
-                      id="about"
-                      placeholder={`Tell us about ${isOrganization ? "your organization" : "yourself"}...`}
-                      value={personalInfo.about}
-                      onChange={(e) => handlePersonalInfoChange("about", e.target.value)}
-                      rows={3}
-                      required
-                    />
+                    <Label htmlFor="address" className="text-base font-medium">Address *</Label>
+                    <div className="relative" ref={suggestionsRef}>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <MapPin className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <Input
+                          ref={addressInputRef}
+                          id="address"
+                          placeholder="Search for your address..."
+                          value={personalInfo.address}
+                          onChange={(e) => handleAddressChange(e.target.value)}
+                          required
+                          className="pl-10 py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          disabled={!googleMapsLoaded}
+                        />
+                        {isAddressLoading && (
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          </div>
+                        )}
+                        {!googleMapsLoaded && (
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Show fallback suggestions if Google Maps fails to load */}
+                      {!googleMapsLoaded && showSuggestions && addressSuggestions.length > 0 && (
+                        <div className="absolute z-10 mt-1 w-full bg-white border border-muted rounded-lg shadow-lg max-h-60 overflow-auto">
+                          {addressSuggestions.map((suggestion, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center text-sm"
+                              onClick={() => handleSuggestionSelect(suggestion)}
+                            >
+                              <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                              {suggestion}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="document">Document Upload *</Label>
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {personalInfo.userRole === "requester" 
-                          ? "Upload ID, School ID, Registration, or any proof of need"
-                          : "Upload ID, Business License, or any proof of identity"
-                        }
-                      </p>
-                      <Input
-                        type="file"
-                        onChange={handleFileUpload}
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                        className="max-w-xs"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">Additional Information</Label>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Address *</Label>
-                        <Textarea
-                          id="address"
-                          placeholder="Enter your full address..."
-                          value={personalInfo.address}
-                          onChange={(e) => handlePersonalInfoChange("address", e.target.value)}
-                          rows={2}
-                          required
-                        />
+                    <Label htmlFor="document" className="text-base font-medium">Document Upload *</Label>
+                    <div className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-6 text-center bg-muted/10 hover:bg-muted/20 transition-all duration-300 relative group">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="w-16 h-16 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                          <Upload className="w-8 h-8 text-primary" />
+                        </div>
+                        <p className="text-base text-muted-foreground mb-2 font-medium">
+                          {personalInfo.userRole === "requester" 
+                            ? "Upload ID, School ID, Registration, or any proof of need"
+                            : "Upload ID, Business License, or any proof of identity"
+                          }
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Supported formats: PDF, JPG, JPEG, PNG, DOC, DOCX
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          Maximum file size: 5MB
+                        </p>
+                        
+                        {personalInfo.document ? (
+                          <div className="w-full max-w-md">
+                            {/* Document Preview */}
+                            {documentPreviewUrl ? (
+                              // Image preview
+                              <div className="mb-4 overflow-hidden rounded-lg border border-muted shadow-sm">
+                                <div className="relative">
+                                  <img 
+                                    src={documentPreviewUrl} 
+                                    alt="Document preview" 
+                                    className="w-full h-48 object-contain bg-white"
+                                  />
+                                  <Button 
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setPersonalInfo(prev => ({ ...prev, document: undefined }));
+                                      setDocumentPreviewUrl(null);
+                                    }}
+                                    className="absolute top-2 right-2 h-8 w-8 p-0 rounded-full shadow-md"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                                <div className="bg-muted p-3">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {personalInfo.document.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {(personalInfo.document.size / 1024 / 1024).toFixed(2)} MB • Image
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              // Non-image file preview
+                              <div className="flex items-center justify-between bg-white border border-primary/20 rounded-lg p-4 shadow-sm mb-4">
+                                <div className="flex items-center">
+                                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mr-4">
+                                    {personalInfo.document.type.includes('pdf') ? (
+                                      <FileText className="w-6 h-6 text-primary" />
+                                    ) : (
+                                      <FileText className="w-6 h-6 text-primary" />
+                                    )}
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-sm font-medium text-gray-900 truncate max-w-[160px]">
+                                      {personalInfo.document.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {(personalInfo.document.size / 1024 / 1024).toFixed(2)} MB
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button 
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setPersonalInfo(prev => ({ ...prev, document: undefined }));
+                                    setDocumentPreviewUrl(null);
+                                  }}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              className="btn-hero px-6 py-3 text-base font-medium hover:shadow-lg transition-all"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const fileInput = document.getElementById('document-upload');
+                                if (fileInput) {
+                                  fileInput.click();
+                                }
+                              }}
+                            >
+                              <Upload className="w-4 h-4 mr-2" />
+                              Choose File
+                            </Button>
+                            <Input
+                              id="document-upload"
+                              type="file"
+                              onChange={handleFileUpload}
+                              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                              className="hidden"
+                            />
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="flex items-center space-x-2">
+                      {personalInfo.document && !documentPreviewUrl && (
+                        <div className="absolute top-3 right-3">
+                          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* File type preview icons */}
+                    <div className="flex justify-center space-x-4 mt-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mb-1">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <span className="text-xs text-muted-foreground">PDF</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center mb-1">
+                          <FileImage className="w-5 h-5 text-red-600" />
+                        </div>
+                        <span className="text-xs text-muted-foreground">JPG/PNG</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-1">
+                          <FileText className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <span className="text-xs text-muted-foreground">DOC</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="about" className="text-base font-medium">About {isOrganization ? "Organisation" : "You"} *</Label>
+                        <Textarea
+                          id="about"
+                          placeholder={`Tell us about ${isOrganization ? "your organization" : "yourself"}...`}
+                          value={personalInfo.about}
+                          onChange={(e) => handlePersonalInfoChange("about", e.target.value)}
+                          rows={4}
+                          required
+                          className="py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
                         <Checkbox 
                           id="emailUpdates" 
                           checked={personalInfo.emailUpdates}
                           onCheckedChange={(checked) => 
                             setPersonalInfo(prev => ({ ...prev, emailUpdates: checked as boolean }))
                           }
+                          className="w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
                         />
-                        <Label htmlFor="emailUpdates" className="text-sm">
+                        <Label htmlFor="emailUpdates" className="text-base">
                           Send me updates and notifications via email
                         </Label>
                       </div>
                     </div>
                   </div>
+
                   <div className="space-y-4">
                     <Label className="text-base font-medium">Social Links (Optional)</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="linkedin">LinkedIn</Label>
-                        <Input
-                          id="linkedin"
-                          placeholder="LinkedIn profile URL"
-                          value={personalInfo.linkedIn}
-                          onChange={(e) => handlePersonalInfoChange("linkedIn", e.target.value)}
-                        />
+                        <Label htmlFor="linkedin" className="text-sm">LinkedIn</Label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-muted-foreground text-sm">@</span>
+                          </div>
+                          <Input
+                            id="linkedin"
+                            placeholder="linkedin.com/in/username"
+                            value={personalInfo.linkedIn}
+                            onChange={(e) => handlePersonalInfoChange("linkedIn", e.target.value)}
+                            className="pl-8 py-2.5 px-4 text-sm border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="instagram">Instagram</Label>
-                        <Input
-                          id="instagram"
-                          placeholder="Instagram handle"
-                          value={personalInfo.instagram}
-                          onChange={(e) => handlePersonalInfoChange("instagram", e.target.value)}
-                        />
+                        <Label htmlFor="instagram" className="text-sm">Instagram</Label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-muted-foreground text-sm">@</span>
+                          </div>
+                          <Input
+                            id="instagram"
+                            placeholder="instagram.com/username"
+                            value={personalInfo.instagram}
+                            onChange={(e) => handlePersonalInfoChange("instagram", e.target.value)}
+                            className="pl-8 py-2.5 px-4 text-sm border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="facebook">Facebook</Label>
-                        <Input
-                          id="facebook"
-                          placeholder="Facebook profile URL"
-                          value={personalInfo.facebook}
-                          onChange={(e) => handlePersonalInfoChange("facebook", e.target.value)}
-                        />
+                        <Label htmlFor="facebook" className="text-sm">Facebook</Label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-muted-foreground text-sm">@</span>
+                          </div>
+                          <Input
+                            id="facebook"
+                            placeholder="facebook.com/username"
+                            value={personalInfo.facebook}
+                            onChange={(e) => handlePersonalInfoChange("facebook", e.target.value)}
+                            className="pl-8 py-2.5 px-4 text-sm border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {isOrganization && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="organization-behalf" />
-                      <Label htmlFor="organization-behalf" className="text-sm">
+                    <div className="flex items-center space-x-3 p-4 bg-accent/10 rounded-lg border border-accent/20">
+                      <Checkbox 
+                        id="organization-behalf" 
+                        className="w-5 h-5 border-2 border-accent data-[state=checked]:bg-accent data-[state=checked]:text-white"
+                      />
+                      <Label htmlFor="organization-behalf" className="text-base">
                         I am registering on behalf of my organisation
                       </Label>
                     </div>
@@ -708,13 +1045,14 @@ const SignupPage = () => {
               )}
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8">
+              <div className="flex justify-between mt-10 pt-6 border-t border-muted">
                 {step > 0 && (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleBack}
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-2 px-6 py-3 text-base font-medium border-2 hover:shadow-md transition-all"
+                    disabled={isSubmitting}
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back</span>
@@ -728,25 +1066,33 @@ const SignupPage = () => {
                 {step === 4 ? (
                   <Button
                     type="submit"
-                    disabled={!validateStep()}
-                    className="btn-hero flex items-center space-x-2"
+                    disabled={!validateStep() || isSubmitting}
+                    className="btn-hero flex items-center space-x-2 px-6 py-3 text-base font-medium shadow-lg hover:shadow-xl transition-all"
                   >
-                    <span>Complete Registration</span>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Complete Registration</span>
+                        <CheckCircle className="w-4 h-4" />
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Button
                     type="button"
                     onClick={handleNext}
-                    disabled={!validateStep()}
-                    className="btn-hero flex items-center space-x-2"
+                    disabled={!validateStep() || isSubmitting}
+                    className="btn-hero flex items-center space-x-2 px-6 py-3 text-base font-medium shadow-lg hover:shadow-xl transition-all"
                   >
                     <span>Next</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 )}
               </div>
-
-
             </CardContent>
           </form>
         </Card>

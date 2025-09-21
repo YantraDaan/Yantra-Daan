@@ -32,8 +32,8 @@ const DonatePage = () => {
   
   const [personalInfo, setPersonalInfo] = useState({
     name: "",
-    email: "",
-    contact: "",
+    // email: "",
+    // contact: "",
     about: "",
     profession: "",
     socialLinks: {
@@ -174,10 +174,10 @@ const DonatePage = () => {
           state: personalInfo.address.split(',')[1]?.trim() || '',
           country: 'India' // Default to India
         },
-        contactInfo: {
-          phone: personalInfo.contact || '',
-          email: personalInfo.email || ''
-        },
+        // contactInfo: {
+        //   phone: personalInfo.contact || '',
+        //   email: personalInfo.email || ''
+        // },
         devicePhotos: deviceInfo.devicePhotos.map(photo => ({
           url: photo.url, // Use the uploaded URL from backend
           caption: photo.caption
@@ -209,8 +209,8 @@ const DonatePage = () => {
         setWantsSelfDonate(null);
         setPersonalInfo({
           name: "",
-          email: "",
-          contact: "",
+          // email: "",
+          // contact: "",
           about: "",
           profession: "",
           socialLinks: {

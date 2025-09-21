@@ -20,7 +20,19 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required']
+      required: false // Password is optional for donors and requesters
+    },
+    passwordSetupRequired: {
+      type: Boolean,
+      default: false
+    },
+    passwordSetupToken: {
+      type: String,
+      default: null
+    },
+    passwordSetupExpires: {
+      type: Date,
+      default: null
     },
     contact: {
       type: String,

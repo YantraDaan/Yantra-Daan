@@ -42,6 +42,18 @@ interface DeviceOwner {
   about?: string;
   profession?: string;
   address?: string;
+  linkedIn?: string;
+  instagram?: string;
+  facebook?: string;
+  isVerified?: boolean;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  profilePhoto?: {
+    filename: string;
+    originalName: string;
+    mimetype: string;
+    size: number;
+    uploadDate: string;
+  };
 }
 
 interface DeviceRequester {
@@ -69,7 +81,6 @@ interface DeviceDetail {
     state: string;
     country: string;
   };
-  fullLocation?: string;
   ownerInfo: DeviceOwner;
   createdAt: string;
   updatedAt: string;
@@ -109,18 +120,6 @@ const DeviceDetailPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const getImageUrl = (imagePath: string) => {
-    if (!imagePath) return null;
-    
-    // If it's already a full URL, return as is
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
-    }
-    
-    // If it's a relative path, construct the full URL
-    const baseUrl = config.apiUrl;
-    return `${baseUrl}/uploads/${imagePath}`;
-  };
 
   useEffect(() => {
     if (deviceId) {
@@ -141,6 +140,7 @@ const DeviceDetailPage = () => {
       setIsLoading(true);
       console.log('Fetching device details for ID:', deviceId);
       console.log('API URL:', `${config.apiUrl}${config.endpoints.devices}/${deviceId}`);
+      
       
       const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/${deviceId}`);
       
@@ -279,9 +279,16 @@ const DeviceDetailPage = () => {
       />
     );
   }
+  //create full image url
+  const imageUrl = device.devicePhotos && device.devicePhotos[0] ? 
+    (device.devicePhotos[0].url.startsWith('http') ? 
+      device.devicePhotos[0].url : 
+      `${config.apiUrl}/uploads/${device.devicePhotos[0].url}`) : 
+    null;
+  console.log("imageUrl", imageUrl);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 bg-hero-bg">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
@@ -307,29 +314,31 @@ const DeviceDetailPage = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Device Images */}
-            <Card>
-              <CardContent className="p-6">
+            {/* <Card>
+              <CardContent className="p-6"> */}
                 <div className="space-y-4">
                   {/* Main Image */}
-                  <div className="relative h-96 bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="relative h-96 w-100 object-fill rounded-lg overflow-hidden">
                     {device.devicePhotos && device.devicePhotos.length > 0 ? (
                       <img
-                        src={device.devicePhotos[activeImageIndex]?.url}
+                        src={imageUrl}
                         alt={device.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-fill"
                       />
+                      
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
                         <Laptop className="w-24 h-24 text-primary/40" />
                       </div>
                     )}
+                   
                     
                     {/* Status Badge */}
-                    <div className="absolute top-4 right-4">
+                    {/* <div className="absolute top-4 right-4">
                       <Badge className={device.isActive ? "bg-green-600 text-white" : "bg-gray-600 text-white"}>
                         {device.isActive ? "Available" : "Reserved"}
                       </Badge>
-                    </div>
+                    </div> */}
                   </div>
 
                   {/* Thumbnail Images */}
@@ -344,7 +353,7 @@ const DeviceDetailPage = () => {
                           }`}
                         >
                           <img
-                            src={photo.url}
+                            src={photo.url.startsWith('http') ? photo.url : `${config.apiUrl}/uploads/${photo.url}`}
                             alt={`${device.title} - Image ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
@@ -353,15 +362,15 @@ const DeviceDetailPage = () => {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              {/* </CardContent>
+            </Card> */}
 
             {/* Device Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Laptop className="w-5 h-5" />
-                  Device Information
+                  Device Information 
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -372,15 +381,14 @@ const DeviceDetailPage = () => {
                     <p className="text-lg font-semibold">{device.deviceType}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500 pr-1">Condition</label>
-                    <Badge className="bg-blue-100 text-blue-800">
-                      {device.condition.charAt(0).toUpperCase() + device.condition.slice(1)}
-                    </Badge>
+                     <label className="text-sm font-medium text-gray-500">Condition</label>
+                    <p className="text-lg font-semibold">{device.condition.charAt(0).toUpperCase() + device.condition.slice(1)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Location</label>
-                    <p className="text-lg">{device.location ? `${device.location.city}, ${device.location.state}` : 'Location not specified'}</p>
-                  </div>
+                      <p className="text-lg"> {device?.location && [device.location.city, device.location.state, device.location.country].filter(Boolean).join(", ")|| "Location not specified"}
+                      </p>                 
+                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Posted</label>
                     <p className="text-lg">{new Date(device.createdAt).toLocaleDateString()}</p>
@@ -390,11 +398,11 @@ const DeviceDetailPage = () => {
                 {/* Description */}
                 <div>
                   <label className="text-sm font-medium text-gray-500">Description</label>
-                  <p className="text-lg mt-1 text-gray-700 leading-relaxed">{device.description}</p>
+                  <p className="font-serif antialiased  mt-1 text-gray-500 leading-relaxed">{device.description}</p>
                 </div>
 
                 {/* Specifications */}
-                {device.specifications && Object.keys(device.specifications).length > 0 && (
+                {/* {device.specifications && Object.keys(device.specifications).length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-500">Specifications</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -436,7 +444,7 @@ const DeviceDetailPage = () => {
                       )}
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Tags */}
                 {device.tags && device.tags.length > 0 && (
@@ -497,8 +505,34 @@ const DeviceDetailPage = () => {
                     </div>
                   )}
 
+                  {/* Show verification prompt for unverified users */}
+                  {user && user.verificationStatus !== 'verified' && (
+                    <div className="text-center space-y-3">
+                      <div className="text-amber-600 bg-amber-50 p-3 rounded-lg">
+                        <p className="font-medium">
+                          {user.verificationStatus === 'pending' 
+                            ? 'Your verification is pending approval' 
+                            : 'You need to be verified to request devices'}
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          {user.verificationStatus === 'pending'
+                            ? 'Your verification request is being reviewed. You\'ll be able to request devices once approved.'
+                            : 'Please complete the verification process to request devices.'}
+                        </p>
+                      </div>
+                      {user.verificationStatus !== 'pending' && (
+                        <Button 
+                          onClick={() => setShowVerificationForm(true)}
+                          className="btn-hero"
+                        >
+                          Get Verified
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Only show request form if user is verified */}
-                  {user?.isVerified && (
+                  {user && user.verificationStatus === 'verified' && (
                     <>
                       {!canRequest ? (
                         <div className="text-center space-y-3">
@@ -605,13 +639,13 @@ const DeviceDetailPage = () => {
             )}
 
             {/* Show message for donors */}
-            {device.isActive && user && user.userRole === 'donor' && (
+            {/* {device.isActive && user && user.userRole === 'donor' && (
               <Card>
                 <CardContent className="p-6 text-center">
                   <p className="text-gray-600">Donors cannot request devices</p>
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
             {/* Show login prompt for non-authenticated users */}
             {device.isActive && !user && (
@@ -650,25 +684,15 @@ const DeviceDetailPage = () => {
                             </div>
                             <div>
                               <h4 className="font-semibold">{requester.name}</h4>
-                              <p className="text-sm text-gray-600">{requester.email}</p>
-                              {requester.profession && (
+                              {/* {requester.profession && (
                                 <p className="text-xs text-gray-500">{requester.profession}</p>
-                              )}
+                              )} */}
                             </div>
                           </div>
-                          <Badge className="bg-blue-100 text-blue-800">
-                            <span className="capitalize">{requester.status}</span>
-                          </Badge>
                         </div>
-                        <p className="text-gray-700 mb-2">{requester.message}</p>
+                        <p className="text-gray-700 mb-2 text-xs">{requester.message}</p>
                         <div className="flex items-center justify-between text-sm text-gray-500">
                           <span>Requested {new Date(requester.createdAt).toLocaleDateString()}</span>
-                          {requester.contact && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {requester.contact}
-                            </span>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -691,53 +715,120 @@ const DeviceDetailPage = () => {
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="w-20 h-20 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-3">
-                    {device.ownerInfo.categoryType === 'organization' ? (
+                    {device.ownerInfo?.profilePhoto?.filename ? (
+                      <img 
+                        src={`${config.apiUrl}/uploads/${device.ownerInfo.profilePhoto.filename}`}
+                        alt={device.ownerInfo.name} 
+                        className="w-full h-full object-cover rounded-full"
+                        onError={(e) => {
+                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/${device.ownerInfo.profilePhoto.filename}`);
+                          // Fallback to icon if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement!;
+                          parent.innerHTML = '';
+                          const fallbackIcon = device.ownerInfo.categoryType === 'organization' ? 
+                            '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-white"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01"/></svg>' : 
+                            (device.ownerInfo.userRole === 'donor' ? 
+                              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-white"><path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V9m-4.5 3a4.5 4.5 0 1 0 4.5 4.5M12 16.5v-2.5m0 0a4 4 0 0 0 4-4H8a4 4 0 0 0 4 4Z"/></svg>' : 
+                              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-white"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>');
+                          parent.innerHTML = fallbackIcon;
+                        }}
+                      />
+                    ) : device.ownerInfo?.categoryType === 'organization' ? (
                       <Building2 className="w-10 h-10 text-white" />
-                    ) : device.ownerInfo.userRole === 'donor' ? (
+                    ) : device.ownerInfo?.userRole === 'donor' ? (
                       <Gift className="w-10 h-10 text-white" />
                     ) : (
                       <User className="w-10 h-10 text-white" />
                     )}
                   </div>
-                  <h3 className="text-xl font-semibold">{device.ownerInfo.name}</h3>
+                  <h3 className="text-xl font-semibold">{device.ownerInfo?.name || 'Unknown'}</h3>
                   <Badge variant="outline" className="mt-1">
-                    {device.ownerInfo.categoryType || 'Individual'}
+                    {device.ownerInfo?.categoryType === 'organization' ? 'Organization' : 'Individual'} • {device.ownerInfo?.userRole || 'User'}
                   </Badge>
                 </div>
 
                 <Separator />
 
                 <div className="space-y-3">
-                  {/* <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{device.ownerInfo.email}</span>
-                  </div> */}
-                  {/* {device.ownerInfo.contact && (
+                    <span className="text-sm">{device.ownerInfo?.email || 'Email not provided'}</span>
+                  </div>
+                  {device.ownerInfo?.contact && (
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-400" />
                       <span className="text-sm">{device.ownerInfo.contact}</span>
                     </div>
                   )}
-                  {device.ownerInfo.address && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                      <span className="text-sm">{device.ownerInfo.address}</span>
-                    </div>
-                  )} */}
-                  {device.ownerInfo.profession && (
+                  {device.ownerInfo?.profession && (
                     <div className="flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-gray-400" />
                       <span className="text-sm">{device.ownerInfo.profession}</span>
                     </div>
                   )}
+                  {device.ownerInfo?.address && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm">{device.ownerInfo.address}</span>
+                    </div>
+                  )}
+                  {device.ownerInfo?.linkedIn && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">LinkedIn:</span>
+                      <a href={device.ownerInfo.linkedIn} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                        Profile
+                      </a>
+                    </div>
+                  )}
+                  {device.ownerInfo?.instagram && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Instagram:</span>
+                      <a href={device.ownerInfo.instagram} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                        Profile
+                      </a>
+                    </div>
+                  )}
+                  {device.ownerInfo?.facebook && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Facebook:</span>
+                      <a href={device.ownerInfo.facebook} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                        Profile
+                      </a>
+                    </div>
+                  )}
                 </div>
 
-                {device.ownerInfo.about && (
+                {device.ownerInfo?.about && (
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-medium text-sm text-gray-500 mb-2">About</h4>
+                      <h4 className="text-sm font-medium text-gray-900 mb-1">About the Owner</h4>
                       <p className="text-sm text-gray-700">{device.ownerInfo.about}</p>
+                    </div>
+                  </>
+                )}
+                
+                {/* Verification Status */}
+                {(device.ownerInfo?.isVerified !== undefined || device.ownerInfo?.verificationStatus) && (
+                  <>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900">Verification Status</span>
+                      <Badge 
+                        variant={device.ownerInfo?.isVerified ? "default" : "secondary"}
+                        className={
+                          device.ownerInfo?.isVerified ? "bg-green-100 text-green-800" : 
+                          device.ownerInfo?.verificationStatus === 'pending' ? "bg-yellow-100 text-yellow-800" :
+                          device.ownerInfo?.verificationStatus === 'rejected' ? "bg-red-100 text-red-800" :
+                          "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {device.ownerInfo?.isVerified ? "Verified" : 
+                         device.ownerInfo?.verificationStatus === 'pending' ? "Pending Verification" :
+                         device.ownerInfo?.verificationStatus === 'rejected' ? "Verification Rejected" :
+                         "Not Verified"}
+                      </Badge>
                     </div>
                   </>
                 )}
@@ -796,7 +887,6 @@ const DeviceDetailPage = () => {
         isOpen={showVerificationForm}
         onClose={() => setShowVerificationForm(false)}
         onSuccess={() => {
-          // Refresh user data or show success message
           toast({
             title: "Verification Submitted",
             description: "Your verification request has been submitted successfully.",
