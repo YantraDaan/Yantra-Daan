@@ -765,7 +765,6 @@ const SignupPage = () => {
                           value={personalInfo.address}
                           onChange={(e) => handleAddressChange(e.target.value)}
                           className="pl-10 py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                          disabled={!googleMapsLoaded}
                         />
                         {isAddressLoading && (
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
