@@ -764,7 +764,6 @@ const SignupPage = () => {
                           placeholder="Search for your address..."
                           value={personalInfo.address}
                           onChange={(e) => handleAddressChange(e.target.value)}
-                          required
                           className="pl-10 py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           disabled={!googleMapsLoaded}
                         />
