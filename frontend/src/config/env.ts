@@ -29,7 +29,8 @@ export const config = {
   // Development Server
   devServerPort: parseInt(import.meta.env.VITE_DEV_SERVER_PORT || '3000'),
   devServerHost: import.meta.env.VITE_DEV_SERVER_HOST || 'localhost',
-  
+  mapboxAccessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1Ijoib3llY2hhbXAiLCJhIjoiY21mdGRmN3ZzMGdsdzJqcXpiNjMwZDc4aiJ9.hC4fFLk8H7pqfYX_wblPtw',
+
   // API Endpoints
   endpoints: {
     auth: '/api/auth',
