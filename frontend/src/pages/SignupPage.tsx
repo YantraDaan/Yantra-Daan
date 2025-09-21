@@ -22,9 +22,6 @@ import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
 import mapboxgl from 'mapbox-gl';
 
-// Set Mapbox access token from environment variables
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1Ijoib3llY2hhbXAiLCJhIjoiY21mdGRmN3ZzMGdsdzJqcXpiNjMwZDc4aiJ9.hC4fFLk8H7pqfYX_wblPtw';
-
 interface PersonalInfo {
   name: string;
   email: string;
@@ -330,8 +327,8 @@ const SignupPage = () => {
     
     try {
       // Using Mapbox Geocoding API
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?access_token=pk.eyJ1Ijoib3llY2hhbXAiLCJhIjoiY21mdGRmN3ZzMGdsdzJqcXpiNjMwZDc4aiJ9.hC4fFLk8H7pqfYX_wblPtw&types=address&limit=5`
+    const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?access_token=${config.mapboxAccessToken}&types=address&limit=5`
       );
       
       const data = await response.json();
