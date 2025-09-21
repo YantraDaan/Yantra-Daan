@@ -331,7 +331,7 @@ const SignupPage = () => {
     try {
       // Using Mapbox Geocoding API
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?access_token=${mapboxgl.accessToken}&types=address&limit=5`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?access_token=pk.eyJ1Ijoib3llY2hhbXAiLCJhIjoiY21mdGRmN3ZzMGdsdzJqcXpiNjMwZDc4aiJ9.hC4fFLk8H7pqfYX_wblPtw&types=address&limit=5`
       );
       
       const data = await response.json();
