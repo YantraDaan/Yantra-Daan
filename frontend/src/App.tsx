@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import Header from "./components/Header";
@@ -26,11 +27,11 @@ import MyLearningPage from "./pages/MyLearningPage";
 import NotFound from "./pages/NotFound";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import PasswordSetupPage from "./pages/PasswordSetupPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import DevicePost from "./components/DevicePost";
 import DeviceBrowse from "./components/DeviceBrowse";
-import DeviceDetailPage from "./pages/DeviceDetailPage";
-
+import DeviceDetailPage from "./pages/DeviceDetailPage.tsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ const AppContent = () => {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/setup-password" element={<PasswordSetupPage />} />
             
             {/* Protected Routes */}
             <Route path="/admin" element={<AdminPage />} />
@@ -78,6 +80,7 @@ const AppContent = () => {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/team" element={<TeamPage />} />
+            
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -91,6 +94,7 @@ const AppContent = () => {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="yantra-daan-theme">
         <AuthProvider>
           <TooltipProvider>
             <Toaster />
@@ -100,6 +104,7 @@ const App = () => (
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );

@@ -28,7 +28,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Device is not available for requests' });
     }
 
-    // Check if user already has a pending request for this device
+    // Check if user already has a request for this device
     const existingRequest = await DeviceRequestModel.findOne({
       requesterId: req.user._id,
       deviceId: deviceId,
@@ -41,18 +41,24 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
-    // Check if requester has reached the 3-device limit
-    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
-      const activeRequestCount = await DeviceRequestModel.countDocuments({
-        requesterId: req.user._id,
-        status: { $in: ['pending', 'approved'] }
+    // Check if requester is verified before allowing requests
+    if (req.user.verificationStatus !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Only verified users can request devices. Please complete the verification process first.' 
       });
+    }
 
-      if (activeRequestCount >= 3) {
-        return res.status(400).json({ 
-          error: 'You have reached the maximum limit of 3 active device requests. Please wait for existing requests to be processed before making new ones.' 
-        });
-      }
+    // Check if requester has reached the 3-device limit
+    // Only apply limit to verified requesters
+    const activeRequestCount = await DeviceRequestModel.countDocuments({
+      requesterId: req.user._id,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (activeRequestCount >= 3) {
+      return res.status(400).json({ 
+        error: 'You have reached the maximum limit of 3 active device requests. Please wait for existing requests to be processed before making new ones.' 
+      });
     }
 
     // Create the request
@@ -89,9 +95,9 @@ router.post('/', auth, async (req, res) => {
             
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #166534;">Device Details:</h3>
-              <p><strong>Title:</strong> ${device.title}</p>
-              <p><strong>Type:</strong> ${device.deviceType}</p>
-              <p><strong>Condition:</strong> ${device.condition}</p>
+              <p><strong>Title:</strong> ${request.deviceInfo.title}</p>
+              <p><strong>Type:</strong> ${request.deviceInfo.deviceType}</p>
+              <p><strong>Condition:</strong> ${request.deviceInfo.condition}</p>
             </div>
             
             <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -128,10 +134,10 @@ router.post('/', auth, async (req, res) => {
             
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #166534;">Device Information:</h3>
-              <p><strong>Title:</strong> ${device.title}</p>
-              <p><strong>Type:</strong> ${device.deviceType}</p>
-              <p><strong>Condition:</strong> ${device.condition}</p>
-              <p><strong>Donor:</strong> ${device.ownerId?.name || 'Unknown'}</p>
+              <p><strong>Title:</strong> ${request.deviceInfo.title}</p>
+              <p><strong>Type:</strong> ${request.deviceInfo.deviceType}</p>
+              <p><strong>Condition:</strong> ${request.deviceInfo.condition}</p>
+              <p><strong>Donor:</strong> ${request.deviceInfo.ownerId?.name || 'Unknown'}</p>
             </div>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
@@ -363,29 +369,33 @@ router.get('/can-request/:deviceId', auth, async (req, res) => {
       });
     }
 
-    // Check if requester has reached the 3-device limit
-    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
-      const activeRequestCount = await DeviceRequestModel.countDocuments({
-        requesterId: req.user._id,
-        status: { $in: ['pending', 'approved'] }
+    // Check if requester is verified
+    if (req.user.verificationStatus !== 'verified') {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'Only verified users can request devices. Please complete the verification process first.' 
       });
+    }
 
-      if (activeRequestCount >= 3) {
-        return res.json({ 
-          canRequest: false, 
-          reason: 'You have reached the maximum limit of 3 active device requests' 
-        });
-      }
+    // Check if requester has reached the 3-device limit
+    const activeRequestCount = await DeviceRequestModel.countDocuments({
+      requesterId: req.user._id,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (activeRequestCount >= 3) {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'You have reached the maximum limit of 3 active device requests' 
+      });
     }
 
     return res.json({ 
       canRequest: true,
-      activeRequestCount: req.user.userRole === 'requester' || req.user.userRole === 'student' 
-        ? await DeviceRequestModel.countDocuments({
-            requesterId: req.user._id,
-            status: { $in: ['pending', 'approved'] }
-          })
-        : 0
+      activeRequestCount: await DeviceRequestModel.countDocuments({
+        requesterId: req.user._id,
+        status: { $in: ['pending', 'approved'] }
+      })
     });
 
   } catch (error) {

@@ -167,7 +167,7 @@ class ApiService {
   }
 
   async signup(userData: any) {
-    return this.request('/api/auth/signup', {
+    return this.request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData)
     });
@@ -189,11 +189,11 @@ class ApiService {
 
   // Profile
   async getUserProfile() {
-    return this.request('/api/users/profile');
+    return this.request('/api/users/me');
   }
 
   async updateProfile(profileData: any) {
-    return this.request('/api/users/profile', {
+    return this.request('/api/users/me', {
       method: 'PUT',
       body: JSON.stringify(profileData)
     });

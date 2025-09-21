@@ -28,6 +28,11 @@ interface VerificationDocument {
   uploadDate: string;
 }
 
+interface FormData {
+  howDeviceHelps: string;
+  whyNeedDevice: string;
+}
+
 interface VerificationFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -44,8 +49,10 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documents, setDocuments] = useState<VerificationDocument[]>([]);
-  const [howDeviceHelps, setHowDeviceHelps] = useState('');
-  const [whyNeedDevice, setWhyNeedDevice] = useState('');
+  const [formData, setFormData] = useState<FormData>({
+    howDeviceHelps: '',
+    whyNeedDevice: ''
+  });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const documentTypes = [
@@ -146,8 +153,10 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
 
   const resetForm = () => {
     setDocuments([]);
-    setHowDeviceHelps('');
-    setWhyNeedDevice('');
+    setFormData({
+      howDeviceHelps: '',
+      whyNeedDevice: ''
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -163,8 +172,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   const handleSubmit = async () => {
     console.log('Submit verification started');
     console.log('Documents:', documents);
-    console.log('How device helps:', howDeviceHelps);
-    console.log('Why need device:', whyNeedDevice);
+    console.log('Form data:', formData);
 
     if (documents.length === 0) {
       toast({
@@ -175,7 +183,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       return;
     }
 
-    if (!howDeviceHelps.trim() || !whyNeedDevice.trim()) {
+    if (!formData.howDeviceHelps.trim() || !formData.whyNeedDevice.trim()) {
       toast({
         title: "Missing Information",
         description: "Please answer both questions",
@@ -190,7 +198,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       
       const submitData = {
         documents,
-        notes: `How can this device help me: ${howDeviceHelps.trim()}\nWhy do I need a device: ${whyNeedDevice.trim()}`
+        notes: `How can this device help me: ${formData.howDeviceHelps.trim()}\nWhy do I need a device: ${formData.whyNeedDevice.trim()}`
       };
 
       console.log('Submitting to:', `${config.apiUrl}/api/users/submit-verification`);
@@ -298,14 +306,14 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
                 <Label htmlFor="howDeviceHelps">How can this device help me?</Label>
                 <Textarea
                   id="howDeviceHelps"
-                  value={howDeviceHelps}
-                  onChange={(e) => setHowDeviceHelps(e.target.value)}
+                  value={formData.howDeviceHelps}
+                  onChange={(e) => setFormData(prev => ({ ...prev, howDeviceHelps: e.target.value }))}
                   placeholder="Explain how this device will help you in your studies, work, or personal development..."
                   rows={3}
                   maxLength={500}
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  {howDeviceHelps.length}/500 characters
+                  {formData.howDeviceHelps.length}/500 characters
                 </p>
               </div>
               
@@ -313,14 +321,14 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
                 <Label htmlFor="whyNeedDevice">Why do I need a device?</Label>
                 <Textarea
                   id="whyNeedDevice"
-                  value={whyNeedDevice}
-                  onChange={(e) => setWhyNeedDevice(e.target.value)}
+                  value={formData.whyNeedDevice}
+                  onChange={(e) => setFormData(prev => ({ ...prev, whyNeedDevice: e.target.value }))}
                   placeholder="Tell us why you need a device and what you plan to use it for..."
                   rows={3}
                   maxLength={500}
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  {whyNeedDevice.length}/500 characters
+                  {formData.whyNeedDevice.length}/500 characters
                 </p>
               </div>
             </CardContent>
@@ -409,7 +417,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={isSubmitting || documents.length === 0 || !howDeviceHelps.trim() || !whyNeedDevice.trim()}
+              disabled={isSubmitting || documents.length === 0 || !formData.howDeviceHelps.trim() || !formData.whyNeedDevice.trim()}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {isSubmitting ? 'Submitting...' : 'Submit for Verification'}

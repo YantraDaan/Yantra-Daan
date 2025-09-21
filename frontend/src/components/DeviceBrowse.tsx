@@ -10,6 +10,7 @@ import { Textarea } from './ui/textarea';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../contexts/AuthContext';
 import NoDataFound from './NoDataFound';
+import { useNavigate } from 'react-router-dom';
 
 interface Device {
   _id: string;
@@ -38,6 +39,7 @@ interface Device {
 const DeviceBrowse: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -362,11 +364,8 @@ const DeviceBrowse: React.FC = () => {
                     <Button 
                       className="w-full" 
                       onClick={() => {
-                        // Navigate to device detail page or open modal
-                        toast({
-                          title: "Device Details",
-                          description: "Device detail view coming soon!",
-                        });
+                        // Navigate to device detail page
+                        navigate(`/devices/${device._id}`);
                       }}
                     >
                       View Details
