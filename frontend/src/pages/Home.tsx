@@ -286,7 +286,7 @@ const Home = () => {
                       </div>
 
                       <Button 
-                        onClick={() => window.open('https://scholarships.yantradaan.org', '_blank')} 
+                        onClick={() => window.open('https://letmespread.com/opportunities/', '_blank')} 
                         className="w-full btn-hero py-3"
                       >
                         Access Scholarship Portal
