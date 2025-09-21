@@ -1,9 +1,9 @@
-/// <reference types="@types/google.maps" />
+/// <reference types="@types/mapbox-gl" />
 
-// Extend Window interface to include initAutocomplete
+// Extend Window interface to include mapboxgl
 declare global {
   interface Window {
-    initAutocomplete: () => void;
+    mapboxgl: typeof import('mapbox-gl');
   }
 }
 
@@ -20,6 +20,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Heart, ArrowLeft, ArrowRight, User, Building2, Upload, Eye, EyeOff, CheckCircle, AlertCircle, Loader2, MapPin, Search, X, FileText, FileImage, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { config } from "@/config/env";
+import mapboxgl from 'mapbox-gl';
+
+// Set Mapbox access token from environment variables
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1Ijoib3llY2hhbXAiLCJhIjoiY21mdGRmN3ZzMGdsdzJqcXpiNjMwZDc4aiJ9.hC4fFLk8H7pqfYX_wblPtw';
 
 interface PersonalInfo {
   name: string;
@@ -308,14 +312,14 @@ const SignupPage = () => {
   };
 
   // Add state for address suggestions
-  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Function to generate address suggestions (mock data for demonstration)
-  const generateAddressSuggestions = (input: string) => {
+  // Function to generate address suggestions using Mapbox Geocoding API
+  const generateAddressSuggestions = async (input: string) => {
     if (!input || input.length < 3) {
       setAddressSuggestions([]);
       setShowSuggestions(false);
@@ -324,24 +328,28 @@ const SignupPage = () => {
     
     setIsAddressLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      // Mock address suggestions based on input
-      const mockSuggestions = [
-        `${input}, New Delhi, India`,
-        `${input}, Delhi, India`,
-        `${input}, NCR, India`,
-        `${input} Street, New Delhi, India`,
-        `${input} Road, Delhi, India`,
-        `${input} Colony, New Delhi, India`,
-        `${input} Area, Delhi, India`,
-        `${input} Nagar, New Delhi, India`,
-      ];
+    try {
+      // Using Mapbox Geocoding API
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?access_token=${mapboxgl.accessToken}&types=address&limit=5`
+      );
       
-      setAddressSuggestions(mockSuggestions);
-      setShowSuggestions(true);
+      const data = await response.json();
+      
+      if (data.features) {
+        setAddressSuggestions(data.features);
+        setShowSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
       setIsAddressLoading(false);
-    }, 300);
+    }
   };
 
   // Handle address input change
@@ -351,8 +359,8 @@ const SignupPage = () => {
   };
 
   // Handle suggestion selection
-  const handleSuggestionSelect = (suggestion: string) => {
-    handlePersonalInfoChange("address", suggestion);
+  const handleSuggestionSelect = (suggestion: any) => {
+    handlePersonalInfoChange("address", suggestion.place_name);
     setShowSuggestions(false);
     setAddressSuggestions([]);
   };
@@ -371,61 +379,6 @@ const SignupPage = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  // Add state for Google Places autocomplete
-  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
-
-  // Initialize Google Maps Places Autocomplete
-  useEffect(() => {
-    // Check if Google Maps is already loaded
-    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-      setGoogleMapsLoaded(true);
-      initAutocomplete();
-      return;
-    }
-
-    // Load Google Maps script if not already loaded
-    if (!document.querySelector('#google-maps-script')) {
-      const script = document.createElement('script');
-      script.id = 'google-maps-script';
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&libraries=places&callback=initAutocomplete`;
-      script.async = true;
-      script.defer = true;
-      script.onerror = () => {
-        console.error('Error loading Google Maps script');
-      };
-      window.initAutocomplete = initAutocomplete;
-      document.head.appendChild(script);
-    } else {
-      // Script exists, try to initialize
-      setTimeout(initAutocomplete, 500);
-    }
-
-    return () => {
-      if (window.initAutocomplete) {
-        delete window.initAutocomplete;
-      }
-    };
-  }, []);
-
-  // Initialize autocomplete functionality
-  const initAutocomplete = () => {
-    if (typeof google !== 'undefined' && google.maps && google.maps.places && addressInputRef.current) {
-      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
-        types: ['address'],
-        componentRestrictions: { country: 'in' } // Restrict to India
-      });
-      
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.formatted_address) {
-          handlePersonalInfoChange("address", place.formatted_address);
-        }
-      });
-      
-      setGoogleMapsLoaded(true);
-    }
-  };
 
   const professionOptions = [
     "Corporate",
@@ -755,15 +708,13 @@ const SignupPage = () => {
                     <Label htmlFor="address" className="text-base font-medium">Address *</Label>
                     <div className="relative" ref={suggestionsRef}>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <MapPin className="h-5 w-5 text-muted-foreground" />
-                        </div>
                         <Input
                           ref={addressInputRef}
                           id="address"
                           placeholder="Search for your address..."
                           value={personalInfo.address}
                           onChange={(e) => handleAddressChange(e.target.value)}
+                          required
                           className="pl-10 py-3 px-4 text-base border-2 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                         {isAddressLoading && (
@@ -771,24 +722,19 @@ const SignupPage = () => {
                             <Loader2 className="h-5 w-5 animate-spin text-primary" />
                           </div>
                         )}
-                        {!googleMapsLoaded && (
-                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                          </div>
-                        )}
                       </div>
                       
-                      {/* Show fallback suggestions if Google Maps fails to load */}
-                      {!googleMapsLoaded && showSuggestions && addressSuggestions.length > 0 && (
+                      {/* Show Mapbox suggestions */}
+                      {showSuggestions && addressSuggestions.length > 0 && (
                         <div className="absolute z-10 mt-1 w-full bg-white border border-muted rounded-lg shadow-lg max-h-60 overflow-auto">
-                          {addressSuggestions.map((suggestion, index) => (
+                          {addressSuggestions.map((suggestion: any, index) => (
                             <div
                               key={index}
                               className="px-4 py-3 hover:bg-muted cursor-pointer flex items-center text-sm"
                               onClick={() => handleSuggestionSelect(suggestion)}
                             >
                               <Search className="h-4 w-4 text-muted-foreground mr-2" />
-                              {suggestion}
+                              {suggestion.place_name}
                             </div>
                           ))}
                         </div>
