@@ -7,9 +7,9 @@ const createTransporter = () => {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: process.env.SMTP_PORT || 587,
     secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER || 'ashwani.codmsoftware@gmail.com',
-      pass: process.env.SMTP_PASS || 'vqei wclb xzsd lewv'
+     auth: {
+      user: process.env.SMTP_USER || 'yantradaan@gmail.com',
+      pass: process.env.SMTP_PASS || 'lksf rzgv wkgb nixd'
     }
   });
 };
@@ -509,4 +509,5 @@ module.exports = {
   emailTemplates,
   notifyDonationCreated,
   notifyNewUserCreated
+
 };
