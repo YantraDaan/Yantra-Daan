@@ -237,18 +237,18 @@ const Footer = () => {
               </div>
             </div>
             <div className="flex flex-wrap justify-center gap-6">
-              <a href="https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
+              <Link to="/privacy-policy" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
                 Privacy Policy
-              </a>
-              <a href="https://drive.google.com/file/d/2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
+              </Link>
+              <Link to="/terms-of-service" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
                 Terms of Service
-              </a>
-              <a href="https://drive.google.com/file/d/3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
+              </Link>
+              <Link to="/cookie-policy" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
                 Cookie Policy
-              </a>
-              <a href="https://drive.google.com/file/d/4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
+              </Link>
+              <Link to="/transparency-report" className="text-gray-400 hover:text-white transition-colors text-sm hover:underline">
                 Transparency Report
-              </a>
+              </Link>
             </div>
           </div>
           
