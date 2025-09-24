@@ -32,6 +32,11 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import DevicePost from "./components/DevicePost";
 import DeviceBrowse from "./components/DeviceBrowse";
 import DeviceDetailPage from "./pages/DeviceDetailPage.tsx";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
+import CookiePolicyPage from "./pages/CookiePolicyPage";
+import TransparencyReportPage from "./pages/TransparencyReportPage";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +85,12 @@ const AppContent = () => {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/team" element={<TeamPage />} />
+
+                {/* Policy Pages */}
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+            <Route path="/transparency-report" element={<TransparencyReportPage />} />
             
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<NotFound />} />
