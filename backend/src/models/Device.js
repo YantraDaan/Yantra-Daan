@@ -87,7 +87,7 @@ const DeviceSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'approved', 'rejected', 'suspended', 'assigned'],
     default: 'pending',
     index: true
   },
@@ -102,6 +102,8 @@ const DeviceSchema = new mongoose.Schema({
   },
   approvedAt: Date,
   rejectionReason: String,
+  suspensionReason: String,
+  suspendedAt: Date,
   isActive: {
     type: Boolean,
     default: true
@@ -123,7 +125,7 @@ DeviceSchema.virtual('ownerInfo', {
   localField: 'ownerId',
   foreignField: '_id',
   justOne: true,
-  select: 'name email contact'
+  select: 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto'
 });
 
 // Indexes for better performance

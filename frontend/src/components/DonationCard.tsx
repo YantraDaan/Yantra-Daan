@@ -25,7 +25,6 @@ interface DonationItem {
   };
   createdAt: string;
   devicePhotos?: Array<{ url: string; caption?: string }>;
-  images?: string[];
   isActive: boolean;
   status: "approved" | "pending" | "rejected";
 }
@@ -92,17 +91,25 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
     onRequest?.(item._id);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+ const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
+  if (diffSeconds < 60) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes > 1 ? "s" : ""} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays === 1) return "1 day ago";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? "s" : ""} ago`;
+  
+  return date.toLocaleDateString();
+};
+
 
   const getLocationString = () => {
     if (item.fullLocation) return item.fullLocation;
@@ -128,17 +135,22 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
   const getDonorName = () => {
     return item.ownerInfo?.name || "Yantra Daan";
   };
-  
+    
   return (
     
-    <Card className="donation-card group">
+    <Card className="donation-card group hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+      {/* Enhanced Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50/50 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
       {/* Image */}
-      <div className="relative h-48 bg-gray-100 overflow-hidden">
+      <div className="relative h-48 bg-gray-100 overflow-hidden rounded-t-xl">
+        {/* Enhanced hover effect */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
         {item.devicePhotos && item.devicePhotos.length > 0 && item.devicePhotos[0].url ? (
           <img
             src={getImageUrl(item.devicePhotos[0].url)}
             alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="h-48 w-96 object-fill group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               console.error('Image failed to load:', getImageUrl(item.devicePhotos[0].url));
               const target = e.target as HTMLImageElement;
@@ -148,22 +160,6 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
             }}
             onLoad={() => {
               console.log('Image loaded successfully:', getImageUrl(item.devicePhotos[0].url));
-            }}
-          />
-        ) : item.images && item.images.length > 0 ? (
-          <img
-            src={getImageUrl(item.images[0])}
-            alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              console.error('Image failed to load:', getImageUrl(item.images[0]));
-              const target = e.target as HTMLImageElement;
-              target.style.display = "none";
-              const fallback = target.parentElement?.querySelector('.image-fallback') as HTMLElement;
-              if (fallback) fallback.classList.remove('hidden');
-            }}
-            onLoad={() => {
-              console.log('Image loaded successfully:', getImageUrl(item.images[0]));
             }}
           />
         ) : null}
@@ -188,12 +184,18 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
           </div>
         )}
 
-        {/* Status Badge */}
-        <div className="absolute top-3 right-3">
+        {/* Enhanced Status Badge */}
+        <div className="absolute top-3 right-3 z-20">
           {item.isActive ? (
-            <Badge className="bg-green-600 text-white">Available</Badge>
+            <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg border-0 px-3 py-1 text-xs font-semibold">
+              <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
+              Available
+            </Badge>
           ) : (
-            <Badge variant="secondary">Reserved</Badge>
+            <Badge variant="secondary" className="bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-lg border-0 px-3 py-1 text-xs font-semibold">
+              <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
+              Reserved
+            </Badge>
           )}
         </div>
       </div>
@@ -242,11 +244,14 @@ const DonationCard = ({ item, onRequest, requestState }: DonationCardProps) => {
         {/* Request button is now only shown on detailed view */}
         {/* Users must click "Read More" to see the request button */}
 
-        {/* Read More Button */}
+        {/* Enhanced Read More Button */}
         <Link to={`/devices/${item._id}`}>
-          <Button className="w-full mt-3">
-            <Eye className="w-4 h-4 mr-2" />
-            Read More
+          <Button className="w-full mt-3 group/btn bg-gradient-to-r from-primary to-accent hover:from-primary-glow hover:to-accent text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+            <span className="relative z-10 flex items-center justify-center">
+              <Eye className="w-4 h-4 mr-2 transition-transform group-hover/btn:scale-110" />
+              Read More
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
           </Button>
         </Link>
       </CardContent>

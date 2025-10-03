@@ -1,6 +1,9 @@
 const { Router } = require('express');
 const { body, validationResult } = require('express-validator');
 const DonationModel = require('../models/Donation');
+const RequestModel = require('../models/Request');
+const UserModel = require('../models/UserModels');
+const emailService = require('../utils/emailService');
 const { auth, requireRole } = require('../middleware/auth');
 
 const router = Router();
@@ -45,6 +48,26 @@ router.post('/', auth, [
 
     await donation.populate('donor', 'name email');
     if (requestId) await donation.populate('request', 'title description');
+
+    // Send email notifications to donor and requester
+    try {
+      let requester = null;
+      
+      // If donation is linked to a request, get the requester details
+      if (requestId && donation.request) {
+        const request = await RequestModel.findById(requestId).populate('student', 'name email');
+        if (request && request.student) {
+          requester = request.student;
+        }
+      }
+
+      // Send email notifications
+      await emailService.notifyDonationCreated(donation, donation.donor, requester);
+      console.log('Email notifications sent successfully for donation:', donation._id);
+    } catch (emailError) {
+      console.error('Failed to send email notifications:', emailError);
+      // Don't fail the donation creation if email fails
+    }
 
     res.status(201).json({
       message: 'Donation created successfully',

@@ -158,7 +158,7 @@ const DonationsPage = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -177,15 +177,14 @@ const DonationsPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Laptop">Laptops</SelectItem>
-                <SelectItem value="Smartphone">Smartphones</SelectItem>
-                <SelectItem value="Tablet">Tablets</SelectItem>
-                <SelectItem value="Accessories">Accessories</SelectItem>
+                <SelectItem value="laptop">Laptops</SelectItem>
+                <SelectItem value="tablet">Tablets</SelectItem>
+                <SelectItem value="desktop">Desktop</SelectItem>
               </SelectContent>
             </Select>
 
             {/* Condition Filter */}
-            <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+            {/* <Select value={selectedCondition} onValueChange={setSelectedCondition}>
               <SelectTrigger>
                 <SelectValue placeholder="Condition" />
               </SelectTrigger>
@@ -196,13 +195,13 @@ const DonationsPage = () => {
                 <SelectItem value="Good">Good</SelectItem>
                 <SelectItem value="Fair">Fair</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
 
             {/* Location Filter */}
-            <Button variant="outline" className="w-full">
+            {/* <Button variant="outline" className="w-full">
               <MapPin className="w-4 h-4 mr-2" />
               Near Me
-            </Button>
+            </Button> */}
           </div>
         </div>
 

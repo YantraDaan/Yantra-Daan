@@ -28,10 +28,11 @@ const validateRegistration = [
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email address')
-    .normalizeEmail()
+    .normalizeEmail({ gmail_remove_dots: false }) // Preserve dots in email addresses
     .toLowerCase(),
   
   body('password')
+    .optional()
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
@@ -55,7 +56,7 @@ const validateLogin = [
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }), // Preserve dots in email addresses
   
   body('password')
     .notEmpty()
@@ -74,7 +75,7 @@ const validateAdminLogin = [
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }), // Preserve dots in email addresses
   
   body('password')
     .notEmpty()
@@ -88,7 +89,7 @@ const validatePasswordReset = [
   body('email')
     .isEmail()
     .withMessage('Please provide a valid email address')
-    .normalizeEmail()
+    .normalizeEmail({ gmail_remove_dots: false }) // Preserve dots in email addresses
     .toLowerCase(),
   
   handleValidationErrors

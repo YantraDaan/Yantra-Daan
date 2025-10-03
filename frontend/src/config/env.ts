@@ -30,6 +30,8 @@ export const config = {
   devServerPort: parseInt(import.meta.env.VITE_DEV_SERVER_PORT || '3000'),
   devServerHost: import.meta.env.VITE_DEV_SERVER_HOST || 'localhost',
   
+  mapboxAccessToken: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1Ijoib3llY2hhbXAiLCJhIjoiY21mdGRmN3ZzMGdsdzJqcXpiNjMwZDc4aiJ9.hC4fFLk8H7pqfYX_wblPtw',
+  
   // API Endpoints
   endpoints: {
     auth: '/api/auth',
@@ -50,7 +52,7 @@ export const config = {
   
   // File Upload
   fileUpload: {
-    maxSize: parseInt(import.meta.env.VITE_MAX_FILE_SIZE || '5242880'), // 5MB
+    maxSize: parseInt(import.meta.env.VITE_MAX_FILE_SIZE || '1242880'), // 5MB
     allowedTypes: (import.meta.env.VITE_ALLOWED_FILE_TYPES || 'image/jpeg,image/png,image/webp').split(','),
   },
   

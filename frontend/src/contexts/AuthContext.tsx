@@ -44,16 +44,13 @@ export interface User {
   verificationNotes?: string;
   verifiedAt?: string;
   verifiedBy?: string;
-  verificationFormData?: {
-    howDeviceHelps: string;
-    whyNeedDevice: string;
-    submittedAt: string;
-  };
 }
 
 interface AuthContextType {
   user: User | null;
+  //User login
   login: (email: string, password: string, userRole?: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
+  //Admin login
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; user?: any; error?: string; message?: string }>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
@@ -75,13 +72,46 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastActivity, setLastActivity] = useState<number>(Date.now());
+
+  // Update last activity on user interactions
+  useEffect(() => {
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const updateActivity = () => {
+      setLastActivity(Date.now());
+    };
+
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity, { passive: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, updateActivity);
+      });
+    };
+  }, []);
+
+  // Check for inactivity and auto-logout
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const inactiveTime = now - lastActivity;
+      const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+
+      if (inactiveTime > oneHour && user) {
+        console.log('User inactive for more than 1 hour, logging out automatically');
+        logout();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [lastActivity, user]);
 
   useEffect(() => {
-    // Check for stored auth on mount and validate token
     const validateStoredAuth = async () => {
       const storedUser = localStorage.getItem('authUser');
       const storedToken = localStorage.getItem('authToken');
-      
       if (storedUser && storedToken) {
         try {
           // Validate token with backend
@@ -96,28 +126,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (response.ok) {
             const data = await response.json();
             if (data.valid) {
-              // Token is valid, set user
-              setUser(JSON.parse(storedUser));
+              // Token is valid, fetch latest user data to ensure verification status is up to date
+              try {
+                const userResponse = await fetch(`${config.apiUrl}/api/users/me`, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${storedToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+                
+                if (userResponse.ok) {
+                  const userData = await userResponse.json();
+                  if (userData.user) {
+                    setUser(userData.user);
+                    localStorage.setItem('authUser', JSON.stringify(userData.user));
+                  } else {
+                    setUser(JSON.parse(storedUser));
+                  }
+                } else {
+                  // If user fetch fails, use stored user data
+                  setUser(JSON.parse(storedUser));
+                }
+              } catch (userFetchError) {
+                // If user fetch fails, use stored user data
+                setUser(JSON.parse(storedUser));
+              }
             } else {
               // Token is invalid, clear storage
-              console.log('Stored token is invalid, clearing storage');
               localStorage.removeItem('authUser');
               localStorage.removeItem('authToken');
               setUser(null);
             }
           } else if (response.status === 404) {
             // Endpoint not found - backend might not be running
-            console.warn('Token validation endpoint not found. Backend might not be running.');
             // Don't clear storage when backend is not available - assume token is valid
             setUser(JSON.parse(storedUser));
           } else {
             // Validation failed, but don't clear storage immediately - might be temporary
-            console.warn('Token validation failed, but keeping stored auth for now');
             // Keep the stored user to prevent unnecessary logout
             setUser(JSON.parse(storedUser));
           }
         } catch (error) {
-          console.error('Error validating stored token:', error);
           // On network error, don't clear storage - assume token is valid
           setUser(JSON.parse(storedUser));
         }
@@ -130,12 +180,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string, userRole?: string): Promise<{ success: boolean; user?: any; error?: string; message?: string }> => {
     try {
-      console.log('AuthContext: Login attempt with:', { email, userRole, passwordLength: password?.length });
       setIsLoading(true);
       
-      const requestBody = { email, password, userRole };
-      console.log('AuthContext: Request body:', requestBody);
-      
+      const requestBody = { email, password, userRole };      
       const response = await fetch(`${config.apiUrl}${config.endpoints.auth}/login`, {
         method: 'POST',
         headers: {
@@ -144,12 +191,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify(requestBody),
       });
       
-      console.log('AuthContext: Response status:', response.status);
-      console.log('AuthContext: Response headers:', response.headers);
-      
       if (!response.ok) {
         const errorData = await response.json();
-        console.log('AuthContext: Error response:', errorData);
         setIsLoading(false);
         return { 
           success: false, 
@@ -158,9 +201,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
       }
       
-      const data = await response.json();
-      console.log('AuthContext: Success response:', data);
-      
+      const data = await response.json();      
       const apiUser = data.user;
       const token = data.token as string;
       
@@ -189,7 +230,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         verificationNotes: apiUser.verificationNotes,
         verifiedAt: apiUser.verifiedAt,
         verifiedBy: apiUser.verifiedBy,
-        verificationFormData: apiUser.verificationFormData
       };
       
       console.log('AuthContext: Mapped user:', mappedUser);
@@ -287,6 +327,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('authUser');
     localStorage.removeItem('authToken');
+    
+    // Clear all cookies
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
   };
 
   const updateUser = (userData: Partial<User>) => {
