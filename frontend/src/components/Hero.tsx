@@ -20,7 +20,7 @@ const Hero = () => {
             <div className="space-y-4">
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
                 Make Digital 
-                <span className="gradient-text"> Access To Every Students</span>
+                <span className="gradient-text"> Access To Every Students ashwani</span>
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
               Imagine that your secondhand device can be a learning opportunity in the community
