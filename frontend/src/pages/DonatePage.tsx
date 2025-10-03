@@ -18,13 +18,7 @@ const DonatePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
-  // Read URL parameters
-  // const urlId = searchParams.get('id');
-  // const urlName = searchParams.get('name');
-  // const urlEmail = searchParams.get('email');
-  // const urlRole = searchParams.get('role');
-  
+    
   const [currentStep, setCurrentStep] = useState(1);
   const [donorType, setDonorType] = useState<"individual" | "organization" | null>(null);
   const [deviceWorking, setDeviceWorking] = useState<boolean | null>(null);
@@ -32,8 +26,6 @@ const DonatePage = () => {
   
   const [personalInfo, setPersonalInfo] = useState({
     name: "",
-    email: "",
-    contact: "",
     about: "",
     profession: "",
     socialLinks: {
@@ -174,10 +166,10 @@ const DonatePage = () => {
           state: personalInfo.address.split(',')[1]?.trim() || '',
           country: 'India' // Default to India
         },
-        contactInfo: {
-          phone: personalInfo.contact || '',
-          email: personalInfo.email || ''
-        },
+        // contactInfo: {
+        //   phone: personalInfo.contact || '',
+        //   email: personalInfo.email || ''
+        // },
         devicePhotos: deviceInfo.devicePhotos.map(photo => ({
           url: photo.url, // Use the uploaded URL from backend
           caption: photo.caption
@@ -209,8 +201,8 @@ const DonatePage = () => {
         setWantsSelfDonate(null);
         setPersonalInfo({
           name: "",
-          email: "",
-          contact: "",
+          // email: "",
+          // contact: "",
           about: "",
           profession: "",
           socialLinks: {

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import Hero from "@/components/Hero";
 import DonationCard from "@/components/DonationCard";
-import Gallery from "@/components/Gallery";
+import TrustSection from "@/components/TrustSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Gift, Users, Heart, ArrowRight, MapPin, Laptop, Smartphone, Tablet } from "lucide-react";
+import { Gift, Users, Heart, ArrowRight, Laptop, Smartphone, Tablet} from "lucide-react";
 import { Link } from "react-router-dom";
 import NoDataFound from "@/components/NoDataFound";
 import { config } from "@/config/env";
@@ -13,11 +13,16 @@ import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
   const [approvedDevices, setApprovedDevices] = useState<any[]>([]);
-  const [deviceRequestStates, setDeviceRequestStates] = useState<{[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}}>({});
+const [deviceTypeStats, setDeviceTypeStats] = useState({
+  laptop: 0,
+  tablet: 0,
+  desktop: 0,
+});  const [deviceRequestStates, setDeviceRequestStates] = useState<{[key: string]: {canRequest: boolean, reason: string, activeRequestCount: number}}>({});
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Fetch recently approved devices (limit 6, first page)
     const fetchRecentDevices = async () => {
       try {
         const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved?page=1&limit=6`);
@@ -32,11 +37,37 @@ const Home = () => {
         } else {
           throw new Error('Failed to load featured donations');
         }
+       
       } catch (e) {
         setApprovedDevices([]);
       }
     };
-    fetchRecentDevices();
+    
+    // Fetch device type statistics
+    const fetchDeviceTypeStats = async () => {
+      try {
+        const response = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved`);
+        console.log("54",response);
+        
+        if (response.ok) {
+          const data = await response.json();
+        const laptop = data.devices?.filter((item: any) => item.deviceType === 'laptop')?.length || 0;
+      const tablet = data.devices?.filter((item: any) => item.deviceType === 'tablet')?.length || 0;
+      const desktop = data.devices?.filter((item: any) => item.deviceType === 'desktop')?.length || 0;
+
+      // Ensure this function is defined to accept one object argument
+      setDeviceTypeStats({ laptop, tablet, desktop });
+
+        }
+      } catch (e) {
+        console.error("Error fetching device type stats:", e);
+      }
+    };
+
+
+   // Run fetches when user changes (or component mounts)
+  fetchRecentDevices();
+  fetchDeviceTypeStats();
   }, [user]);
 
   const checkDeviceRequestEligibility = async (devices: any[]) => {
@@ -79,89 +110,9 @@ const Home = () => {
       {/* Hero Section */}
       <Hero />
 
-      {/* How It Works Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How <span className="gradient-text">Yantra Daan</span> Works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our platform makes it simple to donate and receive technology items, 
-              creating meaningful connections in your community.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Donate */}
-            <Card className="text-center group hover:shadow-lg transition-all duration-300">
-              <CardHeader>
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Gift className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl font-semibold">1. Donate Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-6">
-                  List your unused technology items with photos and descriptions. 
-                  Set your location for local pickup.
-                </p>
-                <Link to="/donate">
-                  <Button variant="outline" className="group">
-                    Start Donating
-                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Connect */}
-            <Card className="text-center group hover:shadow-lg transition-all duration-300">
-              <CardHeader>
-                <div className="w-16 h-16 bg-gradient-to-br from-accent to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl font-semibold">2. Connect</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-6">
-                  Browse available items and connect with donors in your area. 
-                  Send requests for items you need.
-                </p>
-                <Link to="/requests">
-                  <Button variant="outline" className="group">
-                    Find Items
-                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Impact */}
-            <Card className="text-center group hover:shadow-lg transition-all duration-300">
-              <CardHeader>
-                <div className="w-16 h-16 bg-gradient-to-br from-secondary to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Heart className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl font-semibold">3. Create Impact</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-6">
-                  Complete the exchange and help bridge the digital divide. 
-                  Track your impact through your dashboard.
-                </p>
-                <Link to="/login">
-                  <Button variant="outline" className="group">
-                    Join Community
-                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
+          {/* Trust & Credibility Section */}
+      <TrustSection />
+  
       {/* Featured Donations */}
       <section className="py-20 bg-hero-bg">
         <div className="container mx-auto px-4">
@@ -198,7 +149,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Categories */}
+    {/* Categories */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -206,20 +157,21 @@ const Home = () => {
             <p className="text-xl text-gray-600">Browse donations by category</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
             {[
-              { name: "Laptops", icon: Laptop, count: 245, color: "from-primary to-primary-glow" },
-              { name: "Smartphones", icon: Smartphone, count: 189, color: "from-accent to-blue-500" },
-              { name: "Tablets", icon: Tablet, count: 167, color: "from-secondary to-green-500" },
-              { name: "Accessories", icon: Gift, count: 312, color: "from-purple-500 to-pink-500" },
+              { name: "Laptops", icon: Laptop, count: deviceTypeStats.laptop+100, color: "from-green-500 to-green-600", bgColor: "from-green-500/10 to-green-600/10" },
+              { name: "Desktop", icon: Laptop, count: deviceTypeStats.desktop+100, color: "from-green-500 to-green-600", bgColor: "from-green-500/10 to-green-600/10" },
+              { name: "Tablets", icon: Tablet, count: deviceTypeStats.tablet+100, color: "from-green-500 to-green-600", bgColor: "from-green-500/10 to-green-600/10" },
             ].map((category) => (
-              <Card key={category.name} className="text-center hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <CardContent className="p-6">
-                  <div className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
+              <Card key={category.name} className={`text-center hover:shadow-xl transition-all duration-500 cursor-pointer group border-0 bg-gradient-to-br from-white ${category.bgColor} relative overflow-hidden`}>
+                <div className={`absolute inset-0 bg-gradient-to-br ${category.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                <CardContent className="p-6 relative z-10">
+                  <div className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:shadow-2xl`}>
                     <category.icon className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="font-semibold text-lg text-gray-900">{category.name}</h3>
-                  <p className="text-sm text-gray-600">{category.count} available</p>
+                  <h3 className="font-semibold text-lg text-gray-900 mb-1">{category.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{category.count} available</p>
+                  <div className={`w-8 h-1 bg-gradient-to-r ${category.color} rounded-full mx-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
                 </CardContent>
               </Card>
             ))}
@@ -254,8 +206,85 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Gallery Section */}
-      <Gallery />
+
+      {/* Scholarship Newsletter Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-primary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center space-x-2 bg-primary/10 rounded-full px-6 py-3 mb-6">
+              <Users className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-primary">Scholarship Program</span>
+            </div>
+            <h2 className="text-4xl font-bold gradient-text mb-6">
+              Scholarship Newsletter
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Get scholarship opportunities, application guides, and success stories delivered to your inbox.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <Card className="donation-card hover:shadow-xl transition-all duration-300 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-0">
+                  {/* Image Section */}
+                  <div className="relative">
+                    <div className="aspect-[4/3] md:aspect-auto md:h-full">
+                      <img
+                        src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+                        alt="Students studying with scholarships"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-8">
+                    <div className="space-y-6">
+                      <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-2xl flex items-center justify-center">
+                        <Heart className="w-8 h-8 text-white" />
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                          Access Scholarship Opportunities
+                        </h3>
+                        <p className="text-gray-600 leading-relaxed mb-6">
+                          Stay updated with the latest scholarship opportunities and educational support programs.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          <span className="text-sm text-gray-700">Weekly scholarship updates</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-accent rounded-full"></div>
+                          <span className="text-sm text-gray-700">Application guidance & tips</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                          <span className="text-sm text-gray-700">Student success stories</span>
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={() => window.open('https://letmespread.com/all-opportunities/', '_blank')} 
+                        className="w-full btn-hero py-3"
+                      >
+                        Access Scholarship Portal
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

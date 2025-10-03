@@ -22,15 +22,6 @@ const EmailCheckPage = () => {
   const handleEmailCheck = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email.trim()) {
-      toast({
-        title: "Email Required",
-        description: "Please enter an email address to check.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!email.includes('@')) {
       toast({
         title: "Invalid Email",
@@ -49,26 +40,13 @@ const EmailCheckPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
         setCheckResult(result);
-        
-        if (result.exists) {
-          toast({
-            title: "Email Already Registered",
-            description: result.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Email Available",
-            description: result.message,
-          });
-        }
       } else {
         toast({
           title: "Error",
@@ -126,13 +104,12 @@ const EmailCheckPage = () => {
           <CardContent>
             <form onSubmit={handleEmailCheck} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="your.email@example.com"
+                    placeholder="yourEmail@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"

@@ -1,22 +1,16 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { 
   Users, 
-  Mail, 
-  Phone, 
   Heart,
-  Award,
-  Lightbulb,
-  Shield,
-  UserCheck,
+  Target,
   Star,
   Building2,
   Users2,
-  Target,
-  Zap
+  Zap,
+  UserCheck
 } from "lucide-react";
 import { config } from "@/config/env";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -40,7 +34,22 @@ interface TeamMember {
 const TeamPage = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hoveredMember, setHoveredMember] = useState<TeamMember | null>(null);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const { toast } = useToast();
+
+  // Helper function to construct full image URL
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return null;
+    
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    
+    // If it's a relative path, construct the full URL
+    return `${config.apiUrl}${imagePath}`;
+  };
 
   useEffect(() => {
     fetchTeamMembers();
@@ -107,6 +116,15 @@ const TeamPage = () => {
     }
   };
 
+  const handleMemberHover = (member: TeamMember, e: React.MouseEvent) => {
+    setHoveredMember(member);
+    setPopupPosition({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMemberLeave = () => {
+    setHoveredMember(null);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -165,92 +183,114 @@ const TeamPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {teamMembers.map((member) => (
-              <Card 
-                key={member._id} 
-                className="group hover:shadow-xl transition-all duration-300 cursor-pointer bg-white"
+              <div
+                key={member._id}
+                className="relative"
+                onClick={(e) => handleMemberHover(member, e)}
+                onMouseLeave={handleMemberLeave}
               >
-                <CardContent className="p-6">
-                  {/* Avatar */}
-                  <div className="text-center mb-6">
-                    {member.avatar ? (
-                      <div className="w-24 h-24 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <img 
-                          src={member.avatar} 
-                          alt={member.name}
-                          className="w-full h-full rounded-full object-cover shadow-xl border-4 border-white ring-4 ring-gray-100"
-                          onError={(e) => {
-                            // Fallback to avatar if image fails to load
-                            const target = e.currentTarget as HTMLImageElement;
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
-                        {/* Fallback avatar (hidden by default) */}
-                        <div className="w-24 h-24 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg hidden">
-                          <Users className="w-12 h-12 text-white" />
-                        </div>
-                      </div>
+                <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer bg-white h-full overflow-hidden">
+                  {/* Full card image */}
+                  <div className="relative h-48 overflow-hidden">
+                    {member.avatar ? (  
+                      <img 
+                        src={getImageUrl(member.avatar)} 
+                        alt={member.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        onError={(e) => {
+                          // Fallback to gradient if image fails to load
+                          const target = e.currentTarget as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.parentElement?.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
                     ) : (
-                      <div className="w-24 h-24 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                        <Users className="w-12 h-12 text-white" />
+                      <div className="w-full h-full bg-gradient-to-r from-primary to-accent flex items-center justify-center">
+                        <Users className="w-16 h-16 text-white" />
                       </div>
                     )}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{member.name}</h3>
-                    <Badge className={`${getRoleColor(member.role)} border`}>
-                      <div className="flex items-center gap-2">
-                        {getRoleIcon(member.role)}
-                        {member.role}
-                      </div>
-                    </Badge>
-                  </div>
-
-                  {/* Bio */}
-                  <p className="text-gray-600 text-center leading-relaxed mb-4 line-clamp-5">
-                    {member.bio}
-                  </p>
-
-                  {/* Social Links - LinkedIn & Instagram Only */}
-                  {member.socialLinks && 
-                   ((member.socialLinks.linkedin && member.socialLinks.linkedin.trim()) || 
-                    (member.socialLinks.instagram && member.socialLinks.instagram.trim())) && (
-                    <div className="flex justify-center gap-3 pt-4 border-t border-gray-100">
-                      {member.socialLinks.linkedin && member.socialLinks.linkedin.trim() && (
-                        <a 
-                          href={member.socialLinks.linkedin} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 transition-all duration-300 p-2 rounded-full hover:bg-blue-50 hover:scale-110 transform hover:shadow-md"
-                          title="LinkedIn"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.047-1.852-3.047-1.853 0-2.136 1.445-2.136 2.939v5.677H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                          </svg>
-                        </a>
-                      )}
-                      {member.socialLinks.instagram && member.socialLinks.instagram.trim() && (
-                        <a 
-                          href={member.socialLinks.instagram} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-pink-600 hover:text-pink-800 transition-all duration-300 p-2 rounded-full hover:bg-pink-50 hover:scale-110 transform hover:shadow-md"
-                          title="Instagram"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.928-.875-1.418-2.026-1.418-3.323s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.323z"/>
-                          </svg>
-                        </a>
-                      )}
+                    {/* Fallback gradient (hidden by default) */}
+                    <div className="w-full h-full bg-gradient-to-r from-primary to-accent hidden items-center justify-center">
+                      <Users className="w-16 h-16 text-white" />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </div>
+                  
+                  {/* Member info */}
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{member.name}</h3>
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getRoleColor(member.role)}`}>
+                      <div className="flex items-center gap-1.5">
+                        {getRoleIcon(member.role)}
+                        <span className="truncate">{member.role}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Popup for click member */}
+      {hoveredMember && (
+        <div 
+          className="fixed z-50 bg-white rounded-xl shadow-2xl border border-gray-200 p-6 max-w-sm w-full w-100"
+          style={{ 
+            left: `${popupPosition.x + 20}px`, 
+            top: `${popupPosition.y - 20}px`,
+            transform: 'translateY(-50%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}
+        >
+          <div className="flex items-start space-x-4">  
+            
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-gray-900 truncate">{hoveredMember.name}</h3>
+              <p className="text-sm font-medium text-primary mb-2">{hoveredMember.role}</p>
+              
+              {/* Bio */}
+              <p className="text-sm text-gray-600 mb-3">
+                {hoveredMember.bio || "No bio available for this team member."}
+              </p>
+              
+              {/* Social Links */}
+              {hoveredMember.socialLinks && (
+                <div className="flex space-x-3">
+                  {hoveredMember.socialLinks.linkedin && (
+                    <a 
+                      href={hoveredMember.socialLinks.linkedin} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.047-1.852-3.047-1.853 0-2.136 1.445-2.136 2.939v5.677H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      </svg>
+                    </a>
+                  )}
+                  {hoveredMember.socialLinks.instagram && (
+                    <a 
+                      href={hoveredMember.socialLinks.instagram} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-pink-600 hover:text-pink-800 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.928-.875-1.418-2.026-1.418-3.323s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.323z"/>
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

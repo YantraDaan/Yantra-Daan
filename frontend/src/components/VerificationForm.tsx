@@ -16,8 +16,10 @@ import {
   XCircle, 
   AlertCircle,
   Trash2,
-  Download
+  Download,
+  Heart
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface VerificationDocument {
   type: 'id_proof' | 'address_proof' | 'income_proof' | 'education_proof' | 'other';
@@ -26,6 +28,11 @@ interface VerificationDocument {
   mimetype: string;
   size: number;
   uploadDate: string;
+}
+
+interface FormData {
+  howDeviceHelps: string;
+  whyNeedDevice: string;
 }
 
 interface VerificationFormProps {
@@ -42,10 +49,14 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   user 
 }) => {
   const { toast } = useToast();
+  const { updateUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [documents, setDocuments] = useState<VerificationDocument[]>([]);
-  const [howDeviceHelps, setHowDeviceHelps] = useState('');
-  const [whyNeedDevice, setWhyNeedDevice] = useState('');
+  const [formData, setFormData] = useState<FormData>({
+    howDeviceHelps: '',
+    whyNeedDevice: ''
+  });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const documentTypes = [
@@ -146,11 +157,14 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
 
   const resetForm = () => {
     setDocuments([]);
-    setHowDeviceHelps('');
-    setWhyNeedDevice('');
+    setFormData({
+      howDeviceHelps: '',
+      whyNeedDevice: ''
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    setIsSubmitted(false);
   };
 
   // Reset form when modal opens/closes
@@ -163,8 +177,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
   const handleSubmit = async () => {
     console.log('Submit verification started');
     console.log('Documents:', documents);
-    console.log('How device helps:', howDeviceHelps);
-    console.log('Why need device:', whyNeedDevice);
+    console.log('Form data:', formData);
 
     if (documents.length === 0) {
       toast({
@@ -175,7 +188,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       return;
     }
 
-    if (!howDeviceHelps.trim() || !whyNeedDevice.trim()) {
+    if (!formData.howDeviceHelps.trim() || !formData.whyNeedDevice.trim()) {
       toast({
         title: "Missing Information",
         description: "Please answer both questions",
@@ -190,7 +203,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       
       const submitData = {
         documents,
-        notes: `How can this device help me: ${howDeviceHelps.trim()}\nWhy do I need a device: ${whyNeedDevice.trim()}`
+        notes: `How can this device help me: ${formData.howDeviceHelps.trim()}\nWhy do I need a device: ${formData.whyNeedDevice.trim()}`
       };
 
       console.log('Submitting to:', `${config.apiUrl}/api/users/submit-verification`);
@@ -211,13 +224,24 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
       if (response.ok) {
         const data = await response.json();
         console.log('Submit response data:', data);
-        toast({
-          title: "Verification Submitted",
-          description: "Your verification request has been submitted successfully. We'll review it within 2-3 business days.",
-        });
-        resetForm();
-        onSuccess();
-        onClose();
+        
+        // Update the user context with the new verification status
+        if (user) {
+          updateUser({
+            ...user,
+            verificationStatus: 'pending'
+          });
+        }
+        
+        // Show success state instead of toast
+        setIsSubmitted(true);
+        
+        // Reset form and close after delay
+        setTimeout(() => {
+          resetForm();
+          onSuccess();
+          onClose();
+        }, 3000);
       } else {
         const errorData = await response.json();
         console.error('Submit error response:', errorData);
@@ -262,159 +286,173 @@ const VerificationForm: React.FC<VerificationFormProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Current Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Current Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Verification Status</p>
-                  <div className="mt-1">
-                    {getStatusBadge(user?.verificationStatus || 'unverified')}
-                  </div>
-                </div>
-                {user?.verificationNotes && (
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Admin Notes</p>
-                    <p className="text-sm text-gray-800 mt-1">{user.verificationNotes}</p>
-                  </div>
-                )}
+          {isSubmitted ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-white" />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Questions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Tell Us About Yourself</CardTitle>
-              <CardDescription>
-                Please answer these questions to help us understand your needs
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="howDeviceHelps">How can this device help me?</Label>
-                <Textarea
-                  id="howDeviceHelps"
-                  value={howDeviceHelps}
-                  onChange={(e) => setHowDeviceHelps(e.target.value)}
-                  placeholder="Explain how this device will help you in your studies, work, or personal development..."
-                  rows={3}
-                  maxLength={500}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  {howDeviceHelps.length}/500 characters
-                </p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Verification Submitted Successfully!</h3>
+              <p className="text-gray-600 mb-6">Thank you for submitting your verification request. We'll review it within 2-3 business days.</p>
+              <div className="inline-flex items-center space-x-2 bg-green-50 rounded-full px-6 py-3">
+                <Heart className="w-5 h-5 text-green-600" />
+                <span className="text-green-600 font-medium">Your verification matters to us</span>
               </div>
-              
-              <div>
-                <Label htmlFor="whyNeedDevice">Why do I need a device?</Label>
-                <Textarea
-                  id="whyNeedDevice"
-                  value={whyNeedDevice}
-                  onChange={(e) => setWhyNeedDevice(e.target.value)}
-                  placeholder="Tell us why you need a device and what you plan to use it for..."
-                  rows={3}
-                  maxLength={500}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  {whyNeedDevice.length}/500 characters
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Document Upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Upload Education Document</CardTitle>
-              <CardDescription>
-                Upload your highest education certificate or degree. All documents are encrypted and secure.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Highest Education Document</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => handleFileUpload(e, 'education_proof')}
-                    className="hidden"
-                    id="upload-education"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('upload-education')?.click()}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Choose File
-                  </Button>
-                  <span className="text-sm text-gray-500">
-                    JPG, PNG, PDF (Max 5MB)
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Uploaded Documents */}
-          {documents.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Uploaded Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {documents.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-gray-500" />
-                        <div>
-                          <p className="font-medium">{doc.originalName}</p>
-                          <p className="text-sm text-gray-500">
-                            {documentTypes.find(t => t.value === doc.type)?.label} • 
-                            {(doc.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
+            </div>
+          ) : (
+            <>
+              {/* Current Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Current Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Verification Status</p>
+                      <div className="mt-1">
+                        {getStatusBadge(user?.verificationStatus || 'unverified')}
                       </div>
+                    </div>
+                    {user?.verificationNotes && (
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">Admin Notes</p>
+                        <p className="text-sm text-gray-800 mt-1">{user.verificationNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Questions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Tell Us About Yourself</CardTitle>
+                  <CardDescription>
+                    Please answer these questions to help us understand your needs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="howDeviceHelps">How can this device help me?</Label>
+                    <Textarea
+                      id="howDeviceHelps"
+                      value={formData.howDeviceHelps}
+                      onChange={(e) => setFormData(prev => ({ ...prev, howDeviceHelps: e.target.value }))}
+                      placeholder="Explain how this device will help you in your studies, work, or personal development..."
+                      rows={3}
+                      maxLength={500}
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      {formData.howDeviceHelps.length}/500 characters
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="whyNeedDevice">Why do I need a device?</Label>
+                    <Textarea
+                      id="whyNeedDevice"
+                      value={formData.whyNeedDevice}
+                      onChange={(e) => setFormData(prev => ({ ...prev, whyNeedDevice: e.target.value }))}
+                      placeholder="Tell us why you need a device and what you plan to use it for..."
+                      rows={3}
+                      maxLength={500}
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      {formData.whyNeedDevice.length}/500 characters
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Document Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Upload Education Document</CardTitle>
+                  <CardDescription>
+                    Upload your highest education certificate or degree. All documents are encrypted and secure.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Highest Education Document</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileUpload(e, 'education_proof')}
+                        className="hidden"
+                        id="upload-education"
+                      />
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        onClick={() => removeDocument(index)}
-                        className="text-red-600 hover:text-red-700"
+                        onClick={() => document.getElementById('upload-education')?.click()}
+                        disabled={isSubmitting}
+                        className="flex items-center gap-2"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Upload className="w-4 h-4" />
+                        Choose File
                       </Button>
+                      <span className="text-sm text-gray-500">
+                        JPG, PNG, PDF (Max 5MB)
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Uploaded Documents */}
+              {documents.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Uploaded Documents</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {documents.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-5 h-5 text-gray-500" />
+                            <div>
+                              <p className="font-medium">{doc.originalName}</p>
+                              <p className="text-sm text-gray-500">
+                                {documentTypes.find(t => t.value === doc.type)?.label} • 
+                                {(doc.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeDocument(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Submit Button */}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || documents.length === 0 || !formData.howDeviceHelps.trim() || !formData.whyNeedDevice.trim()}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
+                </Button>
+              </div>
+            </>
           )}
-
-
-
-          {/* Submit Button */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={isSubmitting || documents.length === 0 || !howDeviceHelps.trim() || !whyNeedDevice.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

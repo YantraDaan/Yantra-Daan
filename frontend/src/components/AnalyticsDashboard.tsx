@@ -111,11 +111,9 @@ const AnalyticsDashboard = () => {
 
   const getDeviceTypeIcon = (type: string) => {
     switch (type) {
-      case 'smartphone': return <Smartphone className="w-4 h-4" />;
       case 'laptop': return <Laptop className="w-4 h-4" />;
       case 'desktop': return <Monitor className="w-4 h-4" />;
       case 'tablet': return <Tablet className="w-4 h-4" />;
-      case 'printer': return <Printer className="w-4 h-4" />;
       default: return <Package className="w-4 h-4" />;
     }
   };

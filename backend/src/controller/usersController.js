@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const UserModel = require("../models/UserModels");
 const { hashPassword, comparePassword } = require("../utils/auth");
+const { notifyNewUserCreated } = require("../utils/emailService");
 
 // GET all users (Admin only)
 const getAllUsers = async (req, res) => {
@@ -88,13 +89,23 @@ const createUser = async (req, res) => {
     //   return res.status(400).json({ error: "Email already exists" });
     // }
 
-    // Hash the password using bcrypt utility function
-    const hashedPassword = await hashPassword(password);
+    // Hash the password using bcrypt utility function if provided
+    let hashedPassword = null;
+    if (password) {
+      hashedPassword = await hashPassword(password);
+    }
+
+    // For donors and requesters, set password setup required and expiration
+    const isDonorOrRequester = userRole === 'donor' || userRole === 'requester';
+    const passwordSetupRequired = isDonorOrRequester && !password;
+    const passwordSetupExpires = isDonorOrRequester ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null; // 7 days
 
     const user = await UserModel.create({
       name,
       email: email.toLowerCase(),
       password: hashedPassword, // Save hashed password instead of plain text
+      passwordSetupRequired,
+      passwordSetupExpires,
       contact,
       userRole,
       categoryType,
@@ -108,6 +119,15 @@ const createUser = async (req, res) => {
       emailUpdates: emailUpdates !== undefined ? emailUpdates : true,
       document: documentInfo
     });
+
+    // Send email notifications to all donors and requesters about the new user
+    try {
+      await notifyNewUserCreated(user);
+      console.log(`New user notification sent for: ${user.name} (${user.userRole})`);
+    } catch (emailError) {
+      console.error('Failed to send new user notifications:', emailError);
+      // Don't fail user creation if email fails
+    }
 
     res.status(201).json({
       message: "User created successfully",
