@@ -5,7 +5,7 @@ import { config } from '@/config/env';
 export const useAuth = () => {
   const auth = useAuthContext();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isTokenValid, setIsTokenValid] = useState(true); // Start as true to prevent immediate logout
+  const [isTokenValid, setIsTokenValid] = useState(true);
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check online status
@@ -88,9 +88,6 @@ export const useAuth = () => {
       }
     };
   }, [debouncedValidateToken]);
-
-  // REMOVED: Aggressive auto-logout logic that was causing issues
-  // The previous useEffect that logged out users when !isTokenValid was too aggressive
 
   // Check if user has specific role
   const hasRole = useCallback((role: string) => {

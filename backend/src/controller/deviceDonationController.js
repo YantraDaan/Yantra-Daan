@@ -1,6 +1,6 @@
 const DeviceModel = require('../models/Device');
 const UserModel = require('../models/UserModels');
-// const emailService = require('../utils/emailService'); // EMAIL SERVICE DISABLED
+const emailService = require('../utils/emailService'); // EMAIL SERVICE ENABLED
 
 // Create a new device donation post
 const createDeviceDonation = async (req, res) => {
@@ -121,7 +121,7 @@ const getApprovedDeviceDonations = async (req, res) => {
 const getDeviceDonationById = async (req, res) => {
   try {
     const device = await DeviceModel.findById(req.params.id)
-      .populate('ownerInfo', 'name email city state')
+      .populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto')
       .select('-adminNotes -approvedBy -approvedAt -rejectionReason');
 
     if (!device) {
@@ -275,10 +275,10 @@ const getAllDeviceDonationsForAdmin = async (req, res) => {
 // Admin: Approve/reject device donation
 const updateDeviceDonationStatus = async (req, res) => {
   try {
-    const { status, adminNotes, rejectionReason } = req.body;
+    const { status, adminNotes, rejectionReason, suspensionReason } = req.body;
 
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status. Must be approved or rejected' });
+    if (!['approved', 'rejected', 'suspended'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be approved, rejected, or suspended' });
     }
 
     const device = await DeviceModel.findById(req.params.id)
@@ -296,31 +296,46 @@ const updateDeviceDonationStatus = async (req, res) => {
       device.approvedBy = req.user._id;
       device.approvedAt = new Date();
       device.rejectionReason = undefined;
+      device.suspensionReason = undefined;
     } else if (status === 'rejected') {
       device.rejectionReason = rejectionReason || 'No reason provided';
+      device.approvedBy = undefined;
+      device.approvedAt = undefined;
+    } else if (status === 'suspended') {
+      device.suspensionReason = suspensionReason || 'No reason provided';
+      device.suspendedAt = new Date();
       device.approvedBy = undefined;
       device.approvedAt = undefined;
     }
 
     await device.save();
 
-    // EMAIL NOTIFICATIONS DISABLED - Device status notifications commented out
-    /*
+    // EMAIL NOTIFICATIONS ENABLED - Device status notifications
     // Send notification to device owner
-    if (status === 'approved') {
-      await emailService.notifyDeviceApproved(
-        device.ownerInfo.email,
-        device.toObject(),
-        req.user.toObject()
-      );
-    } else if (status === 'rejected') {
-      await emailService.notifyDeviceRejected(
-        device.ownerInfo.email,
-        device.toObject(),
-        rejectionReason
-      );
+    try {
+      if (status === 'approved') {
+        await emailService.sendEmail({
+          to: device.ownerInfo.email,
+          subject: '✅ Device Post Approved - Yantra Daan',
+          html: emailService.emailTemplates.devicePostApproved(device.toObject())
+        });
+      } else if (status === 'rejected') {
+        await emailService.sendEmail({
+          to: device.ownerInfo.email,
+          subject: '❌ Device Post Rejected - Yantra Daan',
+          html: emailService.emailTemplates.devicePostRejected(device.toObject(), rejectionReason || 'No reason provided')
+        });
+      } else if (status === 'suspended') {
+        await emailService.sendEmail({
+          to: device.ownerInfo.email,
+          subject: '⚠️ Device Post Suspended - Yantra Daan',
+          html: emailService.emailTemplates.devicePostSuspended(device.toObject(), suspensionReason || 'No reason provided')
+        });
+      }
+    } catch (emailError) {
+      console.error('Email notification error:', emailError);
+      // Continue even if email fails
     }
-    */
 
     res.json({
       message: `Device donation ${status} successfully`,

@@ -32,10 +32,14 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
-  Camera
+  Camera,
+  School,
+  Eye,
+  Download
 } from "lucide-react";
 import { config } from "@/config/env";
 import VerificationForm from "@/components/VerificationForm";
+import { json } from "stream/consumers";
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
@@ -45,17 +49,6 @@ const ProfilePage = () => {
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   
-  // Read URL parameters
-  const urlId = searchParams.get('id');
-  const urlName = searchParams.get('name');
-  const urlEmail = searchParams.get('email');
-  const urlRole = searchParams.get('role');
-  
-  console.log("URL Parameters:", { urlId, urlName, urlEmail, urlRole });
-  console.log("Current user from context:", user);
-  console.log("User ID:", user?.id);
-  console.log("User name:", user?.name);
-  console.log("User email:", user?.email);
   
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
@@ -93,7 +86,25 @@ const ProfilePage = () => {
       }));
     }
   }, [user]);
-  console.log("Profile data to send:", profileData);
+  
+  // Fetch user data when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+      console.log("116");
+    }
+  }, [user]);
+  
+  // Periodically refresh user data to ensure verification status is up to date
+  useEffect(() => {
+    if (!user) return;
+    
+    const interval = setInterval(() => {
+      fetchUserProfile();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [user]);
   
   // State for real data from backend
   const [donorStats, setDonorStats] = useState<{
@@ -119,11 +130,28 @@ const ProfilePage = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchUserData();
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const response = await fetch(`${config.apiUrl}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Update the user context with the latest data including verification status
+        if (data.user) {
+          updateUser(data.user);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
     }
-  }, [user]);
+  };
 
   const fetchUserData = async () => {
     try {
@@ -134,58 +162,96 @@ const ProfilePage = () => {
         setIsLoading(false);
         return;
       }
-
+      console.log("user?.userRole",user.userRole);
+      
+      // Fetch user profile to get updated verification status
+      await fetchUserProfile();
+      
       if (user?.userRole === 'donor') {
-        // Fetch donor's device donations
-        const donationsResponse = await fetch(`${config.apiUrl}${config.endpoints.devices}/my`, {
+        // Fetch donor's device donations and requests using the new endpoint
+        const response = await fetch(`${config.apiUrl}/api/device-requests/donor/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
+        console.log("donor profile response", response);
         
-        if (donationsResponse.ok) {
-          const donationsData = await donationsResponse.json();
-          setDonorItems(donationsData.devices || []);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("donor profile data", data);
           
-          // Fetch requests for each device
+          // Set donor items and device requests
+          setDonorItems(data.devices || []);
+          
+          // Create requests data object for backward compatibility
           const requestsData = {};
-          for (const device of donationsData.devices || []) {
-            try {
-              const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/device/${device._id}`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              });
-              
-              if (requestsResponse.ok) {
-                const deviceRequests = await requestsResponse.json();
-                requestsData[device._id] = deviceRequests.requests || [];
-              }
-            } catch (error) {
-              console.error(`Error fetching requests for device ${device._id}:`, error);
-              requestsData[device._id] = [];
-            }
-          }
+          (data.devices || []).forEach((device: any) => {
+            requestsData[device._id] = device.requests || [];
+          });
           setDeviceRequests(requestsData);
           
-          // Calculate stats
-          const total = donationsData.devices?.length || 0;
-          const active = donationsData.devices?.filter((d: any) => d.status === 'approved')?.length || 0;
-          const pending = donationsData.devices?.filter((d: any) => d.status === 'pending')?.length || 0;
-          
-          // Calculate total requests across all devices
-          const allRequests = Object.values(requestsData).flat() as any[];
-          const totalRequests = allRequests.length;
-          const completedRequests = allRequests.filter((r: any) => r.status === 'completed').length;
-          
+          // Set donor stats
           setDonorStats({
-            totalDonations: total,
-            activeItems: active,
-            completedRequests: completedRequests,
-            totalStudentsHelped: totalRequests
+            totalDonations: data.stats?.totalDevices || 0,
+            activeItems: (data.devices || []).filter((d: any) => d.status === 'approved').length,
+            completedRequests: data.stats?.completedRequests || 0,
+            totalStudentsHelped: data.stats?.totalRequests || 0
           });
+        } else {
+          // Fallback to old method if new endpoint fails
+          const donationsResponse = await fetch(`${config.apiUrl}${config.endpoints.devices}/approved`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (donationsResponse.ok) {
+            const donationsDatas = await donationsResponse.json();
+            const donationsData = donationsDatas.devices.filter((item: any) => item.ownerId === user.id);  
+            console.log("donationsData",donationsData);
+                
+            setDonorItems(donationsData || []);
+            
+            // Fetch requests for each device
+            const requestsData = {};
+            for (const device of donationsData.devices || []) {
+              try {
+                const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/device/${device._id}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                });
+                
+                if (requestsResponse.ok) {
+                  const deviceRequests = await requestsResponse.json();
+                  requestsData[device._id] = deviceRequests.requests || [];
+                }
+              } catch (error) {
+                console.error(`Error fetching requests for device ${device._id}:`, error);
+                requestsData[device._id] = [];
+              }
+            }
+            setDeviceRequests(requestsData);
+            
+            // Calculate stats
+            const total = donationsData?.length || 0;
+            const active = donationsData?.filter((d: any) => d.status === 'approved')?.length || 0;
+            const pending = donationsData?.filter((d: any) => d.status === 'pending')?.length || 0;
+            
+            // Calculate total requests across all devices
+            const allRequests = Object.values(requestsData).flat() as any[];
+            const totalRequests = allRequests.length;
+            const completedRequests = allRequests.filter((r: any) => r.status === 'completed').length;
+            
+            setDonorStats({
+              totalDonations: total,
+              activeItems: active,
+              completedRequests: completedRequests,
+              totalStudentsHelped: totalRequests
+            });
+          }
         }
-      } else if (user?.userRole === 'requester' || user?.userRole === 'student') {
+      } else if (user?.userRole === 'requester' ) {
         // Fetch requester's requests
         const requestsResponse = await fetch(`${config.apiUrl}${config.endpoints.requests}/my`, {
           headers: {
@@ -257,7 +323,7 @@ const ProfilePage = () => {
       }
       
       // Update profile data
-      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/profile`, {
+      const response = await fetch(`${config.apiUrl}${config.endpoints.users}/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -423,7 +489,7 @@ const ProfilePage = () => {
   const handleApproveRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${requestId}/status`, {
+      const response = await fetch(`${config.apiUrl}/api/device-requests/device/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -438,7 +504,7 @@ const ProfilePage = () => {
       if (response.ok) {
         toast({
           title: "Request Approved",
-          description: "The request has been approved successfully.",
+          description: "The request has been approved successfully. All other requests for this device have been rejected and further submissions are suspended.",
         });
         fetchUserData(); // Refresh data
       } else {
@@ -461,7 +527,7 @@ const ProfilePage = () => {
   const handleRejectRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${config.apiUrl}${config.endpoints.requests}/admin/${requestId}/status`, {
+      const response = await fetch(`${config.apiUrl}/api/device-requests/device/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -496,8 +562,98 @@ const ProfilePage = () => {
     }
   };
 
+  // Add function to download invoice for approved requests
+  const handleDownloadInvoice = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${config.apiUrl}/api/device-requests/my/${requestId}/invoice`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const htmlContent = await response.text();
+        
+        // Create a Blob with the HTML content
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        
+        // Create a download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoice-${requestId}.html`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Invoice Downloaded",
+          description: "The invoice has been downloaded successfully.",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to download invoice",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download invoice. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add state for request details modal
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [isRequestDetailsOpen, setIsRequestDetailsOpen] = useState(false);
+  const [requestDetails, setRequestDetails] = useState<any>(null);
+  const [isRequestDetailsLoading, setIsRequestDetailsLoading] = useState(false);
+
+  // Add function to fetch detailed request information
+  const fetchRequestDetails = async (requestId: string) => {
+    try {
+      setIsRequestDetailsLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${config.apiUrl}/api/device-requests/device/request/${requestId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRequestDetails(data.request);
+        setIsRequestDetailsOpen(true);
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to load request details",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load request details",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRequestDetailsLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'available': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'requested': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       case 'donated': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
@@ -510,7 +666,7 @@ const ProfilePage = () => {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'pending': return <Clock className="w-4 h-4" />;
       case 'approved': return <CheckCircle className="w-4 h-4" />;
       case 'fulfilled': return <CheckCircle className="w-4 h-4" />;
@@ -520,7 +676,7 @@ const ProfilePage = () => {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority) {
       case 'high': return 'bg-red-100 text-red-800';
       case 'medium': return 'bg-yellow-100 text-yellow-800';
       case 'low': return 'bg-green-100 text-green-800';
@@ -583,20 +739,20 @@ const ProfilePage = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="relative group cursor-pointer" onClick={() => document.getElementById('profilePhotoInput')?.click()} title="Click to upload profile photo">
-                  {user.profilePhoto?.filename ? (
+                  {user?.profilePhoto?.filename ? (
                     <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary">
                       <img 
-                        src={`${config.apiUrl}/uploads/${user.profilePhoto.filename}`}
+                        src={`${config.apiUrl}/uploads/profiles/${user.profilePhoto.filename}`}
                         alt="Profile" 
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
+                          console.error('Profile image failed to load:', `${config.apiUrl}/uploads/profiles/${user.profilePhoto.filename}`);
                           // Fallback to icon if image fails to load
                           e.currentTarget.style.display = 'none';
                           e.currentTarget.nextElementSibling?.classList.remove('hidden');
                         }}
                         onLoad={() => {
-                          console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/${user.profilePhoto.filename}`);
+                          console.log('Profile image loaded successfully:', `${config.apiUrl}/uploads/profiles/${user.profilePhoto.filename}`);
                         }}
                       />
                       <div className={`w-full h-full bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center ${user.profilePhoto?.filename ? 'hidden' : ''}`}>
@@ -775,34 +931,14 @@ const ProfilePage = () => {
                     <span>{profileData.address}</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Calendar className="w-5 h-5 text-primary" />
-                    <span>Joined {new Date().toLocaleDateString()}</span>
+                    <School className="w-5 h-5 text-primary" />
+                    <span>{profileData.profession}</span>
                   </div>
-                  {user.userRole === 'requester' && (
-                    <>
-                      <div className="flex items-center space-x-3">
-                        <GraduationCap className="w-5 h-5 text-primary" />
-                        <span>University</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <BookOpen className="w-5 h-5 text-primary" />
-                        <span>Major - Year of Study</span>
-                      </div>
-                    </>
-                  )}
                 </div>
                 
                 <div>
                   <h3 className="font-semibold mb-2">About</h3>
                   <p className="text-muted-foreground mb-4">{profileData.about}</p>
-                  {user.userRole === 'requester' && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium">Academic Performance:</span>
-                        <span className="text-sm font-semibold">GPA</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -1027,7 +1163,16 @@ const ProfilePage = () => {
                                       <p className="text-sm text-gray-600">{request.message.substring(0, 50)}...</p>
                                       <p className="text-xs text-gray-500">{new Date(request.createdAt).toLocaleDateString()}</p>
                                     </div>
-                                    <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
+                                    <div className="flex items-center space-x-2">
+                                      <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => fetchRequestDetails(request._id)}
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1037,15 +1182,6 @@ const ProfilePage = () => {
                                 </Button>
                               )}
                             </div>
-                          )}
-                          
-                          {itemRequests.length === 0 && (
-                            <NoDataFound
-                              title="No requests for this device"
-                              description="Students haven't requested this device yet"
-                              imageType="requests"
-                              variant="compact"
-                            />
                           )}
                         </div>
                       );
@@ -1097,7 +1233,16 @@ const ProfilePage = () => {
                                       <p className="text-sm text-gray-600">{request.requesterInfo?.email}</p>
                                     </div>
                                   </div>
-                                  <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => fetchRequestDetails(request._id)}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                                 
                                 <div className="bg-white p-3 rounded border">
@@ -1134,9 +1279,18 @@ const ProfilePage = () => {
                                 
                                 {request.status === 'approved' && (
                                   <div className="bg-green-50 p-3 rounded border-l-4 border-green-400">
-                                    <p className="text-sm text-green-700">
+                                    <p className="text-sm text-green-700 mb-2">
                                       ✅ Request approved. Please contact the student to arrange pickup/delivery.
                                     </p>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleDownloadInvoice(request._id)}
+                                      className="mt-2"
+                                    >
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Download Invoice
+                                    </Button>
                                   </div>
                                 )}
                                 
@@ -1329,6 +1483,16 @@ const ProfilePage = () => {
                               Cancel Request
                             </Button>
                           )}
+                          {request.status === 'approved' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(request._id)}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download Invoice
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1372,6 +1536,15 @@ const ProfilePage = () => {
 
                         {request.status === 'completed' && (
                           <div className="mt-3 pt-3 border-t">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(request._id)}
+                              className="mr-2"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download Invoice
+                            </Button>
                             <Button variant="outline" size="sm">
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Send Thank You Message
@@ -1414,6 +1587,126 @@ const ProfilePage = () => {
           </Tabs>
         )}
 
+        {/* Request Details Modal */}
+        {isRequestDetailsOpen && requestDetails && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Request Details</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setIsRequestDetailsOpen(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-6">
+                  {/* Requester Information */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3 flex items-center">
+                      <User className="w-4 h-4 mr-2" />
+                      Requester Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Name</p>
+                        <p className="font-medium">{requestDetails.requesterInfo?.name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="font-medium">{requestDetails.requesterInfo?.email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Contact</p>
+                        <p className="font-medium">{requestDetails.requesterInfo?.contact || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Profession</p>
+                        <p className="font-medium">{requestDetails.requesterInfo?.profession || 'N/A'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-600">Address</p>
+                        <p className="font-medium">{requestDetails.requesterInfo?.address || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Device Information */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3 flex items-center">
+                      <Laptop className="w-4 h-4 mr-2" />
+                      Device Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Device Name</p>
+                        <p className="font-medium">{requestDetails.deviceInfo?.title || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Device Type</p>
+                        <p className="font-medium">{requestDetails.deviceInfo?.deviceType || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Condition</p>
+                        <p className="font-medium">{requestDetails.deviceInfo?.condition || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Status</p>
+                        <Badge className={getStatusColor(requestDetails.status)}>
+                          {requestDetails.status}
+                        </Badge>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-600">Description</p>
+                        <p className="font-medium">{requestDetails.deviceInfo?.description || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Request Message */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3 flex items-center">
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Request Message
+                    </h3>
+                    <p className="bg-gray-50 p-3 rounded">{requestDetails.message || 'No message provided'}</p>
+                  </div>
+                  
+                  {/* Admin Notes and Rejection Reason */}
+                  {requestDetails.adminNotes && (
+                    <div className="border rounded-lg p-4">
+                      <h3 className="font-semibold mb-3 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Admin Notes
+                      </h3>
+                      <p className="bg-blue-50 p-3 rounded border border-blue-200">{requestDetails.adminNotes}</p>
+                    </div>
+                  )}
+                  
+                  {requestDetails.rejectionReason && (
+                    <div className="border rounded-lg p-4">
+                      <h3 className="font-semibold mb-3 flex items-center">
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Rejection Reason
+                      </h3>
+                      <p className="bg-red-50 p-3 rounded border border-red-200">{requestDetails.rejectionReason}</p>
+                    </div>
+                  )}
+                  
+                  {/* Request Date */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Request Date</h3>
+                    <p>{new Date(requestDetails.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Verification Form Modal */}
         {showVerificationForm && (
           <VerificationForm
@@ -1423,6 +1716,13 @@ const ProfilePage = () => {
               setShowVerificationForm(false);
               // Refresh user data to get updated verification status
               fetchUserData();
+              // Update the user context with the new verification status
+              if (user) {
+                updateUser({
+                  ...user,
+                  verificationStatus: 'pending'
+                });
+              }
               toast({
                 title: "Verification Submitted",
                 description: "Your verification request has been submitted successfully. We'll review it within 2-3 business days.",

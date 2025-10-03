@@ -14,13 +14,23 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true,
-      trim: true,
       match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
     },
     password: {
       type: String,
-      required: [true, 'Password is required']
+      required: false // Password is optional for donors and requesters
+    },
+    passwordSetupRequired: {
+      type: Boolean,
+      default: false
+    },
+    passwordSetupToken: {
+      type: String,
+      default: null
+    },
+    passwordSetupExpires: {
+      type: Date,
+      default: null
     },
     contact: {
       type: String,
@@ -76,28 +86,6 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
       index: true
-    },
-    document: {
-      filename: {
-        type: String,
-        default: ''
-      },
-      originalName: {
-        type: String,
-        default: ''
-      },
-      mimetype: {
-        type: String,
-        default: ''
-      },
-      size: {
-        type: Number,
-        default: 0
-      },
-      uploadDate: {
-        type: Date,
-        default: Date.now
-      }
     },
     profilePhoto: {
       filename: {

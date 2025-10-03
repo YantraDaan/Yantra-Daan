@@ -93,7 +93,7 @@ router.get('/:id', auth, requireRole(['admin']), async (req, res) => {
 });
 
 // Update user by ID (admin only)
-router.put('/:id', auth, requireRole(['admin']), async (req, res) => {
+router.put('/:id',  async (req, res) => {
   try {
     const { name, email, userRole, contact, categoryType, isOrganization, about, profession, address } = req.body;
     const updates = {};
@@ -230,6 +230,65 @@ router.get('/admin/stats', auth, requireRole(['admin']), async (req, res) => {
     });
   }
 });
+
+// Update user profile (authenticated user)
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    const {
+      name,
+      contact,
+      address,
+      about,
+      profession,
+      linkedIn,
+      instagram,
+      facebook,
+      emailUpdates
+    } = req.body;
+    
+    const updates = {};
+    
+    // Always update fields that are provided
+    if (name !== undefined) updates.name = name;
+    if (contact !== undefined) updates.contact = contact;
+    if (address !== undefined) updates.address = address;
+    if (about !== undefined) updates.about = about;
+    if (profession !== undefined) updates.profession = profession;
+    if (linkedIn !== undefined) updates.linkedIn = linkedIn;
+    if (instagram !== undefined) updates.instagram = instagram;
+    if (facebook !== undefined) updates.facebook = facebook;
+    if (emailUpdates !== undefined) updates.emailUpdates = emailUpdates;
+    
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      userId,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        error: 'User not found' 
+      });
+    }
+    
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+    
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update profile',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Upload profile photo
+router.post("/upload-photo", auth, profileUpload.single('profilePhoto'), uploadProfilePhoto);
 
 // Verification routes
 router.post("/upload-verification-document", auth, verificationUpload.single('document'), uploadVerificationDocument);

@@ -54,7 +54,7 @@ DeviceRequestSchema.virtual('requesterInfo', {
   localField: 'requesterId',
   foreignField: '_id',
   justOne: true,
-  select: 'firstName lastName email phone'
+  select: 'name'
 });
 
 // Virtual for device info

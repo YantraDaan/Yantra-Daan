@@ -28,7 +28,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Device is not available for requests' });
     }
 
-    // Check if user already has a pending request for this device
+    // Check if user already has a request for this device
     const existingRequest = await DeviceRequestModel.findOne({
       requesterId: req.user._id,
       deviceId: deviceId,
@@ -41,18 +41,24 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
-    // Check if requester has reached the 3-device limit
-    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
-      const activeRequestCount = await DeviceRequestModel.countDocuments({
-        requesterId: req.user._id,
-        status: { $in: ['pending', 'approved'] }
+    // Check if requester is verified before allowing requests
+    if (req.user.verificationStatus !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Only verified users can request devices. Please complete the verification process first.' 
       });
+    }
 
-      if (activeRequestCount >= 3) {
-        return res.status(400).json({ 
-          error: 'You have reached the maximum limit of 3 active device requests. Please wait for existing requests to be processed before making new ones.' 
-        });
-      }
+    // Check if requester has reached the 3-device limit
+    // Only apply limit to verified requesters
+    const activeRequestCount = await DeviceRequestModel.countDocuments({
+      requesterId: req.user._id,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (activeRequestCount >= 3) {
+      return res.status(400).json({ 
+        error: 'You have reached the maximum limit of 3 active device requests. Please wait for existing requests to be processed before making new ones.' 
+      });
     }
 
     // Create the request
@@ -89,9 +95,9 @@ router.post('/', auth, async (req, res) => {
             
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #166534;">Device Details:</h3>
-              <p><strong>Title:</strong> ${device.title}</p>
-              <p><strong>Type:</strong> ${device.deviceType}</p>
-              <p><strong>Condition:</strong> ${device.condition}</p>
+              <p><strong>Title:</strong> ${request.deviceInfo.title}</p>
+              <p><strong>Type:</strong> ${request.deviceInfo.deviceType}</p>
+              <p><strong>Condition:</strong> ${request.deviceInfo.condition}</p>
             </div>
             
             <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -128,10 +134,10 @@ router.post('/', auth, async (req, res) => {
             
             <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #166534;">Device Information:</h3>
-              <p><strong>Title:</strong> ${device.title}</p>
-              <p><strong>Type:</strong> ${device.deviceType}</p>
-              <p><strong>Condition:</strong> ${device.condition}</p>
-              <p><strong>Donor:</strong> ${device.ownerId?.name || 'Unknown'}</p>
+              <p><strong>Title:</strong> ${request.deviceInfo.title}</p>
+              <p><strong>Type:</strong> ${request.deviceInfo.deviceType}</p>
+              <p><strong>Condition:</strong> ${request.deviceInfo.condition}</p>
+              <p><strong>Donor:</strong> ${request.deviceInfo.ownerId?.name || 'Unknown'}</p>
             </div>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
@@ -162,33 +168,46 @@ router.post('/', auth, async (req, res) => {
 // Get all device requests (admin only)
 router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
-    
-    const filter = {};
-    if (status) filter.status = status;
+    const { page = 1, limit = 10, search = '', status = '' } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const requests = await DeviceRequestModel.find(filter)
-      .populate('requesterInfo', 'name email contact profession address')
+    let query = {};
+    
+    if (search) {
+      query.$or = [
+        { message: { $regex: search, $options: 'i' } },
+        { 'requesterInfo.name': { $regex: search, $options: 'i' } },
+        { 'deviceInfo.title': { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const requests = await DeviceRequestModel.find(query)
+      .populate('requesterInfo', 'name email contact')
       .populate({
         path: 'deviceInfo',
         select: 'title deviceType condition ownerId',
         populate: {
           path: 'ownerId',
-          select: 'name email contact profession address',
+          select: 'name email contact',
           model: 'User'
         }
       })
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip(skip)
+      .limit(parseInt(limit));
 
-    const total = await DeviceRequestModel.countDocuments(filter);
+    const total = await DeviceRequestModel.countDocuments(query);
+    const totalPages = Math.ceil(total / parseInt(limit));
 
     res.json({
       requests,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total
+      total,
+      totalPages,
+      currentPage: parseInt(page)
     });
 
   } catch (error) {
@@ -230,14 +249,49 @@ router.get('/admin/:id', auth, requireRole(['admin']), async (req, res) => {
   }
 });
 
-// Admin or device owner approve/reject device request
-router.put('/admin/:id/status', auth, async (req, res) => {
+// Get device request by ID (device owner only)
+router.get('/device/request/:id', auth, async (req, res) => {
+  try {
+    const request = await DeviceRequestModel.findById(req.params.id)
+      .populate('requesterInfo', 'name email contact address profession profilePhoto')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title description deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact',
+          model: 'User'
+        }
+      });
+
+    if (!request) {
+      return res.status(404).json({ error: 'Device request not found' });
+    }
+
+    // Check if the current user is the device owner
+    if (request.deviceInfo.ownerId._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied. You can only view requests for your own devices.' });
+    }
+
+    res.json({ request });
+
+  } catch (error) {
+    console.error('Device owner get request error:', error);
+    res.status(500).json({
+      error: 'Failed to get device request',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Device owner approve/reject device request
+router.put('/device/:id/status', auth, async (req, res) => {
   try {
     const { status, adminNotes, rejectionReason } = req.body;
 
-    if (!['approved', 'rejected', 'completed'].includes(status)) {
+    if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ 
-        error: 'Invalid status. Must be approved, rejected, or completed' 
+        error: 'Invalid status. Must be approved or rejected' 
       });
     }
 
@@ -257,12 +311,47 @@ router.put('/admin/:id/status', auth, async (req, res) => {
       return res.status(404).json({ error: 'Device request not found' });
     }
 
-    // Check if user is admin or device owner
-    const isAdmin = req.user.userRole === 'admin';
+    // Check if user is the device owner
     const isDeviceOwner = request.deviceInfo.ownerId.toString() === req.user._id.toString();
     
-    if (!isAdmin && !isDeviceOwner) {
-      return res.status(403).json({ error: 'Access denied. Only admins or device owners can update request status.' });
+    if (!isDeviceOwner) {
+      return res.status(403).json({ error: 'Access denied. Only device owners can update request status.' });
+    }
+
+    // If this is an approval, reject all other pending requests for the same device
+    if (status === 'approved') {
+      // Find all other pending requests for the same device
+      const otherRequests = await DeviceRequestModel.find({
+        deviceId: request.deviceId,
+        _id: { $ne: request._id },
+        status: 'pending'
+      });
+
+      // Reject all other pending requests
+      for (const otherRequest of otherRequests) {
+        otherRequest.status = 'rejected';
+        otherRequest.rejectionReason = 'Device assigned to another recipient';
+        otherRequest.adminNotes = 'Auto-rejected when device owner approved another request';
+        await otherRequest.save();
+        
+        // Notify the requester of the other request
+        const otherRequester = await UserModel.findById(otherRequest.requesterId);
+        if (otherRequester && otherRequester.email) {
+          await emailService.sendEmail({
+            to: otherRequester.email,
+            subject: '❌ Device Request Rejected - Yantra Daan',
+            html: emailService.emailTemplates.requestRejected(otherRequest.toObject())
+          });
+        }
+      }
+      
+      // Update the device status to prevent further requests and hide from public view
+      const device = await DeviceModel.findById(request.deviceId);
+      if (device) {
+        device.status = 'assigned';
+        device.isActive = false; // Hide device from public view
+        await device.save();
+      }
     }
 
     // Update request status
@@ -277,8 +366,6 @@ router.put('/admin/:id/status', auth, async (req, res) => {
       request.rejectionReason = rejectionReason || 'No reason provided';
       request.approvedBy = undefined;
       request.approvedAt = undefined;
-    } else if (status === 'completed') {
-      request.completedAt = new Date();
     }
 
     await request.save();
@@ -317,7 +404,7 @@ router.put('/admin/:id/status', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Admin update request status error:', error);
+    console.error('Device owner update request status error:', error);
     res.status(500).json({
       error: 'Failed to update request status',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -363,29 +450,33 @@ router.get('/can-request/:deviceId', auth, async (req, res) => {
       });
     }
 
-    // Check if requester has reached the 3-device limit
-    if (req.user.userRole === 'requester' || req.user.userRole === 'student') {
-      const activeRequestCount = await DeviceRequestModel.countDocuments({
-        requesterId: req.user._id,
-        status: { $in: ['pending', 'approved'] }
+    // Check if requester is verified
+    if (req.user.verificationStatus !== 'verified') {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'Only verified users can request devices. Please complete the verification process first.' 
       });
+    }
 
-      if (activeRequestCount >= 3) {
-        return res.json({ 
-          canRequest: false, 
-          reason: 'You have reached the maximum limit of 3 active device requests' 
-        });
-      }
+    // Check if requester has reached the 3-device limit
+    const activeRequestCount = await DeviceRequestModel.countDocuments({
+      requesterId: req.user._id,
+      status: { $in: ['pending', 'approved'] }
+    });
+
+    if (activeRequestCount >= 3) {
+      return res.json({ 
+        canRequest: false, 
+        reason: 'You have reached the maximum limit of 3 active device requests' 
+      });
     }
 
     return res.json({ 
       canRequest: true,
-      activeRequestCount: req.user.userRole === 'requester' || req.user.userRole === 'student' 
-        ? await DeviceRequestModel.countDocuments({
-            requesterId: req.user._id,
-            status: { $in: ['pending', 'approved'] }
-          })
-        : 0
+      activeRequestCount: await DeviceRequestModel.countDocuments({
+        requesterId: req.user._id,
+        status: { $in: ['pending', 'approved'] }
+      })
     });
 
   } catch (error) {
@@ -515,20 +606,20 @@ router.get('/public/device/:deviceId', async (req, res) => {
     }
     
     const requests = await DeviceRequestModel.find({ deviceId })
-      .populate('requesterInfo', 'name email contact profession')
-      .select('requesterInfo message status createdAt')
+      .populate('requesterInfo', 'name profilePhoto')
+      .select('requesterInfo message status createdAt adminNotes rejectionReason')
       .sort({ createdAt: -1 });
     
     res.json({ 
       requests: requests.map(req => ({
         _id: req._id,
         name: req.requesterInfo?.name || 'Anonymous',
-        email: req.requesterInfo?.email || '',
-        contact: req.requesterInfo?.contact || '',
-        profession: req.requesterInfo?.profession || '',
         message: req.message,
         status: req.status,
-        createdAt: req.createdAt
+        createdAt: req.createdAt,
+        adminNotes: req.adminNotes,
+        rejectionReason: req.rejectionReason,
+        profilePhoto: req.requesterInfo?.profilePhoto
       }))
     });
     
@@ -576,27 +667,170 @@ router.get('/admin/stats', auth, requireRole(['admin']), async (req, res) => {
   }
 });
 
-// Get all device requests for admin (admin only)
-router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
+// Get device request by ID (device owner only)
+router.get('/device/request/:id', auth, async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', status = '' } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const request = await DeviceRequestModel.findById(req.params.id)
+      .populate('requesterInfo', 'name email contact address profession profilePhoto')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title description deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact',
+          model: 'User'
+        }
+      });
 
-    let query = {};
-    
-    if (search) {
-      query.$or = [
-        { message: { $regex: search, $options: 'i' } },
-        { 'requesterInfo.name': { $regex: search, $options: 'i' } },
-        { 'deviceInfo.title': { $regex: search, $options: 'i' } }
-      ];
-    }
-    
-    if (status && status !== 'all') {
-      query.status = status;
+    if (!request) {
+      return res.status(404).json({ error: 'Device request not found' });
     }
 
-    const requests = await DeviceRequestModel.find(query)
+    // Check if the current user is the device owner
+    if (request.deviceInfo.ownerId._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied. You can only view requests for your own devices.' });
+    }
+
+    res.json({ request });
+
+  } catch (error) {
+    console.error('Device owner get request error:', error);
+    res.status(500).json({
+      error: 'Failed to get device request',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Admin approve/reject device request
+router.put('/admin/:id/status', auth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { status, adminNotes, rejectionReason } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ 
+        error: 'Invalid status. Must be approved or rejected' 
+      });
+    }
+
+    const request = await DeviceRequestModel.findById(req.params.id)
+      .populate('requesterInfo', 'name email contact')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email',
+          model: 'User'
+        }
+      });
+
+    if (!request) {
+      return res.status(404).json({ error: 'Device request not found' });
+    }
+
+    // If this is an approval, reject all other pending requests for the same device
+    if (status === 'approved') {
+      // Find all other pending requests for the same device
+      const otherRequests = await DeviceRequestModel.find({
+        deviceId: request.deviceId,
+        _id: { $ne: request._id },
+        status: 'pending'
+      });
+
+      // Reject all other pending requests
+      for (const otherRequest of otherRequests) {
+        otherRequest.status = 'rejected';
+        otherRequest.rejectionReason = 'Device assigned to another recipient';
+        otherRequest.adminNotes = 'Auto-rejected when admin approved another request';
+        await otherRequest.save();
+        
+        // Notify the requester of the other request
+        const otherRequester = await UserModel.findById(otherRequest.requesterId);
+        if (otherRequester && otherRequester.email) {
+          await emailService.sendEmail({
+            to: otherRequester.email,
+            subject: '❌ Device Request Rejected - Yantra Daan',
+            html: emailService.emailTemplates.requestRejected(otherRequest.toObject())
+          });
+        }
+      }
+      
+      // Update the device status to prevent further requests and hide from public view
+      const device = await DeviceModel.findById(request.deviceId);
+      if (device) {
+        device.status = 'assigned';
+        device.isActive = false; // Hide device from public view
+        await device.save();
+      }
+    }
+
+    // Update request status
+    request.status = status;
+    request.adminNotes = adminNotes || '';
+    
+    if (status === 'approved') {
+      request.approvedBy = req.user._id;
+      request.approvedAt = new Date();
+      request.rejectionReason = undefined;
+    } else if (status === 'rejected') {
+      request.rejectionReason = rejectionReason || 'No reason provided';
+      request.approvedBy = undefined;
+      request.approvedAt = undefined;
+    }
+
+    await request.save();
+
+    // Send notifications
+    if (status === 'approved') {
+      // Notify requester
+      await emailService.sendEmail({
+        to: request.requesterInfo.email,
+        subject: '✅ Device Request Approved - Yantra Daan',
+        html: emailService.emailTemplates.requestApproved(request.toObject())
+      });
+
+      // Notify device owner
+      await emailService.sendEmail({
+        to: request.deviceInfo.ownerId.email,
+        subject: '📱 Device Request Approved - Contact Requester - Yantra Daan',
+        html: emailService.emailTemplates.requestApprovedToOwner(request.toObject())
+      });
+
+    } else if (status === 'rejected') {
+      // Notify requester of rejection
+      await emailService.sendEmail({
+        to: request.requesterInfo.email,
+        subject: '❌ Device Request Rejected - Yantra Daan',
+        html: emailService.emailTemplates.requestRejected(request.toObject())
+      });
+    }
+
+    res.json({
+      message: `Device request ${status} successfully`,
+      request: {
+        ...request.toObject(),
+        requesterId: undefined
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin update request status error:', error);
+    res.status(500).json({
+      error: 'Failed to update request status',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Generate invoice for approved request (requester only)
+router.get('/my/:id/invoice', auth, async (req, res) => {
+  try {
+    const request = await DeviceRequestModel.findOne({
+      _id: req.params.id,
+      requesterId: req.user._id,
+      status: 'approved'
+    })
       .populate('requesterInfo', 'name email contact')
       .populate({
         path: 'deviceInfo',
@@ -606,25 +840,82 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
           select: 'name email contact',
           model: 'User'
         }
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+      });
 
-    const total = await DeviceRequestModel.countDocuments(query);
-    const totalPages = Math.ceil(total / parseInt(limit));
+    if (!request) {
+      return res.status(404).json({ error: 'Approved request not found or not owned by you' });
+    }
+
+    // Generate invoice HTML
+    const invoiceHtml = emailService.emailTemplates.generateInvoice(request.toObject());
+    
+    // Send invoice as HTML response
+    res.setHeader('Content-Type', 'text/html');
+    res.send(invoiceHtml);
+
+  } catch (error) {
+    console.error('Generate invoice error:', error);
+    res.status(500).json({
+      error: 'Failed to generate invoice',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Get all devices with requests for a specific donor (donor profile)
+router.get('/donor/profile', auth, async (req, res) => {
+  try {
+    // Get all devices owned by the donor
+    const devices = await DeviceModel.find({ ownerId: req.user._id })
+      .populate('ownerInfo', 'name email contact')
+      .sort({ createdAt: -1 });
+
+    // Get all requests for these devices
+    const deviceIds = devices.map(device => device._id);
+    const requests = await DeviceRequestModel.find({ deviceId: { $in: deviceIds } })
+      .populate('requesterInfo', 'name email contact address profession profilePhoto')
+      .populate({
+        path: 'deviceInfo',
+        select: 'title deviceType condition ownerId',
+        populate: {
+          path: 'ownerId',
+          select: 'name email contact',
+          model: 'User'
+        }
+      })
+      .sort({ createdAt: -1 });
+
+    // Group requests by device
+    const requestsByDevice = {};
+    requests.forEach(request => {
+      if (!requestsByDevice[request.deviceId]) {
+        requestsByDevice[request.deviceId] = [];
+      }
+      requestsByDevice[request.deviceId].push(request);
+    });
+
+    // Combine device info with requests
+    const devicesWithRequests = devices.map(device => ({
+      ...device.toObject(),
+      requests: requestsByDevice[device._id] || []
+    }));
 
     res.json({
-      requests,
-      total,
-      totalPages,
-      currentPage: parseInt(page)
+      devices: devicesWithRequests,
+      stats: {
+        totalDevices: devices.length,
+        totalRequests: requests.length,
+        pendingRequests: requests.filter(r => r.status === 'pending').length,
+        approvedRequests: requests.filter(r => r.status === 'approved').length,
+        completedRequests: requests.filter(r => r.status === 'completed').length,
+        rejectedRequests: requests.filter(r => r.status === 'rejected').length
+      }
     });
 
   } catch (error) {
-    console.error('Get admin requests error:', error);
+    console.error('Get donor profile data error:', error);
     res.status(500).json({
-      error: 'Failed to get device requests',
+      error: 'Failed to get donor profile data',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }

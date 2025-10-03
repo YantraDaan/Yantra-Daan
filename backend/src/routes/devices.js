@@ -21,7 +21,7 @@ router.post('/', auth, validateDevicePost, async (req, res) => {
     await device.save();
 
     // Populate owner info for email
-    await device.populate('ownerInfo');
+    await device.populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus');
 
     // Send notification to all admin users
     const adminUsers = await UserModel.find({ userRole: 'admin' });
@@ -29,7 +29,7 @@ router.post('/', auth, validateDevicePost, async (req, res) => {
     for (const admin of adminUsers) {
       await emailService.sendEmail({
         to: admin.email,
-        subject: '🆕 New Device Post Requires Approval - Yantra Daan',
+        subject: ' New Device Post Requires Approval - Yantra Daan',
         html: emailService.emailTemplates.newDevicePost(device.toObject(), req.user.toObject())
       });
     }
@@ -62,7 +62,7 @@ router.get('/approved', async (req, res) => {
     if (location) filter['location.city'] = { $regex: location, $options: 'i' };
 
     const devices = await DeviceModel.find(filter)
-      .populate('ownerInfo', 'name email')
+      .populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -89,7 +89,7 @@ router.get('/approved', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const device = await DeviceModel.findById(req.params.id)
-      .populate('ownerInfo', 'name email');
+      .populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus');
 
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
@@ -123,7 +123,7 @@ router.put('/:id', auth, async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('ownerInfo', 'name email');
+    ).populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus');
 
     res.json({
       message: 'Device updated successfully',
@@ -178,7 +178,7 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
     if (condition) filter.condition = condition;
 
     const devices = await DeviceModel.find(filter)
-      .populate('ownerInfo', 'name email')
+      .populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -205,7 +205,7 @@ router.get('/admin/all', auth, requireRole(['admin']), async (req, res) => {
 router.get('/pending', auth, requireRole(['admin']), async (req, res) => {
   try {
     const devices = await DeviceModel.find({ status: 'pending' })
-      .populate('ownerInfo', 'name email')
+      .populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus')
       .sort({ createdAt: -1 });
 
     res.json({ devices });
@@ -222,23 +222,25 @@ router.get('/pending', auth, requireRole(['admin']), async (req, res) => {
 // Update device status (admin only)
 router.put('/:id/status', auth, requireRole(['admin']), async (req, res) => {
   try {
-    const { status, rejectionReason, adminNotes } = req.body;
+    const { status, rejectionReason, adminNotes, suspensionReason } = req.body;
     
-    if (!['pending', 'approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status. Must be pending, approved, or rejected.' });
+    if (!['pending', 'approved', 'rejected', 'suspended'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be pending, approved, rejected, or suspended.' });
     }
 
     const updateData = { status };
     if (rejectionReason) updateData.rejectionReason = rejectionReason;
+    if (suspensionReason) updateData.suspensionReason = suspensionReason;
     if (adminNotes) updateData.adminNotes = adminNotes;
     if (status === 'approved') updateData.approvedAt = new Date();
     if (status === 'rejected') updateData.rejectedAt = new Date();
+    if (status === 'suspended') updateData.suspendedAt = new Date();
 
     const device = await DeviceModel.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('ownerInfo', 'name email');
+    ).populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus');
 
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
@@ -256,7 +258,13 @@ router.put('/:id/status', auth, requireRole(['admin']), async (req, res) => {
         await emailService.sendEmail({
           to: device.ownerInfo.email,
           subject: '❌ Device Post Rejected - Yantra Daan',
-          html: emailService.emailTemplates.devicePostRejected(device.toObject(), rejectionReason)
+          html: emailService.emailTemplates.devicePostRejected(device.toObject(), rejectionReason || 'No reason provided')
+        });
+      } else if (status === 'suspended') {
+        await emailService.sendEmail({
+          to: device.ownerInfo.email,
+          subject: '⚠️ Device Post Suspended - Yantra Daan',
+          html: emailService.emailTemplates.devicePostSuspended(device.toObject(), suspensionReason || 'No reason provided')
         });
       }
     } catch (emailError) {
@@ -302,7 +310,7 @@ router.put('/admin/:id', auth, requireRole(['admin']), async (req, res) => {
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('ownerInfo', 'name email');
+    ).populate('ownerInfo', 'name email contact userRole categoryType isOrganization about profession address linkedIn instagram facebook profilePhoto isVerified verificationStatus');
 
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
